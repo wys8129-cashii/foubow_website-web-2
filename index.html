@@ -1,0 +1,237 @@
+<!DOCTYPE html><html class="light" lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<link rel="stylesheet" href="/css/tailwind.css">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+</head>
+<body class="font-body-md text-on-surface">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant/30 shadow-sm">
+<div class="flex justify-between items-center px-6 md:px-16 h-20 w-full max-w-container-max mx-auto">
+<div class="flex items-center gap-8">
+<a href="/" class="font-headline-lg text-headline-lg font-bold text-primary tracking-tight cursor-pointer">Foubow</a>
+<div class="hidden md:flex gap-6">
+<a class="font-title-md text-title-md text-primary border-b-2 border-primary pb-1" href="/">首页</a>
+<a class="font-title-md text-title-md text-on-surface-variant hover:text-primary transition-colors" href="/matierial.html">我的素材</a>
+<a class="font-title-md text-title-md text-on-surface-variant hover:text-primary transition-colors" href="#">Wiki</a>
+</div>
+</div>
+<div class="flex items-center gap-4" id="auth-buttons">
+<a href="/login" id="login-btn" class="hidden md:block px-6 py-2 text-primary font-medium hover:bg-primary/5 rounded-full transition-all cursor-pointer">登录</a>
+<a href="/register" id="register-btn" class="px-6 py-2 bg-primary text-on-primary font-medium rounded-full shadow-lg hover:shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer">注册</a>
+<a href="#" id="logout-btn" class="hidden px-6 py-2 bg-primary text-on-primary font-medium rounded-full shadow-lg hover:shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer">退出登录</a>
+</div>
+</div>
+</nav>
+<main class="pt-20">
+<!-- Hero Section -->
+<section class="relative overflow-hidden hero-gradient py-24 md:py-32">
+<div class="max-w-container-max mx-auto px-6 md:px-16 grid md:grid-cols-2 gap-12 items-center">
+<div class="space-y-6">
+<span class="inline-block px-4 py-1.5 bg-primary/10 text-primary rounded-full font-label-sm text-label-sm uppercase tracking-wider">Luminous Knowledge Lab</span>
+<h1 class="font-display-lg text-display-lg text-on-surface leading-tight">
+                        捕捉灵感，<br><span class="text-primary">构筑你的知识百科</span>
+</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-lg">
+                        Foubow 平台提供截屏识别工具，帮助你收藏日常上网时看到的有价值内容，通过 AI 智能整理，将灵感转化为干货。
+                    </p>
+<div class="flex flex-wrap gap-4 pt-4">
+<button class="flex items-center gap-2 px-8 py-4 primary-gradient-bg text-on-primary rounded-xl font-title-md shadow-xl hover:shadow-cyan-500/40 transition-all">
+<span class="material-symbols-outlined">rocket_launch</span>
+                            立即开始
+                        </button>
+<button class="flex items-center gap-2 px-8 py-4 bg-surface-container-highest/50 border border-outline-variant/30 rounded-xl font-title-md hover:bg-surface-container-highest transition-all">
+<span class="material-symbols-outlined text-primary">explore</span>
+                            探索 Wiki
+                        </button>
+</div>
+</div>
+<div class="relative">
+<div class="absolute -inset-4 bg-primary/5 blur-3xl rounded-full"></div>
+</div>
+</div>
+</section>
+<!-- 工具使用说明 Section -->
+<section class="py-24 bg-surface-container-lowest">
+<div class="max-w-container-max mx-auto px-6 md:px-16">
+<div class="flex flex-col md:flex-row justify-between items-end gap-6 mb-16">
+<div class="space-y-4">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">工具使用说明</h2>
+<p class="text-on-surface-variant max-w-2xl font-body-md">
+                            帮助你收藏日常上网时看到的有价值内容，例如抖音刷到的视频、小红书干货笔记、浏览器页面中的优质网站、新闻网站、工具网站等。
+                        </p>
+</div>
+<div class="flex items-center gap-3 px-4 py-2 bg-error-container text-on-error-container rounded-lg font-label-sm">
+<span class="material-symbols-outlined text-[18px]">privacy_tip</span>
+                        温馨提示：截图中请勿包含隐私信息。</div>
+</div>
+<div class="grid md:grid-cols-3 gap-gutter">
+<!-- Browser Plugin -->
+<div class="glass-card p-10 rounded-2xl flex flex-col gap-6">
+<div class="w-16 h-16 rounded-xl primary-gradient-bg flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-4xl">extension</span>
+</div>
+<h3 class="font-title-md text-title-md">浏览器插件</h3>
+<p class="text-on-surface-variant font-body-md">一键抓取网页内容，完美适配 Chrome 与 Edge 浏览器。</p>
+<div class="mt-auto pt-4 border-t border-outline-variant/20">
+<a class="text-primary font-medium flex items-center gap-2" href="#">前往商店 <span class="material-symbols-outlined">arrow_right_alt</span></a>
+</div>
+</div>
+<!-- iOS Shortcut -->
+<div class="glass-card p-10 rounded-2xl flex flex-col gap-6">
+<div class="w-16 h-16 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-4xl">ios_share</span>
+</div>
+<h3 class="font-title-md text-title-md">iOS 快捷指令</h3>
+<p class="text-on-surface-variant font-body-md">安装快捷指令后，触发后瞬间同步至 Foubow 系统。</p>
+<div class="mt-auto pt-4 border-t border-outline-variant/20">
+<a class="text-primary font-medium flex items-center gap-2" href="#">添加指令 <span class="material-symbols-outlined">arrow_right_alt</span></a>
+</div>
+</div>
+<!-- Android App -->
+<div class="glass-card p-10 rounded-2xl flex flex-col gap-6">
+<div class="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-4xl">android</span>
+</div>
+<h3 class="font-title-md text-title-md">安卓端应用</h3>
+<p class="text-on-surface-variant font-body-md">请在应用内上传</p>
+<div class="mt-auto pt-4 border-t border-outline-variant/20">
+<a class="text-primary font-medium flex items-center gap-2" href="#">立即下载 <span class="material-symbols-outlined">arrow_right_alt</span></a>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 知识共享 Wiki Bento Grid -->
+<section class="py-24 bg-surface">
+<div class="max-w-container-max mx-auto px-6 md:px-16">
+<div class="text-center mb-16 space-y-4">
+<h2 class="font-headline-lg text-headline-lg">知识共享</h2>
+<p class="text-on-surface-variant font-body-md max-w-2xl mx-auto">
+                        下边是 Foubow 平台整理好的干货内容，您可按需取用。<br>
+                        如果您有更好的想法，或有独家内容分享，欢迎联系平台管理员。
+                    </p>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Wiki Card 1 -->
+<div class="glass-card p-8 rounded-2xl group">
+<div class="flex justify-between items-start mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">work</span>
+<span class="px-2 py-1 bg-primary/10 text-primary rounded font-label-sm">Active</span>
+</div>
+<h4 class="font-title-md text-title-md mb-2">工作 Wiki</h4>
+<p class="text-on-surface-variant text-sm font-body-md">职场生活・技能成长知识库</p>
+</div>
+<!-- Wiki Card 2 -->
+<div class="glass-card p-8 rounded-2xl group">
+<div class="flex justify-between items-start mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">travel_explore</span>
+</div>
+<h4 class="font-title-md text-title-md mb-2">旅游 Wiki</h4>
+<p class="text-on-surface-variant text-sm font-body-md">出行打卡・美食游玩指南</p>
+</div>
+<!-- Wiki Card 3 -->
+<div class="glass-card p-8 rounded-2xl group">
+<div class="flex justify-between items-start mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">badge</span>
+</div>
+<h4 class="font-title-md text-title-md mb-2">求职 Wiki</h4>
+<p class="text-on-surface-variant text-sm font-body-md">求职面试・职场准入参考</p>
+</div>
+<!-- Wiki Card 4 -->
+<div class="glass-card p-8 rounded-2xl group">
+<div class="flex justify-between items-start mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">palette</span>
+</div>
+<h4 class="font-title-md text-title-md mb-2">艺术 Wiki</h4>
+<p class="text-on-surface-variant text-sm font-body-md">创作・风格学习</p>
+</div>
+<!-- Wiki Card 5 -->
+<div class="glass-card p-8 rounded-2xl group">
+<div class="flex justify-between items-start mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">corporate_fare</span>
+</div>
+<h4 class="font-title-md text-title-md mb-2">商业 Wiki</h4>
+<p class="text-on-surface-variant text-sm font-body-md">营销运营・品牌商业洞察</p>
+</div>
+<!-- Wiki Card 6 -->
+<div class="glass-card p-8 rounded-2xl group">
+<div class="flex justify-between items-start mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">history_edu</span>
+</div>
+<h4 class="font-title-md text-title-md mb-2">文化 Wiki</h4>
+<p class="text-on-surface-variant text-sm font-body-md">对话空间・议题写作</p>
+</div>
+<!-- Wiki Card 7 -->
+<div class="glass-card p-8 rounded-2xl group">
+<div class="flex justify-between items-start mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">self_improvement</span>
+</div>
+<h4 class="font-title-md text-title-md mb-2">成长 Wiki</h4>
+<p class="text-on-surface-variant text-sm font-body-md">情绪管理・认知升级</p>
+</div>
+<!-- Wiki Card 8 -->
+<div class="glass-card p-8 rounded-2xl group">
+<div class="flex justify-between items-start mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">trending_up</span>
+</div>
+<h4 class="font-title-md text-title-md mb-2">潮流 Wiki</h4>
+<p class="text-on-surface-variant text-sm font-body-md">新品上新・好物速递</p>
+</div>
+</div>
+</div>
+</section>
+<!-- 平台价值 Section -->
+<section class="py-24 relative overflow-hidden">
+<div class="absolute inset-0 bg-primary/5 -skew-y-3 origin-right"></div>
+<div class="max-w-container-max mx-auto px-6 md:px-16 relative z-10">
+<div class="max-w-4xl mx-auto space-y-16">
+    <h2 class="font-headline-lg text-headline-lg text-center">平台价值与愿景</h2>
+    <div class="grid md:grid-cols-2 gap-12">
+        <div class="flex flex-col items-center text-center space-y-4">
+            <div class="flex-shrink-0 w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2">
+                <span class="material-symbols-outlined text-3xl">shield</span>
+            </div>
+            <div class="space-y-2">
+                <h3 class="font-title-md text-title-md">隐私管理</h3>
+                <p class="text-on-surface-variant font-body-md">
+                    你可以设置素材仅自己可见。素材默认为公开可见，即表示你已授权平台将这些截图公开使用。我们始终将你的数据掌控权放在首位。
+                </p>
+            </div>
+        </div>
+        <div class="flex flex-col items-center text-center space-y-4">
+            <div class="flex-shrink-0 w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2">
+                <span class="material-symbols-outlined text-3xl">psychology</span>
+            </div>
+            <div class="space-y-2">
+                <h3 class="font-title-md text-title-md">AI 智能驱动</h3>
+                <p class="text-on-surface-variant font-body-md">
+                    本平台将使用 AI 智能整理截屏素材，形成干货内容分享给每一位用户，这也是平台创立的初衷。让碎片化的信息通过科技重塑为体系化的知识。
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="p-8 rounded-2xl border border-outline-variant/30 italic text-on-surface-variant font-body-md text-center max-w-2xl mx-auto bg-white">"将每一次简单的截图，转化为全人类共享的智慧火花。"</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-12 bg-surface-container-low border-t border-outline-variant/20 mt-12">
+<div class="flex flex-col md:flex-row justify-between items-center px-6 md:px-16 w-full max-w-container-max mx-auto gap-base">
+<div class="flex flex-col gap-2">
+<span class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary">Foubow</span>
+<p class="font-body-md text-body-md text-on-surface-variant">© 2024 Foubow Knowledge Lab. All rights reserved.</p>
+</div>
+<div class="flex flex-wrap justify-center gap-8">
+</div>
+</div>
+</footer>
+<!-- FAB for quick action -->
+<button class="fixed bottom-8 right-8 w-14 h-14 primary-gradient-bg text-on-primary rounded-full shadow-2xl flex items-center justify-center active:scale-95 transition-transform md:hidden">
+<span class="material-symbols-outlined">add</span>
+</button>
+<script src="/js/common.js"></script>
+<script src="/js/home.js"></script>
+</body>
+</html>

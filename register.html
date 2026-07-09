@@ -1,0 +1,133 @@
+<!DOCTYPE html><html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<link rel="stylesheet" href="/css/tailwind.css">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .primary-gradient {
+            background: linear-gradient(135deg, #06B6D4 0%, #0891B2 100%);
+        }
+        .bg-mesh {
+            background-color: #f7f9fb;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.1) 0px, transparent 50%);
+        }
+        .inner-glow {
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
+        }
+    </style>
+
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-mesh min-h-screen flex flex-col font-body-md text-on-surface selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-md shadow-sm border-b border-outline-variant/30 h-20">
+<div class="flex justify-between items-center px-margin-desktop h-full w-full max-w-container-max mx-auto">
+<div class="flex items-center gap-base">
+<a href="index.html" class="font-headline-lg text-headline-lg font-bold text-primary dark:text-primary-fixed tracking-tight cursor-pointer">Foubow</a>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="font-title-md text-title-md text-on-surface-variant hover:text-primary transition-colors" href="#">Wiki</a>
+</nav>
+<div class="flex items-center gap-4" id="auth-buttons">
+<a href="login.html" id="login-btn" class="hidden md:block px-6 py-2 text-primary font-medium hover:bg-primary/5 rounded-full transition-all cursor-pointer">登录</a>
+<a href="#" id="logout-btn" class="hidden px-6 py-2 bg-primary text-on-primary font-medium rounded-full shadow-lg hover:shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer">退出登录</a>
+</div>
+</div>
+</header>
+<main class="flex-grow flex items-center justify-center px-margin-mobile md:px-margin-desktop pt-32 pb-20">
+<!-- Main Form Container -->
+<div class="w-full max-w-[500px] relative">
+<!-- Decorative atmospheric elements -->
+<div class="absolute -top-12 -left-12 w-24 h-24 bg-primary-container/20 rounded-full blur-2xl"></div>
+<div class="absolute -bottom-12 -right-12 w-32 h-32 bg-secondary-container/20 rounded-full blur-3xl"></div>
+<div class="glass-card rounded-2xl p-10 md:p-12 shadow-2xl relative z-10 overflow-hidden">
+<div class="mb-10 text-center">
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">欢迎加入知识实验室</h1>
+<p class="text-on-surface-variant font-body-md text-body-md">创建一个账号，开始您的知识捕捉之旅</p>
+</div>
+<form class="space-y-6" id="registerForm" onsubmit="return false">
+<!-- Nickname Field -->
+<div class="group">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-2 ml-1" for="nickname">用户昵称</label>
+<div class="relative">
+<input class="w-full px-5 py-4 bg-surface-container-low border-0 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary transition-all outline-none text-body-md font-body-md placeholder:text-outline/50" id="nickname" placeholder="输入您的昵称" type="text">
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline/40">person</span>
+</div>
+</div>
+<!-- Email Field -->
+<div class="group">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-2 ml-1" for="email">邮箱</label>
+<div class="relative">
+<input class="w-full px-5 py-4 bg-surface-container-low border-0 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary transition-all outline-none text-body-md font-body-md placeholder:text-outline/50" id="email" placeholder="example@foubow.com" type="email">
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline/40">mail</span>
+</div>
+</div>
+<!-- Password Field -->
+<div class="group">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-2 ml-1" for="password">密码</label>
+<div class="relative">
+<input class="w-full px-5 py-4 bg-surface-container-low border-0 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary transition-all outline-none text-body-md font-body-md placeholder:text-outline/50" id="password" placeholder="请输入至少6位密码,含字母+数字" type="password">
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline/40 cursor-pointer hover:text-primary transition-colors">visibility</span>
+</div>
+</div>
+<!-- Confirm Password Field -->
+<div class="group">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-2 ml-1" for="confirm_password">确认密码</label>
+<div class="relative">
+<input class="w-full px-5 py-4 bg-surface-container-low border-0 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary transition-all outline-none text-body-md font-body-md placeholder:text-outline/50" id="confirm_password" placeholder="请再次输入密码" type="password">
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline/40 cursor-pointer hover:text-primary transition-colors">visibility</span>
+</div>
+</div>
+<!-- Terms Agreement -->
+<div class="flex items-start gap-3 px-1">
+<input class="mt-1 w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary cursor-pointer" id="terms" type="checkbox">
+<label class="text-body-md font-body-md text-on-surface-variant leading-relaxed" for="terms">
+                            我已阅读并同意 <a class="text-primary hover:underline font-medium" href="#">服务条款</a> 和 <a class="text-primary hover:underline font-medium" href="#">隐私政策</a>
+</label>
+</div>
+<!-- Submit Button -->
+<button class="w-full primary-gradient text-white font-title-md text-title-md py-4 rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-[1.01] active:scale-[0.98] transition-all duration-300 inner-glow flex items-center justify-center gap-2 group mt-4" type="submit">
+                        立即注册
+                        <span class="material-symbols-outlined transition-transform group-hover:translate-x-1">arrow_forward</span>
+</button>
+</form>
+<!-- Social Registration Alternative -->
+
+<p class="mt-10 text-center text-body-md font-body-md text-on-surface-variant">
+                    已经有账号了? <a class="text-primary font-bold hover:underline" href="#">立即登录</a>
+</p>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full py-12 bg-surface-container-low dark:bg-surface-container-lowest border-t border-outline-variant/20">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-desktop w-full max-w-container-max mx-auto gap-base">
+<div class="flex flex-col items-center md:items-start gap-2">
+<span class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary dark:text-primary-fixed">Foubow</span>
+<p class="font-body-md text-body-md text-on-surface-variant dark:text-surface-variant">© 2024 Foubow Knowledge Lab. All rights reserved.</p>
+</div>
+<div class="flex flex-wrap justify-center gap-x-8 gap-y-2 mt-6 md:mt-0">
+
+
+
+
+</div>
+</div>
+</footer>
+<script src="/js/common.js"></script>
+<script src="/js/register.js"></script>
+</body>
+</html>
