@@ -1,13 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: "class",
-  content: [
-  "./public/index.html",
-  "./public/login.html",
-  "./public/register.html",
-  "./public/matierial.html",
-  "./public/privacy.html",
-  "./public/terms.html",
+ content: [
+  "./index.html",
+  "./login.html",
+  "./register.html",
+  "./matierial.html",
+  "./privacy.html",
+  "./terms.html",
   "./public/js/*.js",
   "./src/**/*.js"
 ],
