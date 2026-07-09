@@ -5,3 +5,6 @@ __pycache__/
 .env
 vercel/
 .DS_Store
+node_modules/
+package-lock.json
+EOF
