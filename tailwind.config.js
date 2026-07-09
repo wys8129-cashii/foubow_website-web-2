@@ -99,14 +99,6 @@ module.exports = {
   },
   plugins: [
     function({ addBase, addComponents, addUtilities }) {
-      addBase({
-        '@font-face': {
-          fontFamily: "'Material Symbols Outlined'",
-          fontStyle: 'normal',
-          fontWeight: '100 700',
-          src: 'url(https://fonts.gstatic.com/s/materialsymbolsrounded/v183/bqiJMx1fY-U7CxvJ2NkZkp0oY3JXw1.woff2) format("woff2")',
-        },
-      })
       addComponents({
         '.material-symbols-outlined': {
           fontFamily: "'Material Symbols Outlined'",
