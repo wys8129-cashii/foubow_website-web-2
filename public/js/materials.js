@@ -1030,6 +1030,13 @@ function renderUploadList() {
 
 // ===== Init =====
 async function init() {
+  // 登录守卫：未登录直接跳转，避免加载弹窗卡住
+  const isLogin = localStorage.getItem('isLogin') === 'true';
+  if (!isLogin) {
+    window.location.replace('/login.html');
+    return;
+  }
+
   showLoading('正在加载素材...');
 
   // 1. 从 localStorage 填充用户信息

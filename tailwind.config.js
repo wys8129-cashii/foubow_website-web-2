@@ -5,7 +5,7 @@ module.exports = {
   "./index.html",
   "./login.html",
   "./register.html",
-  "./matierial.html",
+  "./material.html",
   "./privacy.html",
   "./terms.html",
   "./public/js/*.js",

@@ -398,8 +398,8 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-app.get('/matierial.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'matierial.html'));
+app.get('/material.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'material.html'));
 });
 
 app.get('/privacy.html', (req, res) => {
