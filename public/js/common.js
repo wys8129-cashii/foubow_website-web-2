@@ -1,8 +1,8 @@
 // ======================
-// 全局加载长条
+// 全局加载提示（顶部小胶囊）
 // ======================
 function showLoading(msg) {
-  msg = msg || '正在处理...';
+  msg = msg || '处理中...';
   let bar = document.getElementById('loading-bar');
   if (!bar) {
     bar = document.createElement('div');
@@ -10,19 +10,19 @@ function showLoading(msg) {
     bar.innerHTML = `
       <style>
         @keyframes loading-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        @keyframes loading-slide { from{transform:translateY(-100%)} to{transform:translateY(0)} }
+        @keyframes loading-fade { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
         #loading-bar {
-          position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-          height: 44px; display: flex; align-items: center; justify-content: center; gap: 10px;
-          background: linear-gradient(135deg, #06B6D4, #0891B2);
-          color: #fff; font-size: 14px; font-weight: 500;
-          transform: translateY(-100%); transition: transform 0.25s ease;
-          box-shadow: 0 2px 12px rgba(6,182,212,0.3);
+          position: fixed; top: 16px; left: 50%; transform: translate(-50%, -4px); z-index: 9999;
+          display: flex; align-items: center; gap: 8px; padding: 8px 18px;
+          background: #fff; color: #6b7280; font-size: 13px;
+          border-radius: 20px; border: 1px solid #e5e7eb;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+          opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease;
         }
-        #loading-bar.show { transform: translateY(0); animation: loading-slide 0.25s ease; }
+        #loading-bar.show { opacity: 1; transform: translate(-50%, 0); animation: loading-fade 0.2s ease; }
         #loading-bar .material-symbols-outlined {
           font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal;
-          font-size: 20px; animation: loading-spin 0.8s linear infinite;
+          font-size: 16px; color: #9ca3af; animation: loading-spin 0.8s linear infinite;
         }
       </style>
       <span class="material-symbols-outlined">progress_activity</span>
@@ -31,15 +31,6 @@ function showLoading(msg) {
   }
   document.getElementById('loading-text').textContent = msg;
   bar.classList.add('show');
-  // 3 秒后仍显示则追加提示
-  setTimeout(() => {
-    if (bar.classList.contains('show')) {
-      const el = document.getElementById('loading-text');
-      if (el && !el.textContent.includes('请耐心等待')) {
-        el.textContent = msg + ' · 请耐心等待，首次请求可能较慢';
-      }
-    }
-  }, 3000);
 }
 
 function hideLoading() {
