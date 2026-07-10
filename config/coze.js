@@ -10,7 +10,7 @@ module.exports = {
   collectionsWorkflowId:         '7635623652596121640',  // 获取合集列表
   materialDetailWorkflowId:      '7635623569224957986',  // 获取素材详情
   filterByCollectionWorkflowId:  '7650828923094695979',  // 按合集筛选素材
-  uploadWorkflowId:              '7654990166079602703',  // 上传素材（流式）
+  uploadWorkflowId:              '7660818254638350399',  // 上传素材（流式，支持多图）
   createCollectionWorkflowId:    '7654970692107026478',  // 新增合集（流式）
   updateCollectionWorkflowId:    '7654970749027090441',  // 修改合集（流式）
   deleteCollectionWorkflowId:    '7654970789695717412',  // 删除合集（流式）

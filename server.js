@@ -29,7 +29,7 @@ const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
 const rateLimit = isServerless ? null : require('express-rate-limit');
 const { cozeGetMaterials, cozeGetCollections, cozeGetMaterialDetail, cozeFilterByCollection, cozeUploadMaterial, cozeCreateCollection, cozeUpdateCollection, cozeDeleteCollection, cozeUploadFile, cozeMoveMaterial } = require('./src/api/coze');
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024, files: 20 } });
 
 const app = express();
 const PORT = process.env.PORT || 2300;
@@ -249,29 +249,30 @@ app.post('/api/coze/material/detail', authMiddleware, cozeApiLimiter, async (req
   }
 });
 
-// 上传素材
-app.post('/api/coze/materials/upload', authMiddleware, uploadLimiter, upload.single('image'), async (req, res) => {
+// 上传素材（支持批量多图）
+app.post('/api/coze/materials/upload', authMiddleware, uploadLimiter, upload.array('images', 20), async (req, res) => {
   try {
     const user = req.userEmail;
-    const file = req.file;
+    const files = req.files;
 
-    console.log('收到上传素材请求:', { user, fileName: file?.originalname });
+    console.log('收到上传素材请求:', { user, fileCount: files?.length });
 
-    if (!file) {
+    if (!files || files.length === 0) {
       return res.json({ code: 0, msg: '请选择图片文件' });
     }
 
-    const base64 = file.buffer.toString('base64');
-    const mimeType = file.mimetype || 'image/png';
-    const dataUrl = `data:${mimeType};base64,${base64}`;
+    // 逐张上传到 Coze 文件存储，收集所有 URL
+    const urls = [];
+    for (let i = 0; i < files.length; i++) {
+      console.log(`上传文件 (${i + 1}/${files.length}) 到 Coze 文件存储...`);
+      const fileUrl = await cozeUploadFile(files[i].buffer, files[i].originalname);
+      urls.push(fileUrl);
+    }
 
-    console.log('先上传文件到 Coze 文件存储...');
-    const fileUrl = await cozeUploadFile(file.buffer, file.originalname);
-    console.log('文件上传成功，URL:', fileUrl);
-
-    console.log('调用 Coze 上传素材 API...');
+    console.log('所有文件上传完成，共', urls.length, '个 URL');
+    console.log('调用 Coze 上传素材 API（批量）...');
     const result = await cozeUploadMaterial({
-      screenshot: fileUrl,
+      screenshot: urls,
       user: user,
     });
 

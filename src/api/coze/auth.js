@@ -249,9 +249,9 @@ async function cozeUploadFile(fileBuffer, fileName) {
 }
 
 /**
- * 调用 Coze API 上传素材
+ * 调用 Coze API 上传素材（支持批量多图）
  * @param {Object} params 参数
- * @param {string} params.screenshot 图片 URL
+ * @param {string[]} params.screenshot 图片 URL 数组
  * @param {string} params.user 用户邮箱
  * @returns {Promise<any>} Coze 接口返回结果
  */

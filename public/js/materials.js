@@ -1004,30 +1004,26 @@ async function confirmUpload() {
   if (uploadImages.length === 0) { alert('请先添加图片'); return; }
 
   const userEmail = localStorage.getItem('userEmail') || 'guest@foubow.fun';
-  let success = 0, failed = 0;
 
   try {
-    for (let i = 0; i < uploadImages.length; i++) {
-      showLoading(`正在上传素材 (${i + 1}/${uploadImages.length})...`);
-      const formData = new FormData();
-      formData.append('user', userEmail);
-      formData.append('image', uploadImages[i].file);
+    showLoading(`正在上传 ${uploadImages.length} 张素材...`);
+    const formData = new FormData();
+    formData.append('user', userEmail);
+    uploadImages.forEach(img => formData.append('images', img.file));
 
-      const response = await fetch('/api/coze/materials/upload', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
-        body: formData,
-      });
+    const response = await fetch('/api/coze/materials/upload', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
+      body: formData,
+    });
 
-      const result = await response.json();
-      if (result.code === 1) { success++; } else { failed++; console.error('上传失败:', result.msg); }
-    }
-
+    const result = await response.json();
     hideLoading();
-    if (failed === 0) {
-      alert(`上传成功！共 ${success} 张素材`);
+
+    if (result.code === 1) {
+      alert(`上传成功！共 ${uploadImages.length} 张素材`);
     } else {
-      alert(`上传完成：${success} 张成功，${failed} 张失败`);
+      alert('上传失败：' + (result.msg || '未知错误'));
     }
     uploadImages = [];
     closeUploadModal();
