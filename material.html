@@ -335,9 +335,9 @@
         <div class="text-sm text-[#6B7280]">拖拽图片到此或<span class="text-[#1A1A1A] font-medium">点击上传</span></div>
         <div class="text-xs text-[#9CA3AF] mt-1">支持 JPG、PNG、WebP 格式，单次仅可上传 1 张</div>
       </div>
-      <input type="file" id="upload-file-input" accept="image/*" class="hidden" onchange="handleUploadFiles(this.files);this.value=''">
+      <input type="file" id="upload-file-input" accept="image/*" class="hidden" multiple onchange="handleUploadFiles(this.files);this.value=''">
       <div class="px-5 py-2 shrink-0 flex items-center justify-between">
-        <span class="text-xs text-[#9CA3AF]">已添加 <span id="upload-count" class="font-medium text-[#6B7280]">0</span> 张图片</span>
+        <span class="text-xs text-[#9CA3AF]">最多20张 · 已添加 <span id="upload-count" class="font-medium text-[#6B7280]">0</span> 张</span>
         <button onclick="uploadImages=[];renderUploadList()" class="text-xs text-[#9CA3AF] hover:text-[#EF4444] transition-colors">清空</button>
       </div>
       <div id="upload-image-list" class="upload-image-grid"></div>

@@ -973,13 +973,29 @@ async function changeCollection() {
 function openUploadModal() { uploadImages = []; document.getElementById('upload-overlay').classList.add('open'); renderUploadList(); setTimeout(() => lucide.createIcons(), 100); }
 function closeUploadModal() { document.getElementById('upload-overlay').classList.remove('open'); }
 function handleUploadFiles(files) {
-  const file = files[0];
-  if (!file || !file.type.startsWith('image/')) return;
-  uploadImages = [];
-  const reader = new FileReader();
-  const id = Date.now() + '_' + Math.random().toString(36).slice(2, 10);
-  reader.onload = (e) => { uploadImages.push({ id, file, dataUrl: e.target.result, name: file.name }); renderUploadList(); };
-  reader.readAsDataURL(file);
+  const MAX_IMAGES = 20;
+  const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+  if (validFiles.length === 0) return;
+
+  const remaining = MAX_IMAGES - uploadImages.length;
+  if (remaining <= 0) { alert(`最多上传 ${MAX_IMAGES} 张图片`); return; }
+
+  const toAdd = validFiles.slice(0, remaining);
+  if (validFiles.length > remaining) {
+    alert(`最多上传 ${MAX_IMAGES} 张，本次仅保留前 ${remaining} 张`);
+  }
+
+  let loaded = 0;
+  toAdd.forEach(file => {
+    const reader = new FileReader();
+    const id = Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+    reader.onload = (e) => {
+      uploadImages.push({ id, file, dataUrl: e.target.result, name: file.name });
+      loaded++;
+      if (loaded === toAdd.length) renderUploadList();
+    };
+    reader.readAsDataURL(file);
+  });
 }
 function removeUploadImage(id) { uploadImages = uploadImages.filter(img => img.id !== id); renderUploadList(); }
 function moveUp(id) { const idx = uploadImages.findIndex(img => img.id === id); if (idx <= 0) return; [uploadImages[idx-1], uploadImages[idx]] = [uploadImages[idx], uploadImages[idx-1]]; renderUploadList(); }
@@ -988,33 +1004,36 @@ async function confirmUpload() {
   if (uploadImages.length === 0) { alert('请先添加图片'); return; }
 
   const userEmail = localStorage.getItem('userEmail') || 'guest@foubow.fun';
+  let success = 0, failed = 0;
 
   try {
-    showLoading('正在上传素材...');
-    const formData = new FormData();
-    formData.append('user', userEmail);
-    formData.append('image', uploadImages[0].file);
+    for (let i = 0; i < uploadImages.length; i++) {
+      showLoading(`正在上传素材 (${i + 1}/${uploadImages.length})...`);
+      const formData = new FormData();
+      formData.append('user', userEmail);
+      formData.append('image', uploadImages[i].file);
 
-    const response = await fetch('/api/coze/materials/upload', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
-      body: formData,
-    });
+      const response = await fetch('/api/coze/materials/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
+        body: formData,
+      });
 
-    const result = await response.json();
-
-    if (result.code === 1) {
-      hideLoading();
-      alert('上传成功！');
-      uploadImages = [];
-      closeUploadModal();
-      renderUploadList();
-      materials = await fetchMaterials();
-      renderMainContent();
-    } else {
-      hideLoading();
-      alert('上传失败：' + (result.msg || '未知错误'));
+      const result = await response.json();
+      if (result.code === 1) { success++; } else { failed++; console.error('上传失败:', result.msg); }
     }
+
+    hideLoading();
+    if (failed === 0) {
+      alert(`上传成功！共 ${success} 张素材`);
+    } else {
+      alert(`上传完成：${success} 张成功，${failed} 张失败`);
+    }
+    uploadImages = [];
+    closeUploadModal();
+    renderUploadList();
+    materials = await fetchMaterials();
+    renderMainContent();
   } catch (error) {
     console.error('上传错误:', error);
     hideLoading();
