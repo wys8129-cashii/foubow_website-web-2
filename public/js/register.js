@@ -31,6 +31,7 @@ async function register() {
     return;
   }
 
+  showLoading('正在注册...');
   const res = await fetch("/api/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -42,6 +43,7 @@ async function register() {
   });
 
   const result = await res.json();
+  hideLoading();
 
   if (result.code === 1) {
     alert("注册成功！");

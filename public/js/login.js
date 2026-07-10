@@ -13,6 +13,7 @@ async function login() {
     return;
   }
 
+  showLoading('正在登录...');
   const res = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -23,6 +24,7 @@ async function login() {
   });
 
   const result = await res.json();
+  hideLoading();
 
   if (result.code === 1) {
     localStorage.setItem('isLogin', 'true');

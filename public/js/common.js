@@ -1,4 +1,52 @@
 // ======================
+// 全局加载弹窗
+// ======================
+function showLoading(msg) {
+  msg = msg || '正在处理...';
+  let overlay = document.getElementById('loading-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'loading-overlay';
+    overlay.innerHTML = `
+      <style>
+        @keyframes loading-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        #loading-overlay {
+          display: none; position: fixed; inset: 0; z-index: 9999;
+          background: rgba(0,0,0,0.25); align-items: center; justify-content: center;
+        }
+        #loading-overlay.show { display: flex; }
+        #loading-card {
+          background: #fff; border-radius: 16px; padding: 36px 56px; text-align: center;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+          display: flex; flex-direction: column; align-items: center; gap: 18px;
+        }
+        #loading-card .material-symbols-outlined {
+          font-size: 40px; color: #06B6D4; animation: loading-spin 0.8s linear infinite;
+        }
+        #loading-card p { font-size: 15px; color: #555; margin: 0; font-weight: 500; }
+      </style>
+      <div id="loading-card">
+        <span class="material-symbols-outlined">progress_activity</span>
+        <p id="loading-text"></p>
+      </div>`;
+    document.body.appendChild(overlay);
+  }
+  document.getElementById('loading-text').textContent = msg;
+  overlay.classList.add('show');
+  // 3 秒后仍显示则追加提示
+  setTimeout(() => {
+    if (overlay.classList.contains('show')) {
+      document.getElementById('loading-text').textContent = msg + '\n请耐心等待，首次请求可能较慢';
+    }
+  }, 3000);
+}
+
+function hideLoading() {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) overlay.classList.remove('show');
+}
+
+// ======================
 // Token 自动刷新（保持 30 天登录态）
 // ======================
 let _refreshing = null;

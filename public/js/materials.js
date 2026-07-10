@@ -706,7 +706,9 @@ async function selectCard(id) {
   // 调用 API 获取详情
   const currentItem = materials.find(m => String(m.id) === String(id));
   if (currentItem) {
+    showLoading('正在加载详情...');
     const detail = await fetchMaterialDetail(currentItem.title);
+    hideLoading();
     if (detail) {
       const contentLines = detail.content ? detail.content.split('\n').filter(line => line.trim()) : [];
       currentItem.details = {
@@ -852,8 +854,9 @@ async function saveCollection() {
   const userEmail = localStorage.getItem('userEmail') || 'guest@foubow.fun';
 
   try {
+    showLoading(editingCollection ? '正在修改合集...' : '正在添加合集...');
     if (editingCollection) {
-      if (name === editingCollection) { closeModal(); return; }
+      if (name === editingCollection) { hideLoading(); closeModal(); return; }
 
       const response = await fetch('/api/coze/collections/update', {
         method: 'POST',
@@ -861,7 +864,7 @@ async function saveCollection() {
         body: JSON.stringify({ input: name, old_name: editingCollection }),
       });
       const result = await response.json();
-      if (result.code !== 1) { alert('修改合集失败：' + (result.msg || '未知错误')); return; }
+      if (result.code !== 1) { hideLoading(); alert('修改合集失败：' + (result.msg || '未知错误')); return; }
 
       const idx = collections.indexOf(editingCollection);
       if (idx !== -1) collections[idx] = name;
@@ -875,7 +878,7 @@ async function saveCollection() {
         body: JSON.stringify({ input: name }),
       });
       const result = await response.json();
-      if (result.code !== 1) { alert('新增合集失败：' + (result.msg || '未知错误')); return; }
+      if (result.code !== 1) { hideLoading(); alert('新增合集失败：' + (result.msg || '未知错误')); return; }
 
       if (!collections.includes(name)) collections.push(name);
     }
@@ -883,9 +886,11 @@ async function saveCollection() {
     renderCollections();
     renderMainContent();
     if (panelMode) renderRightPanel();
+    hideLoading();
     closeModal();
   } catch (error) {
     console.error('合集操作错误:', error);
+    hideLoading();
     alert('操作失败：' + error.message);
   }
 }
@@ -896,13 +901,14 @@ async function deleteCollection() {
   const userEmail = localStorage.getItem('userEmail') || 'guest@foubow.fun';
 
   try {
+    showLoading('正在删除合集...');
     const response = await fetch('/api/coze/collections/delete', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ input: name }),
     });
     const result = await response.json();
-    if (result.code !== 1) { alert('删除合集失败：' + (result.msg || '未知错误')); return; }
+    if (result.code !== 1) { hideLoading(); alert('删除合集失败：' + (result.msg || '未知错误')); return; }
 
     if (!collections.includes('未分类')) collections.push('未分类');
     materials.forEach(m => { if (m.collection === editingCollection) m.collection = '未分类'; });
@@ -911,9 +917,11 @@ async function deleteCollection() {
     if (panelCollection === editingCollection) { panelMode = null; document.getElementById('detail-desktop').style.display = 'none'; }
     selectedId = null; panelMode = null;
     renderCollections(); renderMainContent();
+    hideLoading();
     closeModal();
   } catch (error) {
     console.error('删除合集错误:', error);
+    hideLoading();
     alert('删除失败：' + error.message);
   }
 }
@@ -936,6 +944,7 @@ async function changeCollection() {
   if (!item) return;
   const userEmail = localStorage.getItem('userEmail') || 'guest@foubow.fun';
   try {
+    showLoading('正在移动素材...');
     const response = await fetch('/api/coze/materials/move', {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -947,12 +956,15 @@ async function changeCollection() {
       renderMainContent();
       renderRightPanel();
       renderMobilePanel();
+      hideLoading();
       closeCollectionSelect();
     } else {
+      hideLoading();
       alert('更新合集失败：' + (result.msg || '未知错误'));
     }
   } catch (error) {
     console.error('更新合集错误:', error);
+    hideLoading();
     alert('更新失败：' + error.message);
   }
 }
@@ -978,6 +990,7 @@ async function confirmUpload() {
   const userEmail = localStorage.getItem('userEmail') || 'guest@foubow.fun';
 
   try {
+    showLoading('正在上传素材...');
     const formData = new FormData();
     formData.append('user', userEmail);
     formData.append('image', uploadImages[0].file);
@@ -991,6 +1004,7 @@ async function confirmUpload() {
     const result = await response.json();
 
     if (result.code === 1) {
+      hideLoading();
       alert('上传成功！');
       uploadImages = [];
       closeUploadModal();
@@ -998,10 +1012,12 @@ async function confirmUpload() {
       materials = await fetchMaterials();
       renderMainContent();
     } else {
+      hideLoading();
       alert('上传失败：' + (result.msg || '未知错误'));
     }
   } catch (error) {
     console.error('上传错误:', error);
+    hideLoading();
     alert('上传失败：' + error.message);
   }
 }
@@ -1014,6 +1030,8 @@ function renderUploadList() {
 
 // ===== Init =====
 async function init() {
+  showLoading('正在加载素材...');
+
   // 1. 从 localStorage 填充用户信息
   const nickname = localStorage.getItem('userNickname') || '昵称';
   const email = localStorage.getItem('userEmail') || 'yourEmail@foubow.fun';
@@ -1057,6 +1075,7 @@ async function init() {
   renderMainContent();
   renderCollections();
   lucide.createIcons();
+  hideLoading();
 }
 
 document.addEventListener('DOMContentLoaded', init);
