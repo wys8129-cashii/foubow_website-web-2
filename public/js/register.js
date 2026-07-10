@@ -31,7 +31,7 @@ async function register() {
     return;
   }
 
-  const res = await fetch("/api/coze/register", {
+  const res = await fetch("/api/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -42,7 +42,7 @@ async function register() {
   });
 
   const result = await res.json();
-  
+
   if (result.code === 1) {
     alert("注册成功！");
     location.href = "/login.html";
@@ -60,4 +60,18 @@ document.addEventListener('DOMContentLoaded', function() {
       register();
     });
   }
+
+  // 密码可见性切换
+  document.querySelectorAll('.material-symbols-outlined').forEach(icon => {
+    if (icon.textContent.trim() === 'visibility') {
+      icon.addEventListener('click', function() {
+        const input = this.parentElement.querySelector('input');
+        if (input) {
+          const isPassword = input.type === 'password';
+          input.type = isPassword ? 'text' : 'password';
+          this.textContent = isPassword ? 'visibility_off' : 'visibility';
+        }
+      });
+    }
+  });
 });

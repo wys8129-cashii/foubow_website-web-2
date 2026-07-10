@@ -5,8 +5,6 @@ module.exports = {
   streamBaseUrl: process.env.COZE_STREAM_BASE_URL || 'https://api.coze.cn/v1/workflow/stream_run',
   token: process.env.COZE_TOKEN,
   appId: process.env.COZE_APP_ID,
-  loginWorkflowId: process.env.COZE_LOGIN_WF || process.env.COZE_WORKFLOW_ID,
-  registerWorkflowId: process.env.COZE_REGISTER_WF || process.env.COZE_WORKFLOW_ID,
   materialsWorkflowId: process.env.COZE_MATERIALS_WF || '7635623512946737206',
   uploadWorkflowId: '7654990166079602703',
   createCollectionWorkflowId: '7654970692107026478',

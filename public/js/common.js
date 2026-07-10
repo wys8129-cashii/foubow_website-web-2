@@ -1,3 +1,75 @@
+// ======================
+// Token 自动刷新（保持 30 天登录态）
+// ======================
+let _refreshing = null;
+
+async function ensureValidToken() {
+  const token = localStorage.getItem('authToken');
+  const refreshToken = localStorage.getItem('refreshToken');
+  const expiry = parseInt(localStorage.getItem('tokenExpiry') || '0');
+
+  // Token 有效且剩余超过 5 分钟 → 直接返回
+  if (token && Date.now() < expiry - 5 * 60 * 1000) {
+    return token;
+  }
+
+  // 没有 refresh_token → 无法刷新
+  if (!refreshToken) {
+    return null;
+  }
+
+  // 防止并发刷新（多个请求同时触发刷新时，只发一次）
+  if (_refreshing) return _refreshing;
+
+  _refreshing = (async () => {
+    try {
+      const res = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken })
+      });
+      const result = await res.json();
+      if (result.code === 1) {
+        localStorage.setItem('authToken', result.data.token);
+        localStorage.setItem('refreshToken', result.data.refresh_token);
+        localStorage.setItem('tokenExpiry', Date.now() + 55 * 60 * 1000);
+        return result.data.token;
+      }
+    } catch (e) {
+      console.error('Token 刷新失败:', e);
+    }
+    // 刷新失败 → 清除所有登录状态
+    localStorage.clear();
+    return null;
+  })();
+
+  return _refreshing.finally(() => { _refreshing = null; });
+}
+
+// 包装 fetch：自动注入 token 并在过期时刷新
+const _originalFetch = window.fetch;
+window.fetch = async function(url, options = {}) {
+  const urlStr = typeof url === 'string' ? url : url.url;
+  if (
+    urlStr &&
+    urlStr.startsWith('/api/') &&
+    !urlStr.startsWith('/api/auth/login') &&
+    !urlStr.startsWith('/api/auth/register') &&
+    !urlStr.startsWith('/api/auth/refresh')
+  ) {
+    const token = await ensureValidToken();
+    if (!token) {
+      window.location.replace('/login.html');
+      throw new Error('登录已过期，请重新登录');
+    }
+    options.headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`
+    };
+  }
+  return _originalFetch(url, options);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   // ======================
   // 点击LOGO跳首页
