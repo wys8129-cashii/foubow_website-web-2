@@ -21,6 +21,7 @@ function showLoading(msg) {
           display: flex; flex-direction: column; align-items: center; gap: 18px;
         }
         #loading-card .material-symbols-outlined {
+          font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal;
           font-size: 40px; color: #06B6D4; animation: loading-spin 0.8s linear infinite;
         }
         #loading-card p { font-size: 15px; color: #555; margin: 0; font-weight: 500; }
