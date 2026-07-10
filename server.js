@@ -45,25 +45,40 @@ app.use(express.static(path.join(__dirname)));
 
 // 频率限制配置（仅在非 Serverless 环境生效）
 const noop = (req, res, next) => next();
+
+// 全局兜底：IP 维度，所有请求
 const globalLimiter = rateLimit ? rateLimit({
   windowMs: 60 * 1000,
-  max: 20,
+  max: 30,
   message: { code: 0, msg: '请求过于频繁，请稍后再试' },
   standardHeaders: true,
   legacyHeaders: false,
 }) : noop;
 
+// 登录/注册防暴力破解：IP 维度，每分钟 5 次
+const authLimiter = rateLimit ? rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { code: 0, msg: '操作过于频繁，请 1 分钟后再试' },
+  standardHeaders: true,
+  legacyHeaders: false,
+}) : noop;
+
+// Coze API：用户维度（通过 authMiddleware 注入的 userId），每人每分钟 30 次
 const cozeApiLimiter = rateLimit ? rateLimit({
   windowMs: 60 * 1000,
-  max: 40,
+  max: 30,
+  keyGenerator: (req) => req.userId || req.ip,  // 已登录按用户 ID，未登录兜底 IP
   message: { code: 0, msg: 'API 调用过于频繁，请稍后再试' },
   standardHeaders: true,
   legacyHeaders: false,
 }) : noop;
 
+// 上传：用户维度，每人每分钟 5 次
 const uploadLimiter = rateLimit ? rateLimit({
   windowMs: 60 * 1000,
-  max: 3,
+  max: 5,
+  keyGenerator: (req) => req.userId || req.ip,
   message: { code: 0, msg: '上传过于频繁，请稍后再试' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -71,8 +86,8 @@ const uploadLimiter = rateLimit ? rateLimit({
 
 app.use(globalLimiter);
 
-// 注册
-app.post('/api/auth/register', async (req, res) => {
+// 注册（加防暴力破解限流）
+app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
     const { email, login_password, user_name } = req.body;
 
@@ -101,7 +116,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // 登录
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { email, login_password } = req.body;
 
