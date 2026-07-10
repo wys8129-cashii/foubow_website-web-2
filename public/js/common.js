@@ -1,50 +1,50 @@
 // ======================
-// 全局加载弹窗
+// 全局加载长条
 // ======================
 function showLoading(msg) {
   msg = msg || '正在处理...';
-  let overlay = document.getElementById('loading-overlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'loading-overlay';
-    overlay.innerHTML = `
+  let bar = document.getElementById('loading-bar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'loading-bar';
+    bar.innerHTML = `
       <style>
         @keyframes loading-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        #loading-overlay {
-          display: none; position: fixed; inset: 0; z-index: 9999;
-          background: rgba(0,0,0,0.25); align-items: center; justify-content: center;
+        @keyframes loading-slide { from{transform:translateY(-100%)} to{transform:translateY(0)} }
+        #loading-bar {
+          position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+          height: 44px; display: flex; align-items: center; justify-content: center; gap: 10px;
+          background: linear-gradient(135deg, #06B6D4, #0891B2);
+          color: #fff; font-size: 14px; font-weight: 500;
+          transform: translateY(-100%); transition: transform 0.25s ease;
+          box-shadow: 0 2px 12px rgba(6,182,212,0.3);
         }
-        #loading-overlay.show { display: flex; }
-        #loading-card {
-          background: #fff; border-radius: 16px; padding: 36px 56px; text-align: center;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.12);
-          display: flex; flex-direction: column; align-items: center; gap: 18px;
-        }
-        #loading-card .material-symbols-outlined {
+        #loading-bar.show { transform: translateY(0); animation: loading-slide 0.25s ease; }
+        #loading-bar .material-symbols-outlined {
           font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal;
-          font-size: 40px; color: #06B6D4; animation: loading-spin 0.8s linear infinite;
+          font-size: 20px; animation: loading-spin 0.8s linear infinite;
         }
-        #loading-card p { font-size: 15px; color: #555; margin: 0; font-weight: 500; }
       </style>
-      <div id="loading-card">
-        <span class="material-symbols-outlined">progress_activity</span>
-        <p id="loading-text"></p>
-      </div>`;
-    document.body.appendChild(overlay);
+      <span class="material-symbols-outlined">progress_activity</span>
+      <span id="loading-text"></span>`;
+    document.body.appendChild(bar);
   }
   document.getElementById('loading-text').textContent = msg;
-  overlay.classList.add('show');
+  bar.classList.add('show');
   // 3 秒后仍显示则追加提示
   setTimeout(() => {
-    if (overlay.classList.contains('show')) {
-      document.getElementById('loading-text').textContent = msg + '\n请耐心等待，首次请求可能较慢';
+    if (bar.classList.contains('show')) {
+      const el = document.getElementById('loading-text');
+      if (el && !el.textContent.includes('请耐心等待')) {
+        el.textContent = msg + ' · 请耐心等待，首次请求可能较慢';
+      }
     }
   }, 3000);
 }
 
 function hideLoading() {
-  const overlay = document.getElementById('loading-overlay');
-  if (overlay) overlay.classList.remove('show');
+  const bar = document.getElementById('loading-bar');
+  if (bar) bar.classList.remove('show');
 }
 
 // ======================
