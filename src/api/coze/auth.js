@@ -76,7 +76,7 @@ async function cozeGetMaterials(params) {
  */
 async function cozeGetCollections(params) {
   try {
-    const workflowId = '7635623652596121640';
+    const workflowId = cozeConfig.collectionsWorkflowId;
     const appId = cozeConfig.appId;
     const baseUrl = cozeConfig.baseUrl;
     
@@ -122,7 +122,7 @@ async function cozeGetCollections(params) {
  */
 async function cozeGetMaterialDetail(params) {
   try {
-    const workflowId = '7635623569224957986';
+    const workflowId = cozeConfig.materialDetailWorkflowId;
     const appId = cozeConfig.appId;
     const baseUrl = cozeConfig.baseUrl;
     
@@ -169,7 +169,7 @@ async function cozeGetMaterialDetail(params) {
  */
 async function cozeFilterByCollection(params) {
   try {
-    const workflowId = '7650828923094695979';
+    const workflowId = cozeConfig.filterByCollectionWorkflowId;
     const appId = cozeConfig.appId;
     const baseUrl = cozeConfig.baseUrl;
     
