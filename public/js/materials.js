@@ -909,7 +909,7 @@ async function deleteCollection() {
     const response = await fetch('/api/coze/collections/delete', {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ input: name }),
+      body: JSON.stringify({ input: editingCollection }),
     });
     const result = await response.json();
     if (result.code !== 1) { hideLoading(); alert('删除合集失败：' + (result.msg || '未知错误')); return; }
