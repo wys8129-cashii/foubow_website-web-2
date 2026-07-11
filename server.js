@@ -27,6 +27,7 @@ async function authMiddleware(req, res, next) {
 // 频率限制：仅在非 Serverless 环境启用（Vercel Serverless 使用 Edge 限流）
 const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
 const rateLimit = isServerless ? null : require('express-rate-limit');
+const ipKeyGenerator = rateLimit ? rateLimit.ipKeyGenerator : null;
 const { cozeGetMaterials, cozeGetCollections, cozeGetMaterialDetail, cozeFilterByCollection, cozeUploadMaterial, cozeCreateCollection, cozeUpdateCollection, cozeDeleteCollection, cozeUploadFile, cozeMoveMaterial } = require('./src/api/coze');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024, files: 20 } });
@@ -68,7 +69,7 @@ const authLimiter = rateLimit ? rateLimit({
 const cozeApiLimiter = rateLimit ? rateLimit({
   windowMs: 60 * 1000,
   max: 30,
-  keyGenerator: (req) => req.userId || req.ip,  // 已登录按用户 ID，未登录兜底 IP
+  keyGenerator: (req) => req.userId || ipKeyGenerator(req),  // 已登录按用户 ID，未登录兜底 IP
   message: { code: 0, msg: 'API 调用过于频繁，请稍后再试' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -78,7 +79,7 @@ const cozeApiLimiter = rateLimit ? rateLimit({
 const uploadLimiter = rateLimit ? rateLimit({
   windowMs: 60 * 1000,
   max: 5,
-  keyGenerator: (req) => req.userId || req.ip,
+  keyGenerator: (req) => req.userId || ipKeyGenerator(req),
   message: { code: 0, msg: '上传过于频繁，请稍后再试' },
   standardHeaders: true,
   legacyHeaders: false,
