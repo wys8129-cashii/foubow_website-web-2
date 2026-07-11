@@ -505,14 +505,16 @@ function renderRightPanel() {
 function renderPanelDetail(content) {
   const item = materials.find(m => m.id === selectedId);
   if (!item) return;
-  const isPortrait = item.aspectRatio === '3:5';
+  const imgHTML = item.coverUrl
+    ? `<img src="${item.coverUrl}" alt="${escHtml(item.title)}" class="w-full h-auto cursor-zoom-in" onclick="openLightbox('${item.coverUrl}')" />`
+    : `<div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>`;
   content.innerHTML = `<div class="flex flex-col h-full">
     <div class="panel-header">
       <span class="text-sm font-medium text-[#1A1A1A]">素材详情</span>
       <button class="p-1 rounded-md hover:bg-[#F3F4F6] transition-colors" onclick="closeRightPanel()"><i data-lucide="x" class="w-4 h-4 text-[#6B7280]"></i></button>
     </div>
     <div class="sticky top-0 z-10 bg-white">
-      <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full ${isPortrait ? 'aspect-[3/5]' : 'aspect-[4/3]'}">${item.getPreviewHTML()}</div>
+      ${imgHTML}
     </div>
     <div class="flex-1 overflow-y-auto scrollbar-thin">
       <div class="p-4 space-y-4">
@@ -626,14 +628,16 @@ function renderMobilePanel() {
   if (panelMode === 'detail' && selectedId) {
     const item = materials.find(m => m.id === selectedId);
     if (!item) return;
-    const isPortrait = item.aspectRatio === '3:5';
+    const imgHTML = item.coverUrl
+      ? `<img src="${item.coverUrl}" alt="${escHtml(item.title)}" class="w-full h-auto cursor-zoom-in" onclick="openLightbox('${item.coverUrl}')" />`
+      : `<div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>`;
     panel.innerHTML = `<div class="flex flex-col h-full">
       <div class="flex items-center justify-between px-4 py-3 border-b border-[#E5E7EB] shrink-0 bg-white sticky top-0 z-10">
         <span class="text-sm font-medium text-[#1A1A1A]">素材详情</span>
         <button class="p-1 rounded-md hover:bg-[#F3F4F6]" onclick="closeMobilePanel()"><i data-lucide="x" class="w-4 h-4 text-[#6B7280]"></i></button>
       </div>
       <div class="sticky top-[49px] z-10 bg-white">
-        <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full ${isPortrait ? 'aspect-[3/5]' : 'aspect-[4/3]'}">${item.getPreviewHTML()}</div>
+        ${imgHTML}
       </div>
       <div class="flex-1 overflow-y-auto scrollbar-thin">
         <div class="p-4 space-y-4">
@@ -1041,6 +1045,43 @@ function renderUploadList() {
   document.getElementById('upload-count').textContent = uploadImages.length;
   if (uploadImages.length===0) { c.innerHTML='<div class="col-span-full text-center text-sm text-[#9CA3AF] py-8">暂无图片，请拖拽或点击上方区域添加</div>'; return; }
   c.innerHTML = uploadImages.map((img,idx) => `<div class="upload-image-item"><img src="${img.dataUrl}" class="upload-thumb" alt="${escHtml(img.name)}"><div class="file-name" title="${escHtml(img.name)}">${escHtml(img.name)}</div><div class="flex items-center gap-1 mt-auto"><button onclick="moveUp('${img.id}')" ${idx===0?'disabled':''} class="flex-1 py-1 text-xs rounded border border-[#E5E7EB] hover:bg-[#F3F4F6] disabled:opacity-25 disabled:cursor-not-allowed transition-colors">↑</button><button onclick="moveDown('${img.id}')" ${idx===uploadImages.length-1?'disabled':''} class="flex-1 py-1 text-xs rounded border border-[#E5E7EB] hover:bg-[#F3F4F6] disabled:opacity-25 disabled:cursor-not-allowed transition-colors">↓</button><button onclick="removeUploadImage('${img.id}')" class="flex-1 py-1 text-xs rounded border border-red-200 text-red-500 hover:bg-red-50 transition-colors">×</button></div></div>`).join('');
+}
+
+// ===== 图片灯箱 =====
+function openLightbox(url) {
+  let lb = document.getElementById('image-lightbox');
+  if (!lb) {
+    lb = document.createElement('div');
+    lb.id = 'image-lightbox';
+    lb.innerHTML = `
+      <style>
+        @keyframes lightbox-in { from{opacity:0} to{opacity:1} }
+        #image-lightbox {
+          position: fixed; inset: 0; z-index: 10000;
+          background: rgba(0,0,0,0.92); display: none;
+          align-items: center; justify-content: center; cursor: zoom-out;
+        }
+        #image-lightbox.show { display: flex; animation: lightbox-in 0.2s ease; }
+        #image-lightbox img { max-width: 95vw; max-height: 95vh; object-fit: contain; }
+        #lightbox-close {
+          position: absolute; top: 20px; right: 20px; color: #fff; font-size: 28px;
+          cursor: pointer; width: 44px; height: 44px; display: flex; align-items: center;
+          justify-content: center; border-radius: 50%; background: rgba(255,255,255,0.15);
+          transition: background 0.2s; line-height: 1;
+        }
+        #lightbox-close:hover { background: rgba(255,255,255,0.25); }
+      </style>
+      <img id="lightbox-img" src="" alt="" />
+      <div id="lightbox-close">&times;</div>`;
+    document.body.appendChild(lb);
+    lb.querySelector('#lightbox-close').onclick = (e) => { e.stopPropagation(); closeLightbox(); };
+    lb.onclick = closeLightbox;
+  }
+  lb.querySelector('#lightbox-img').src = url;
+  lb.classList.add('show');
+}
+function closeLightbox() {
+  document.getElementById('image-lightbox').classList.remove('show');
 }
 
 // ===== Init =====
