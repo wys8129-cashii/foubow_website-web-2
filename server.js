@@ -262,18 +262,18 @@ app.post('/api/coze/materials/upload', authMiddleware, uploadLimiter, upload.arr
       return res.json({ code: 0, msg: '请选择图片文件' });
     }
 
-    // 逐张上传到 Coze 文件存储，收集所有 URL
-    const urls = [];
+    // 逐张上传到 Coze 文件存储，收集所有 file_id
+    const fileIds = [];
     for (let i = 0; i < files.length; i++) {
       console.log(`上传文件 (${i + 1}/${files.length}) 到 Coze 文件存储...`);
-      const fileUrl = await cozeUploadFile(files[i].buffer, files[i].originalname);
-      urls.push(fileUrl);
+      const fileId = await cozeUploadFile(files[i].buffer, files[i].originalname);
+      fileIds.push(fileId);
     }
 
-    console.log('所有文件上传完成，共', urls.length, '个 URL');
+    console.log('所有文件上传完成，共', fileIds.length, '个 file_id');
     console.log('调用 Coze 上传素材 API（批量）...');
     const result = await cozeUploadMaterial({
-      screenshot: urls,
+      screenshot: fileIds,
       user: user,
     });
 

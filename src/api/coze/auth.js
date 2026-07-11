@@ -272,7 +272,9 @@ async function cozeUploadMaterial(params) {
       workflow_id: workflowId,
       app_id: appId,
       parameters: {
-        screenshot: params.screenshot,
+        screenshot: Array.isArray(params.screenshot)
+          ? params.screenshot.map(id => ({ file_id: id }))
+          : [{ file_id: params.screenshot }],
         user: params.user,
       },
     };
