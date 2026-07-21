@@ -528,9 +528,9 @@ function renderPanelDetail(content) {
     <div class="flex-1 overflow-y-auto scrollbar-thin">
       <div class="p-4 space-y-4">
         <h2 class="text-sm font-semibold text-[#1A1A1A] leading-snug">${item.title}</h2>
-        <div class="flex items-center gap-2">
-          <span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors" onclick="showChangeCollectionModal('${item.id}')">${escHtml(item.collection)}</span>
-          <button class="inline-flex items-center gap-0.5 px-2 py-0.5 text-[11px] rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" onclick="deleteMaterial('${item.id}')"><i data-lucide="trash-2" class="w-3 h-3"></i>删除</button>
+        <div class="flex items-center justify-between">
+          <span class="inline-block px-2.5 py-1 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors" onclick="showChangeCollectionModal('${item.id}')">${escHtml(item.collection)}</span>
+          <button class="inline-flex items-center gap-0.5 px-2.5 py-1 text-[11px] rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" onclick="deleteMaterial('${item.id}')"><i data-lucide="trash-2" class="w-3 h-3"></i>删除</button>
         </div>
         <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">核心信息</h3><ul class="space-y-1">${item.details.summary.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">•</span>${s}</li>`).join('')}</ul></div>
         <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">页面内容</h3><ul class="space-y-1">${item.details.pageContent.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">-</span>${s}</li>`).join('')}</ul></div>
@@ -1236,13 +1236,10 @@ async function init() {
 
   // 1. 从 localStorage 填充用户信息
   const nickname = localStorage.getItem('userNickname') || '昵称';
-  const email = localStorage.getItem('userEmail') || 'yourEmail@foubow.fun';
   const avatar = localStorage.getItem('userAvatar') || '';
   const nicknameEl = document.getElementById('header-nickname');
-  const emailEl = document.getElementById('header-email');
   const avatarEl = document.getElementById('header-avatar');
   if (nicknameEl) nicknameEl.textContent = nickname;
-  if (emailEl) emailEl.textContent = email;
   if (avatarEl && avatar) {
     avatarEl.innerHTML = `<img src="${avatar}" alt="头像" class="w-full h-full object-cover" />`;
   }
