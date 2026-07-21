@@ -1,18 +1,22 @@
 // ===== Data =====
 let materials = [];
-let collections = [];
+let collections = [];           // API 返回的合集（用户自己创建的）
+let materialCollections = [];   // 从素材中提取的合集（前端提取的数据）
 let editingCollection = null;
 let uploadImages = [];
 
 // ===== State =====
-let viewMode = 'all';           // 'all' | 'overview' | 'collection'
+let viewMode = 'all';           // 'all' | 'overview' | 'collection' | 'search'
 let activeCollection = 'all';
 let selectedId = null;
 let panelMode = null;           // null | 'detail' | 'waterfall'
 let panelCollection = null;
+let searchResults = [];         // 搜索结果列表
+let searchKeyword = '';         // 当前搜索关键词
 
 // Helper
 function getMaterialsByCollection(name) { return materials.filter(m => m.collection === name); }
+function getAllCollections() { return [...collections, ...materialCollections]; }
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function getAuthHeaders() {
   const token = localStorage.getItem('authToken');
@@ -406,18 +410,20 @@ function renderMainContent() {
   if (viewMode === 'overview') { renderOverview(); return; }
   if (viewMode === 'all') { renderAllMaterials(); return; }
   if (viewMode === 'collection') { renderCollectionDetail(activeCollection); return; }
+  if (viewMode === 'search') { renderSearchResults(); return; }
 }
 
 function renderOverview() {
   const container = document.getElementById('main-content');
   let html = '<h1 class="text-base font-semibold text-[#1A1A1A] mb-5">素材总览</h1>';
-  if (collections.length === 0) {
+  const allCollections = getAllCollections();
+  if (allCollections.length === 0) {
     html += '<div class="text-sm text-[#9CA3AF] text-center py-12">暂无合集，请先添加合集</div>';
     container.innerHTML = html;
     return;
   }
   html += '<div class="overview-grid">';
-  collections.forEach(name => {
+  allCollections.forEach(name => {
     const items = getMaterialsByCollection(name);
     const showCards = items.slice(0, 4);
     const escName = escHtml(name);
@@ -483,7 +489,10 @@ function renderCardsInto(containerId, items) {
       <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full ${isPortrait ? 'aspect-[3/5]' : 'aspect-[4/3]'}">${item.getPreviewHTML()}</div>
       <div class="p-3">
         <h3 class="text-sm font-medium text-[#1A1A1A] leading-snug line-clamp-2 mb-1">${item.title}</h3>
-        <div class="flex items-center gap-1 text-xs text-[#9CA3AF] truncate"><i data-lucide="external-link" class="w-2.5 h-2.5 shrink-0"></i><span class="truncate">${item.url}</span></div>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1 text-xs text-[#9CA3AF] truncate flex-1 min-w-0"><i data-lucide="external-link" class="w-2.5 h-2.5 shrink-0"></i><span class="truncate">${item.url}</span></div>
+          ${item.url ? `<button class="p-1 rounded-md hover:bg-[#F3F4F6] transition-colors shrink-0" onclick="event.stopPropagation(); window.open('${item.url}','_blank')" title="新窗口打开链接"><i data-lucide="square-arrow-out-up-right" class="w-3.5 h-3.5 text-[#9CA3AF]"></i></button>` : ''}
+        </div>
       </div>
     </div></div>`;
   }).join('');
@@ -519,7 +528,10 @@ function renderPanelDetail(content) {
     <div class="flex-1 overflow-y-auto scrollbar-thin">
       <div class="p-4 space-y-4">
         <h2 class="text-sm font-semibold text-[#1A1A1A] leading-snug">${item.title}</h2>
-        <span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors" onclick="showChangeCollectionModal('${item.id}')">${escHtml(item.collection)}</span>
+        <div class="flex items-center gap-2">
+          <span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors" onclick="showChangeCollectionModal('${item.id}')">${escHtml(item.collection)}</span>
+          <button class="inline-flex items-center gap-0.5 px-2 py-0.5 text-[11px] rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" onclick="deleteMaterial('${item.id}')"><i data-lucide="trash-2" class="w-3 h-3"></i>删除</button>
+        </div>
         <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">核心信息</h3><ul class="space-y-1">${item.details.summary.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">•</span>${s}</li>`).join('')}</ul></div>
         <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">页面内容</h3><ul class="space-y-1">${item.details.pageContent.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">-</span>${s}</li>`).join('')}</ul></div>
         <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">功能导航</h3><ul class="space-y-1">${item.details.navigation.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">-</span>${s}</li>`).join('')}</ul></div>
@@ -642,7 +654,10 @@ function renderMobilePanel() {
       <div class="flex-1 overflow-y-auto scrollbar-thin">
         <div class="p-4 space-y-4">
           <h2 class="text-sm font-semibold text-[#1A1A1A] leading-snug">${item.title}</h2>
-          <span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors" onclick="showChangeCollectionModal('${item.id}')">${escHtml(item.collection)}</span>
+          <div class="flex items-center gap-2">
+            <span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors" onclick="showChangeCollectionModal('${item.id}')">${escHtml(item.collection)}</span>
+            <button class="inline-flex items-center gap-0.5 px-2 py-0.5 text-[11px] rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" onclick="deleteMaterial('${item.id}')"><i data-lucide="trash-2" class="w-3 h-3"></i>删除</button>
+          </div>
           <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">核心信息</h3><ul class="space-y-1">${item.details.summary.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">•</span>${s}</li>`).join('')}</ul></div>
           <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">页面内容</h3><ul class="space-y-1">${item.details.pageContent.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">-</span>${s}</li>`).join('')}</ul></div>
           <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">功能导航</h3><ul class="space-y-1">${item.details.navigation.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">-</span>${s}</li>`).join('')}</ul></div>
@@ -803,10 +818,113 @@ async function selectCollection(name) {
 
 function copyLink(url) { navigator.clipboard.writeText(url).then(() => alert('链接已复制')); }
 
+// ===== Delete Material =====
+async function deleteMaterial(id) {
+  const item = materials.find(m => m.id === id);
+  if (!item) return;
+  if (!confirm(`确定要删除素材「${item.title}」吗？\n此操作不可撤销。`)) return;
+
+  try {
+    showLoading('正在删除素材...');
+    const response = await fetch('/api/coze/materials/delete', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ input: item.title }),
+    });
+    const result = await response.json();
+    if (result.code !== 1) { hideLoading(); alert('删除素材失败：' + (result.msg || '未知错误')); return; }
+
+    // 从列表中移除
+    materials = materials.filter(m => m.id !== id);
+    selectedId = null; panelMode = null;
+    document.getElementById('detail-desktop').style.display = 'none';
+    document.getElementById('detail-mobile').classList.remove('open');
+    document.getElementById('detail-overlay').classList.remove('open');
+    renderMainContent();
+    renderCollections();
+    hideLoading();
+  } catch (error) {
+    console.error('删除素材错误:', error);
+    hideLoading();
+    alert('删除失败：' + error.message);
+  }
+}
+
+// ===== Search =====
+async function searchMaterials(keyword) {
+  if (!keyword.trim()) return;
+  searchKeyword = keyword.trim();
+  viewMode = 'search';
+
+  try {
+    showLoading('正在搜索素材...');
+    const response = await fetch('/api/coze/materials/search', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ input: searchKeyword }),
+    });
+    const result = await response.json();
+    hideLoading();
+
+    if (result.data) {
+      searchResults = parseMaterialsData(result.data);
+      if (searchResults.length === 0) searchResults = materials.filter(m =>
+        m.title.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        m.url.toLowerCase().includes(searchKeyword.toLowerCase())
+      );
+    } else {
+      // API 返回失败时使用前端搜索
+      searchResults = materials.filter(m =>
+        m.title.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        m.url.toLowerCase().includes(searchKeyword.toLowerCase())
+      );
+    }
+    // 异步检测封面图比例
+    const ratioPromises = searchResults.map(async (m) => {
+      if (m.coverUrl && m.detectAspectRatio) {
+        m.aspectRatio = await m.detectAspectRatio();
+      }
+    });
+    await Promise.all(ratioPromises);
+
+    panelMode = null; selectedId = null;
+    document.getElementById('detail-desktop').style.display = 'none';
+    renderMainContent();
+  } catch (error) {
+    console.error('搜索素材错误:', error);
+    hideLoading();
+    // 前端兜底搜索
+    searchResults = materials.filter(m =>
+      m.title.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+      m.url.toLowerCase().includes(searchKeyword.toLowerCase())
+    );
+    panelMode = null; selectedId = null;
+    document.getElementById('detail-desktop').style.display = 'none';
+    renderMainContent();
+  }
+}
+
+function renderSearchResults() {
+  const container = document.getElementById('main-content');
+  container.innerHTML = `<div class="flex items-center gap-2 mb-4">
+    <button onclick="navigateTo('all','all')" class="p-1.5 rounded-md hover:bg-[#F3F4F6] transition-colors flex items-center gap-1 text-sm text-[#6B7280] hover:text-[#1A1A1A]">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i> 返回
+    </button>
+    <h1 class="text-base font-semibold text-[#1A1A1A]">搜索「${escHtml(searchKeyword)}」 <span class="text-xs font-normal text-[#9CA3AF] ml-1">${searchResults.length} 个结果</span></h1>
+  </div><div class="cards-grid" id="cards-container"></div>`;
+  if (searchResults.length === 0) {
+    document.getElementById('cards-container').innerHTML = '<div class="col-span-full text-sm text-[#9CA3AF] text-center py-12">未找到匹配的素材</div>';
+  } else {
+    renderCardsInto('cards-container', searchResults);
+  }
+  lucide.createIcons();
+}
+
 // ===== Collections =====
 function renderCollections() {
   const container = document.getElementById('collection-buttons');
   let html = '';
+  // 第一部分：API 返回的合集（用户自己创建的）
   collections.forEach(name => {
     const isActive = viewMode !== 'overview' && activeCollection === name;
     const escName = escHtml(name);
@@ -822,6 +940,22 @@ function renderCollections() {
       </button>
     </div>`;
   });
+  // 分隔线：区分 API 合集和前端提取的合集
+  if (materialCollections.length > 0) {
+    html += `<div class="my-2 border-t border-[#E5E7EB]"></div>
+      <div class="px-3 py-1 text-[10px] text-[#9CA3AF] uppercase tracking-wider">从素材提取</div>`;
+    materialCollections.forEach(name => {
+      const isActive = viewMode !== 'overview' && activeCollection === name;
+      const escName = escHtml(name);
+      html += `<div class="collection-item">
+        <button onclick="selectCollection('${escName}')"
+          class="w-full px-3 py-2 rounded-lg text-sm text-left transition-colors duration-150 ${
+            isActive ? 'bg-white text-[#1A1A1A] font-medium shadow-sm'
+                     : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-white/60 hover:text-[#1A1A1A]'
+          }">${escName}</button>
+      </div>`;
+    });
+  }
   html += `<button onclick="openAddModal()"
     class="px-3 py-2 rounded-lg text-sm text-left text-[#9CA3AF] border border-dashed border-[#D1D5DB] hover:border-[#9CA3AF] hover:text-[#6B7280] transition-colors duration-150 flex items-center gap-1.5">
     <i data-lucide="plus" class="w-3.5 h-3.5"></i>添加合集</button>`;
@@ -884,7 +1018,12 @@ async function saveCollection() {
       const result = await response.json();
       if (result.code !== 1) { hideLoading(); alert('新增合集失败：' + (result.msg || '未知错误')); return; }
 
-      if (!collections.includes(name)) collections.push(name);
+      if (!collections.includes(name)) {
+        collections.push(name);
+        // 如果新合集在素材提取列表中，移除它（现在已属于用户创建的合集）
+        const idx = materialCollections.indexOf(name);
+        if (idx !== -1) materialCollections.splice(idx, 1);
+      }
     }
 
     renderCollections();
@@ -935,7 +1074,7 @@ function showChangeCollectionModal(itemId) {
   changingItemId = itemId;
   const select = document.getElementById('collection-select');
   const item = materials.find(m => m.id === itemId);
-  select.innerHTML = collections.map(c => `<option value="${escHtml(c)}" ${c === item.collection ? 'selected' : ''}>${escHtml(c)}</option>`).join('');
+  select.innerHTML = getAllCollections().map(c => `<option value="${escHtml(c)}" ${c === item.collection ? 'selected' : ''}>${escHtml(c)}</option>`).join('');
   document.getElementById('collection-select-overlay').classList.add('open');
 }
 function closeCollectionSelect() {
@@ -1126,12 +1265,14 @@ async function init() {
   });
   await Promise.all(ratioPromises);
 
-  // 5. 从素材中提取合集名称
+  // 5. 从素材中提取合集名称（与 API 合集分开存储）
+  const extractedSet = new Set();
   materials.forEach(m => {
     if (m.collection && !collections.includes(m.collection)) {
-      collections.push(m.collection);
+      extractedSet.add(m.collection);
     }
   });
+  materialCollections = [...extractedSet];
 
   if (!collections.includes('未分类')) collections.push('未分类');
 

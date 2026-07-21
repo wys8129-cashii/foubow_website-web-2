@@ -15,6 +15,8 @@ module.exports = {
   updateCollectionWorkflowId:    '7654970749027090441',  // 修改合集（流式）
   deleteCollectionWorkflowId:    '7654970789695717412',  // 删除合集（流式）
   moveMaterialWorkflowId:        '7655030742292283419',  // 修改素材所属合集（流式）
+  deleteMaterialWorkflowId:      '7664793140239499298',  // 删除素材（流式）
+  searchWorkflowId:              '7664793519996207155',  // 搜索素材
 
   // ── API 地址 ──
   baseUrl:       process.env.COZE_BASE_URL        || 'https://api.coze.cn/v1/workflow/run',

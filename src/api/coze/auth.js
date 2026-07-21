@@ -500,6 +500,104 @@ async function cozeDeleteCollection(params) {
   }
 }
 
+/**
+ * 调用 Coze API 删除素材
+ * @param {Object} params 参数
+ * @param {string} params.email 用户邮箱
+ * @param {string} params.input 素材标题
+ * @returns {Promise<any>} Coze 接口返回结果
+ */
+async function cozeDeleteMaterial(params) {
+  try {
+    const workflowId = cozeConfig.deleteMaterialWorkflowId;
+    const appId = cozeConfig.appId;
+    const baseUrl = cozeConfig.streamBaseUrl;
+
+    console.log('调用 Coze 删除素材 API:', {
+      url: baseUrl,
+      workflow_id: workflowId,
+      app_id: appId,
+      email: params.email,
+      input: params.input
+    });
+
+    const requestData = {
+      workflow_id: workflowId,
+      app_id: appId,
+      parameters: {
+        email: params.email,
+        input: params.input,
+      },
+    };
+
+    const response = await axios.post(
+      baseUrl,
+      requestData,
+      {
+        headers: {
+          "Authorization": `Bearer ${cozeConfig.token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    logCozeResponse('删除素材', response);
+    return response.data;
+  } catch (error) {
+    console.error("Coze 删除素材接口调用失败：", error.message);
+    throw new Error(`删除素材失败：${error.response?.data?.message || error.message}`);
+  }
+}
+
+/**
+ * 调用 Coze API 搜索素材
+ * @param {Object} params 参数
+ * @param {string} params.email 用户邮箱
+ * @param {string} params.input 搜索关键词
+ * @returns {Promise<any>} Coze 接口返回结果
+ */
+async function cozeSearchMaterials(params) {
+  try {
+    const workflowId = cozeConfig.searchWorkflowId;
+    const appId = cozeConfig.appId;
+    const baseUrl = cozeConfig.baseUrl;
+
+    console.log('调用 Coze 搜索素材 API:', {
+      url: baseUrl,
+      workflow_id: workflowId,
+      app_id: appId,
+      email: params.email,
+      input: params.input
+    });
+
+    const requestData = {
+      workflow_id: workflowId,
+      app_id: appId,
+      parameters: {
+        email: params.email,
+        input: params.input,
+      },
+    };
+
+    const response = await axios.post(
+      baseUrl,
+      requestData,
+      {
+        headers: {
+          "Authorization": `Bearer ${cozeConfig.token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    logCozeResponse('搜索素材', response);
+    return response.data;
+  } catch (error) {
+    console.error("Coze 搜索素材接口调用失败：", error.message);
+    throw new Error(`搜索素材失败：${error.response?.data?.message || error.message}`);
+  }
+}
+
 // 导出方法
 module.exports = {
   cozeGetMaterials,
@@ -512,4 +610,6 @@ module.exports = {
   cozeUpdateCollection,
   cozeDeleteCollection,
   cozeMoveMaterial,
+  cozeDeleteMaterial,
+  cozeSearchMaterials,
 };

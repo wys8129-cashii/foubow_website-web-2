@@ -28,7 +28,7 @@ async function authMiddleware(req, res, next) {
 const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
 const rateLimit = isServerless ? null : require('express-rate-limit');
 const ipKeyGenerator = rateLimit ? rateLimit.ipKeyGenerator : null;
-const { cozeGetMaterials, cozeGetCollections, cozeGetMaterialDetail, cozeFilterByCollection, cozeUploadMaterial, cozeCreateCollection, cozeUpdateCollection, cozeDeleteCollection, cozeUploadFile, cozeMoveMaterial } = require('./src/api/coze');
+const { cozeGetMaterials, cozeGetCollections, cozeGetMaterialDetail, cozeFilterByCollection, cozeUploadMaterial, cozeCreateCollection, cozeUpdateCollection, cozeDeleteCollection, cozeUploadFile, cozeMoveMaterial, cozeDeleteMaterial, cozeSearchMaterials } = require('./src/api/coze');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024, files: 20 } });
 
@@ -402,6 +402,54 @@ app.post('/api/coze/materials/filter', authMiddleware, cozeApiLimiter, async (re
     res.json({ code: 1, msg: '获取成功', data: result });
   } catch (error) {
     console.error('按合集筛选素材错误:', error.message);
+    res.json({ code: 0, msg: error.message });
+  }
+});
+
+// 删除素材
+app.post('/api/coze/materials/delete', authMiddleware, cozeApiLimiter, async (req, res) => {
+  try {
+    const email = req.userEmail;
+    const { input } = req.body;
+
+    console.log('收到删除素材请求:', { email, input });
+
+    if (!input) {
+      return res.json({ code: 0, msg: '缺少素材标题' });
+    }
+
+    console.log('调用 Coze 删除素材 API...');
+    const result = await cozeDeleteMaterial({ email, input });
+
+    console.log('Coze 返回结果:', result);
+
+    res.json({ code: 1, msg: '删除素材成功', data: result });
+  } catch (error) {
+    console.error('删除素材错误:', error.message);
+    res.json({ code: 0, msg: error.message });
+  }
+});
+
+// 搜索素材
+app.post('/api/coze/materials/search', authMiddleware, cozeApiLimiter, async (req, res) => {
+  try {
+    const email = req.userEmail;
+    const { input } = req.body;
+
+    console.log('收到搜索素材请求:', { email, input });
+
+    if (!input) {
+      return res.json({ code: 0, msg: '缺少搜索关键词' });
+    }
+
+    console.log('调用 Coze 搜索素材 API...');
+    const result = await cozeSearchMaterials({ email, input });
+
+    console.log('Coze 返回结果:', result);
+
+    res.json({ code: 1, msg: '搜索成功', data: result });
+  } catch (error) {
+    console.error('搜索素材错误:', error.message);
     res.json({ code: 0, msg: error.message });
   }
 });
