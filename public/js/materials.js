@@ -1,7 +1,6 @@
 // ===== Data =====
 let materials = [];
 let collections = [];           // API 返回的合集（用户自己创建的）
-let materialCollections = [];   // 从素材中提取的合集（前端提取的数据）
 let editingCollection = null;
 let uploadImages = [];
 
@@ -16,7 +15,7 @@ let searchKeyword = '';         // 当前搜索关键词
 
 // Helper
 function getMaterialsByCollection(name) { return materials.filter(m => m.collection === name); }
-function getAllCollections() { return [...collections, ...materialCollections]; }
+function getAllCollections() { return [...collections]; }
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function getAuthHeaders() {
   const token = localStorage.getItem('authToken');
@@ -940,22 +939,6 @@ function renderCollections() {
       </button>
     </div>`;
   });
-  // 分隔线：区分 API 合集和前端提取的合集
-  if (materialCollections.length > 0) {
-    html += `<div class="my-2 border-t border-[#E5E7EB]"></div>
-      <div class="px-3 py-1 text-[10px] text-[#9CA3AF] uppercase tracking-wider">从素材提取</div>`;
-    materialCollections.forEach(name => {
-      const isActive = viewMode !== 'overview' && activeCollection === name;
-      const escName = escHtml(name);
-      html += `<div class="collection-item">
-        <button onclick="selectCollection('${escName}')"
-          class="w-full px-3 py-2 rounded-lg text-sm text-left transition-colors duration-150 ${
-            isActive ? 'bg-white text-[#1A1A1A] font-medium shadow-sm'
-                     : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-white/60 hover:text-[#1A1A1A]'
-          }">${escName}</button>
-      </div>`;
-    });
-  }
   html += `<button onclick="openAddModal()"
     class="px-3 py-2 rounded-lg text-sm text-left text-[#9CA3AF] border border-dashed border-[#D1D5DB] hover:border-[#9CA3AF] hover:text-[#6B7280] transition-colors duration-150 flex items-center gap-1.5">
     <i data-lucide="plus" class="w-3.5 h-3.5"></i>添加合集</button>`;
@@ -1020,9 +1003,6 @@ async function saveCollection() {
 
       if (!collections.includes(name)) {
         collections.push(name);
-        // 如果新合集在素材提取列表中，移除它（现在已属于用户创建的合集）
-        const idx = materialCollections.indexOf(name);
-        if (idx !== -1) materialCollections.splice(idx, 1);
       }
     }
 
@@ -1261,15 +1241,6 @@ async function init() {
     }
   });
   await Promise.all(ratioPromises);
-
-  // 5. 从素材中提取合集名称（与 API 合集分开存储）
-  const extractedSet = new Set();
-  materials.forEach(m => {
-    if (m.collection && !collections.includes(m.collection)) {
-      extractedSet.add(m.collection);
-    }
-  });
-  materialCollections = [...extractedSet];
 
   if (!collections.includes('未分类')) collections.push('未分类');
 
