@@ -1,6 +1,10 @@
 const axios = require("axios");
 const cozeConfig = require("../../../config/coze");
 
+// 统一给所有 Coze 请求加超时，避免 Coze 无响应时后端无限挂起（之前无 timeout，会一直转圈）
+const COZE_TIMEOUT_MS = 20000;
+const cozeAxios = axios.create({ timeout: COZE_TIMEOUT_MS });
+
 /**
  * 统一记录 Coze API 响应信息
  */
@@ -49,7 +53,7 @@ async function cozeGetMaterials(params) {
     
     console.log('完整请求体:', JSON.stringify(requestData, null, 2));
 
-    const response = await axios.post(
+    const response = await cozeAxios.post(
       baseUrl,
       requestData,
       {
@@ -95,7 +99,7 @@ async function cozeGetCollections(params) {
       },
     };
 
-    const response = await axios.post(
+    const response = await cozeAxios.post(
       baseUrl,
       requestData,
       {
@@ -141,7 +145,7 @@ async function cozeGetMaterialDetail(params) {
       },
     };
 
-    const response = await axios.post(
+    const response = await cozeAxios.post(
       baseUrl,
       requestData,
       {
@@ -190,7 +194,7 @@ async function cozeFilterByCollection(params) {
       },
     };
 
-    const response = await axios.post(
+    const response = await cozeAxios.post(
       baseUrl,
       requestData,
       {
@@ -224,7 +228,7 @@ async function cozeUploadFile(fileBuffer, fileName) {
     const uploadUrl = 'https://api.coze.cn/v1/files/upload';
     console.log('上传文件到 Coze 文件存储:', { fileName });
 
-    const response = await axios.post(uploadUrl, form, {
+    const response = await cozeAxios.post(uploadUrl, form, {
       headers: {
         ...form.getHeaders(),
         "Authorization": `Bearer ${cozeConfig.token}`,
@@ -279,7 +283,7 @@ async function cozeUploadMaterial(params) {
       },
     };
 
-    const response = await axios.post(
+    const response = await cozeAxios.post(
       baseUrl,
       requestData,
       {
@@ -328,7 +332,7 @@ async function cozeCreateCollection(params) {
       },
     };
 
-    const response = await axios.post(
+    const response = await cozeAxios.post(
       baseUrl,
       requestData,
       {
@@ -380,7 +384,7 @@ async function cozeUpdateCollection(params) {
       },
     };
 
-    const response = await axios.post(
+    const response = await cozeAxios.post(
       baseUrl,
       requestData,
       {
@@ -432,7 +436,7 @@ async function cozeMoveMaterial(params) {
       },
     };
 
-    const response = await axios.post(
+    const response = await cozeAxios.post(
       baseUrl,
       requestData,
       {
@@ -481,7 +485,7 @@ async function cozeDeleteCollection(params) {
       },
     };
 
-    const response = await axios.post(
+    const response = await cozeAxios.post(
       baseUrl,
       requestData,
       {
@@ -530,7 +534,7 @@ async function cozeDeleteMaterial(params) {
       },
     };
 
-    const response = await axios.post(
+    const response = await cozeAxios.post(
       baseUrl,
       requestData,
       {
@@ -579,7 +583,7 @@ async function cozeSearchMaterials(params) {
       },
     };
 
-    const response = await axios.post(
+    const response = await cozeAxios.post(
       baseUrl,
       requestData,
       {

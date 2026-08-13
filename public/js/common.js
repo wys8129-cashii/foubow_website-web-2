@@ -1,3 +1,14 @@
+// 带超时保护的 fetch 封装（全局），避免后端无响应时浏览器无限转圈
+async function fetchWithTimeout(url, options = {}, timeout = 30000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    return await window.fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ======================
 // 全局加载提示（顶部小胶囊）
 // ======================

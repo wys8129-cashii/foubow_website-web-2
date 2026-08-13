@@ -98,7 +98,7 @@ async function fetchMaterials() {
 
   try {
     console.log('正在调用 API 获取素材列表，邮箱:', email);
-    const response = await fetch('/api/coze/materials', {
+    const response = await fetchWithTimeout('/api/coze/materials', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({}),
@@ -185,7 +185,7 @@ async function fetchCollections() {
 
   try {
     console.log('正在调用 API 获取合集列表，邮箱:', email);
-    const response = await fetch('/api/coze/collections', {
+    const response = await fetchWithTimeout('/api/coze/collections', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({}),
@@ -256,7 +256,7 @@ function parseCollectionsData(data) {
 async function fetchMaterialDetail(title) {
   try {
     console.log('正在调用 API 获取素材详情，标题:', title);
-    const response = await fetch('/api/coze/material/detail', {
+    const response = await fetchWithTimeout('/api/coze/material/detail', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ title }),
@@ -331,7 +331,7 @@ async function filterByCollection(topic) {
 
   try {
     console.log('正在调用 API 按合集筛选素材，邮箱:', email, '合集:', topic);
-    const response = await fetch('/api/coze/materials/filter', {
+    const response = await fetchWithTimeout('/api/coze/materials/filter', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ topic }),
@@ -825,7 +825,7 @@ async function deleteMaterial(id) {
 
   try {
     showLoading('正在删除素材...');
-    const response = await fetch('/api/coze/materials/delete', {
+    const response = await fetchWithTimeout('/api/coze/materials/delete', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ input: item.title }),
@@ -857,7 +857,7 @@ async function searchMaterials(keyword) {
 
   try {
     showLoading('正在搜索素材...');
-    const response = await fetch('/api/coze/materials/search', {
+    const response = await fetchWithTimeout('/api/coze/materials/search', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ input: searchKeyword }),
@@ -979,7 +979,7 @@ async function saveCollection() {
     if (editingCollection) {
       if (name === editingCollection) { hideLoading(); closeModal(); return; }
 
-      const response = await fetch('/api/coze/collections/update', {
+      const response = await fetchWithTimeout('/api/coze/collections/update', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ input: name, old_name: editingCollection }),
@@ -993,7 +993,7 @@ async function saveCollection() {
       if (activeCollection === editingCollection) activeCollection = name;
       if (panelCollection === editingCollection) panelCollection = name;
     } else {
-      const response = await fetch('/api/coze/collections/create', {
+      const response = await fetchWithTimeout('/api/coze/collections/create', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ input: name }),
@@ -1025,7 +1025,7 @@ async function deleteCollection() {
 
   try {
     showLoading('正在删除合集...');
-    const response = await fetch('/api/coze/collections/delete', {
+    const response = await fetchWithTimeout('/api/coze/collections/delete', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ input: editingCollection }),
@@ -1068,7 +1068,7 @@ async function changeCollection() {
   const userEmail = localStorage.getItem('userEmail') || 'guest@foubow.fun';
   try {
     showLoading('正在移动素材...');
-    const response = await fetch('/api/coze/materials/move', {
+    const response = await fetchWithTimeout('/api/coze/materials/move', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ title: item.title, topic: newCollection }),
@@ -1134,7 +1134,7 @@ async function confirmUpload() {
     formData.append('user', userEmail);
     uploadImages.forEach(img => formData.append('images', img.file));
 
-    const response = await fetch('/api/coze/materials/upload', {
+    const response = await fetchWithTimeout('/api/coze/materials/upload', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
       body: formData,

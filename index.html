@@ -227,10 +227,36 @@
 </div>
 </div>
 </footer>
-<!-- FAB for quick action -->
-<button class="fixed bottom-8 right-8 w-14 h-14 primary-gradient-bg text-on-primary rounded-full shadow-2xl flex items-center justify-center active:scale-95 transition-transform md:hidden">
-<span class="material-symbols-outlined">add</span>
+<!-- 移动端导航按钮 + 导航抽屉 -->
+<button id="mobile-nav-fab" class="fixed bottom-8 right-8 w-14 h-14 primary-gradient-bg text-on-primary rounded-full shadow-2xl flex items-center justify-center active:scale-95 transition-transform z-50 md:hidden" aria-label="打开导航菜单">
+<span class="material-symbols-outlined text-2xl">menu</span>
 </button>
+
+<!-- 导航遮罩 -->
+<div id="mobile-nav-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
+
+<!-- 底部导航面板 -->
+<div id="mobile-nav-panel" class="fixed bottom-0 left-0 right-0 bg-surface rounded-t-2xl shadow-2xl z-50 translate-y-full transition-transform duration-300 md:hidden">
+<div class="px-6 pt-4 pb-10">
+<div class="w-12 h-1.5 bg-outline-variant/40 rounded-full mx-auto mb-6"></div>
+<h3 class="font-title-md text-title-md font-semibold text-on-surface mb-4">导航</h3>
+<nav class="flex flex-col gap-1">
+<a href="/" class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-primary">home</span>
+<span class="font-title-md text-title-md">首页</span>
+</a>
+<a href="/material.html" class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-primary">collections</span>
+<span class="font-title-md text-title-md">我的素材</span>
+</a>
+<a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-primary">menu_book</span>
+<span class="font-title-md text-title-md">Wiki</span>
+</a>
+</nav>
+<div id="mobile-nav-auth" class="mt-4 pt-4 border-t border-outline-variant/20 flex flex-col gap-2"></div>
+</div>
+</div>
 <script src="/js/common.js"></script>
 <script src="/js/home.js"></script>
 </body>
