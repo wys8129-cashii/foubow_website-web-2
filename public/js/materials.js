@@ -599,14 +599,40 @@ function bindCoverEdit(item) {
   cropWin.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);width:100%;aspect-ratio:4/3;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.5);cursor:ns-resize;display:none;touch-action:none;z-index:5;';
   frame.appendChild(cropWin);
 
+  // 计算 frame 当前宽高比（详情页 w-full h-auto，frame 实际比例 ≈ 图片自然比例）
+  function getAlpha() {
+    const r = frame.getBoundingClientRect();
+    return r.width / r.height;
+  }
+
+  // cropWin 中心在 frame (即图片) 坐标里的纵向比例 c
+  //   列表卡片 4:3 容器，image object-cover：要把图片的某个 4:3 区域摆到容器中央，
+  //   用 object-position: 50% Y%。视觉上 Y% 决定 image 顶端往下偏移多少。
+  // 反推/正推公式（设 α = image_w / image_h）：
+  //   Y = (c − 3α/8) / (1 − 3α/4) × 100,   当 α < 4/3（竖图，会上下溢出）；
+  //   α ≥ 4/3 时图片完全 fit 容器，Y 在视觉上无效（任何值都一样），用 50%。
+  function centerFracToPosY(c, alpha) {
+    const denom = 1 - 3 * alpha / 4;
+    if (denom <= 0.01) return 50; // 横图：完全 fit，object-position 不影响可见区域
+    const y = (c - 3 * alpha / 8) / denom * 100;
+    return Math.max(0, Math.min(100, y));
+  }
+  function posYToCenterFrac(y, alpha) {
+    const denom = 1 - 3 * alpha / 4;
+    if (denom <= 0.01) return 0.5;
+    return (y / 100) * denom + 3 * alpha / 8;
+  }
+
   const setCropFromPointer = (clientY) => {
     const rect = frame.getBoundingClientRect();
     const winH = cropWin.offsetHeight || (rect.width * 3 / 4);
     let top = (clientY - rect.top) - winH / 2;
     top = Math.max(0, Math.min(rect.height - winH, top));
     cropWin.style.top = top + 'px';
-    const centerFrac = (top + winH / 2) / rect.height; // 0(顶) → 1(底)
-    const pos = `50% ${Math.round(centerFrac * 100)}%`;
+    const centerFrac = (top + winH / 2) / rect.height; // 0(顶) → 1(底)，frame 坐标系
+    const alpha = getAlpha();
+    const posY = centerFracToPosY(centerFrac, alpha);
+    const pos = `50% ${Math.round(posY)}%`;
     item.coverPos = pos;
     refreshCoverInLists(item.id, pos);
   };
@@ -646,12 +672,14 @@ function bindCoverEdit(item) {
     img.classList.remove('max-h-[27vh]', 'shadow-2xl', 'rounded-xl');
     img.style.objectPosition = '50% 50%';
     img.style.pointerEvents = 'none'; // 防止点遮罩区误触开放大
-    // 定位裁剪框到当前 coverPos
+    // 定位裁剪框到当前 coverPos：先反推 frame 中心比例，再换算 top
+    const rect = frame.getBoundingClientRect();
+    const alpha = getAlpha();
     const m = (item.coverPos || '50% 50%').match(/(\d+(?:\.\d+)?)%/g);
     const yPct = (m && m[1]) ? parseFloat(m[1]) : 50;
-    const rect = frame.getBoundingClientRect();
+    const centerFrac = posYToCenterFrac(yPct, alpha);
     const winH = cropWin.offsetHeight || (rect.width * 3 / 4);
-    let top = (yPct / 100) * rect.height - winH / 2;
+    let top = centerFrac * rect.height - winH / 2;
     top = Math.max(0, Math.min(rect.height - winH, top));
     cropWin.style.top = top + 'px';
     cropWin.style.display = 'block';
