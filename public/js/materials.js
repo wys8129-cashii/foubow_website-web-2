@@ -383,6 +383,7 @@ function parseMaterialItem(item, index) {
     collection: item.topic || item.topic_name || item.collection || '未分类',
     aspectRatio: item.aspectRatio || '4:3',
     coverUrl: item.cover_url || item.coverUrl || '',
+    coverPos: item.coverPos || null,
     previewBg: item.previewBg || 'bg-gradient-to-br from-slate-50 to-blue-50',
     title: item.title || '素材标题',
     url: item.url || '',
@@ -394,7 +395,8 @@ function parseMaterialItem(item, index) {
     detectAspectRatio: () => detectAspectRatio(item.cover_url || item.coverUrl),
     getPreviewHTML() {
       if (this.coverUrl) {
-        return `<img src="${this.coverUrl}" alt="${this.title}" class="w-full h-full object-cover" />`;
+        const pos = this.coverPos ? ` style="object-position:${this.coverPos}"` : '';
+        return `<img src="${this.coverUrl}" alt="${this.title}" class="w-full h-full object-cover" data-cover-id="${this.id}"${pos} />`;
       }
       if (item.previewHTML) {
         return item.previewHTML;
@@ -437,9 +439,8 @@ function renderOverview() {
     } else {
       html += '<div class="mini-cards">';
       showCards.forEach(item => {
-        const isPortrait = item.aspectRatio === '3:5';
-        html += `<div class="mini-card" onclick="selectCard('${item.id}')" title="${escHtml(item.title)}">
-          <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full ${isPortrait ? 'aspect-[3/5]' : 'aspect-[4/3]'}">
+                html += `<div class="mini-card" onclick="selectCard('${item.id}')" title="${escHtml(item.title)}">
+          <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">
             ${item.getPreviewHTML().replace(/text-xs/g,'text-[7px]').replace(/text-\[10px\]/g,'text-[7px]').replace(/text-sm/g,'text-[8px]').replace(/text-lg/g,'text-[9px]').replace(/text-2xl/g,'text-xs').replace(/w-14 h-20/g,'w-9 h-12').replace(/w-10 h-14/g,'w-6 h-8').replace(/w-16 h-12/g,'w-10 h-8').replace(/w-8 h-6/g,'w-5 h-4').replace(/w-20 h-16/g,'w-12 h-10').replace(/w-12 h-12/g,'w-7 h-7').replace(/w-10 h-10/g,'w-6 h-6').replace(/gap-2/g,'gap-0.5').replace(/gap-1\.5/g,'gap-0.5').replace(/gap-3/g,'gap-1').replace(/p-4 text-center/g,'p-1.5 text-center').replace(/p-3/g,'p-1.5').replace(/max-w-\[200px\]/g,'max-w-[90px]').replace(/mb-3/g,'mb-1').replace(/mb-2/g,'mb-0.5').replace(/mb-1/g,'mb-0').replace(/mt-2/g,'mt-0.5').replace(/leading-relaxed/g,'leading-tight').replace(/rounded /g,'rounded-sm ').replace(/rounded-lg /g,'rounded-sm ')}
           </div>
         </div>`;
@@ -481,11 +482,10 @@ function renderCardsInto(containerId, items) {
   const container = document.getElementById(containerId);
   if (!container) return;
   container.innerHTML = items.map(item => {
-    const isPortrait = item.aspectRatio === '3:5';
-    const isActive = item.id === selectedId;
+        const isActive = item.id === selectedId;
     return `<div><div onclick="selectCard('${item.id}')"
       class="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md ${isActive ? 'border-[#1A1A1A] shadow-md' : 'border-[#E5E7EB]'}">
-      <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full ${isPortrait ? 'aspect-[3/5]' : 'aspect-[4/3]'}">${item.getPreviewHTML()}</div>
+      <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>
       <div class="p-3">
         <h3 class="text-sm font-medium text-[#1A1A1A] leading-snug line-clamp-2 mb-1">${item.title}</h3>
         <div class="flex items-center justify-between">
@@ -514,15 +514,21 @@ function renderPanelDetail(content) {
   const item = materials.find(m => m.id === selectedId);
   if (!item) return;
   const imgHTML = item.coverUrl
-    ? `<img src="${item.coverUrl}" alt="${escHtml(item.title)}" class="w-full h-auto cursor-zoom-in" onclick="openLightbox('${item.coverUrl}')" />`
+    ? `<div class="w-full aspect-[4/3] overflow-hidden bg-[#1A1A1A] relative" id="detail-cover-frame">
+        <img src="${item.coverUrl}" alt="${escHtml(item.title)}" id="detail-cover-img" class="w-full h-full object-cover cursor-zoom-in" style="object-position:${item.coverPos||'50% 50%'}" onclick="openLightbox('${item.coverUrl}')" />
+      </div>`
     : `<div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>`;
   content.innerHTML = `<div class="flex flex-col h-full">
     <div class="panel-header">
       <span class="text-sm font-medium text-[#1A1A1A]">素材详情</span>
       <button class="p-1 rounded-md hover:bg-[#F3F4F6] transition-colors" onclick="closeRightPanel()"><i data-lucide="x" class="w-4 h-4 text-[#6B7280]"></i></button>
     </div>
-    <div class="sticky top-0 z-10 bg-white">
+    <div class="sticky top-0 z-10 bg-white relative" id="detail-cover-wrap">
       ${imgHTML}
+      <div class="absolute top-2 right-2 flex gap-2" id="detail-cover-tools">
+        <button type="button" id="btn-cover-fit" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="完整小图（左对齐）"><i data-lucide="image" class="w-4 h-4 text-[#4B5563]"></i></button>
+        <button type="button" id="btn-cover-crop" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="拖动调整裁剪区域"><i data-lucide="move-vertical" class="w-4 h-4 text-[#4B5563]"></i></button>
+      </div>
     </div>
     <div class="flex-1 overflow-y-auto scrollbar-thin">
       <div class="p-4 space-y-4">
@@ -532,8 +538,6 @@ function renderPanelDetail(content) {
           <button class="inline-flex items-center gap-0.5 px-2.5 py-1 text-[11px] rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" onclick="deleteMaterial('${item.id}')"><i data-lucide="trash-2" class="w-3 h-3"></i>删除</button>
         </div>
         <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">核心信息</h3><ul class="space-y-1">${item.details.summary.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">•</span>${s}</li>`).join('')}</ul></div>
-        <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">页面内容</h3><ul class="space-y-1">${item.details.pageContent.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">-</span>${s}</li>`).join('')}</ul></div>
-        <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">功能导航</h3><ul class="space-y-1">${item.details.navigation.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">-</span>${s}</li>`).join('')}</ul></div>
       </div>
     </div>
     <div class="shrink-0 px-4 py-3 border-t border-[#E5E7EB]">
@@ -545,6 +549,83 @@ function renderPanelDetail(content) {
     </div>
   </div>`;
   lucide.createIcons();
+  bindCoverEdit(item);
+}
+
+function bindCoverEdit(item) {
+  const frame = document.getElementById('detail-cover-frame');
+  const img = document.getElementById('detail-cover-img');
+  const btnFit = document.getElementById('btn-cover-fit');
+  const btnCrop = document.getElementById('btn-cover-crop');
+  if (!frame || !img) return;
+
+  let fitMode = false;
+  btnFit?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    fitMode = !fitMode;
+    if (fitMode) {
+      frame.classList.remove('aspect-[4/3]');
+      frame.classList.add('bg-transparent');
+      img.classList.remove('object-cover', 'w-full', 'h-full');
+      img.classList.add('object-contain', 'max-w-full', 'max-h-[55vh]', 'shadow-lg');
+      img.style.objectPosition = '0% 50%';
+    } else {
+      frame.classList.add('aspect-[4/3]');
+      frame.classList.remove('bg-transparent');
+      img.classList.add('object-cover', 'w-full', 'h-full');
+      img.classList.remove('object-contain', 'max-w-full', 'max-h-[55vh]', 'shadow-lg');
+      img.style.objectPosition = item.coverPos || '50% 50%';
+    }
+  });
+
+  let cropMode = false;
+  let dragging = false;
+  const setPos = (clientY) => {
+    const rect = frame.getBoundingClientRect();
+    let ratio = (clientY - rect.top) / rect.height;
+    ratio = Math.max(0, Math.min(1, ratio));
+    const pos = `50% ${Math.round(ratio * 100)}%`;
+    img.style.objectPosition = pos;
+    item.coverPos = pos;
+    refreshCoverInLists(item.id, pos);
+  };
+  const onDown = (e) => {
+    if (!cropMode) return;
+    dragging = true;
+    setPos(e.clientY);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    e.preventDefault();
+  };
+  const onMove = (e) => { if (dragging) setPos(e.clientY); };
+  const onUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+  };
+  const onTouchStart = (e) => { if (cropMode) { dragging = true; setPos(e.touches[0].clientY); e.preventDefault(); } };
+  const onTouchMove = (e) => { if (dragging && cropMode) { setPos(e.touches[0].clientY); e.preventDefault(); } };
+  const onTouchEnd = () => { dragging = false; };
+
+  btnCrop?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    cropMode = !cropMode;
+    btnCrop.classList.toggle('bg-[#1A1A1A]', cropMode);
+    const ic = btnCrop.querySelector('i');
+    ic?.classList.toggle('text-white', cropMode);
+    img.style.cursor = cropMode ? 'ns-resize' : 'zoom-in';
+  });
+  img.addEventListener('mousedown', onDown);
+  img.addEventListener('touchstart', onTouchStart, { passive: false });
+  img.addEventListener('touchmove', onTouchMove, { passive: false });
+  img.addEventListener('touchend', onTouchEnd);
+}
+
+function refreshCoverInLists(id, pos) {
+  document.querySelectorAll(`img[data-cover-id="${id}"]`).forEach(el => {
+    el.style.objectPosition = pos;
+  });
 }
 
 function renderPanelWaterfall(content) {
@@ -562,9 +643,8 @@ function renderPanelWaterfall(content) {
     html += '<div class="panel-grid">';
     items.forEach(item => {
       const isActive = item.id === selectedId;
-      const isPortrait = item.aspectRatio === '3:5';
-      html += `<div class="panel-card ${isActive ? 'ring-2 ring-[#1A1A1A]' : ''}" onclick="selectCard('${item.id}')">
-        <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full ${isPortrait ? 'aspect-[3/5]' : 'aspect-[4/3]'}">${item.getPreviewHTML().replace(/text-xs/g,'text-[7px]').replace(/text-\[10px\]/g,'text-[7px]').replace(/text-sm/g,'text-[8px]').replace(/text-lg/g,'text-[9px]').replace(/text-2xl/g,'text-xs').replace(/w-14 h-20/g,'w-8 h-11').replace(/w-10 h-14/g,'w-5 h-7').replace(/w-16 h-12/g,'w-9 h-7').replace(/w-8 h-6/g,'w-4 h-3').replace(/w-20 h-16/g,'w-10 h-8').replace(/w-12 h-12/g,'w-6 h-6').replace(/w-10 h-10/g,'w-5 h-5').replace(/gap-2/g,'gap-0.5').replace(/gap-1\.5/g,'gap-0.5').replace(/gap-3/g,'gap-1').replace(/p-4 text-center/g,'p-1 text-center').replace(/p-3/g,'p-1').replace(/max-w-\[200px\]/g,'max-w-[80px]').replace(/mb-3/g,'mb-0.5').replace(/mb-2/g,'mb-0').replace(/mb-1/g,'mb-0').replace(/mt-2/g,'mt-0.5').replace(/leading-relaxed/g,'leading-tight')}</div>
+            html += `<div class="panel-card ${isActive ? 'ring-2 ring-[#1A1A1A]' : ''}" onclick="selectCard('${item.id}')">
+        <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML().replace(/text-xs/g,'text-[7px]').replace(/text-\[10px\]/g,'text-[7px]').replace(/text-sm/g,'text-[8px]').replace(/text-lg/g,'text-[9px]').replace(/text-2xl/g,'text-xs').replace(/w-14 h-20/g,'w-8 h-11').replace(/w-10 h-14/g,'w-5 h-7').replace(/w-16 h-12/g,'w-9 h-7').replace(/w-8 h-6/g,'w-4 h-3').replace(/w-20 h-16/g,'w-10 h-8').replace(/w-12 h-12/g,'w-6 h-6').replace(/w-10 h-10/g,'w-5 h-5').replace(/gap-2/g,'gap-0.5').replace(/gap-1\.5/g,'gap-0.5').replace(/gap-3/g,'gap-1').replace(/p-4 text-center/g,'p-1 text-center').replace(/p-3/g,'p-1').replace(/max-w-\[200px\]/g,'max-w-[80px]').replace(/mb-3/g,'mb-0.5').replace(/mb-2/g,'mb-0').replace(/mb-1/g,'mb-0').replace(/mt-2/g,'mt-0.5').replace(/leading-relaxed/g,'leading-tight')}</div>
         <div class="p-2"><div class="text-[10px] font-medium text-[#1A1A1A] leading-snug line-clamp-2">${escHtml(item.title)}</div></div>
       </div>`;
     });
@@ -647,8 +727,12 @@ function renderMobilePanel() {
         <span class="text-sm font-medium text-[#1A1A1A]">素材详情</span>
         <button class="p-1 rounded-md hover:bg-[#F3F4F6]" onclick="closeMobilePanel()"><i data-lucide="x" class="w-4 h-4 text-[#6B7280]"></i></button>
       </div>
-      <div class="sticky top-[49px] z-10 bg-white">
+      <div class="sticky top-[49px] z-10 bg-white relative" id="detail-cover-wrap">
         ${imgHTML}
+        <div class="absolute top-2 right-2 flex gap-2" id="detail-cover-tools">
+          <button type="button" id="btn-cover-fit" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="完整小图（左对齐）"><i data-lucide="image" class="w-4 h-4 text-[#4B5563]"></i></button>
+          <button type="button" id="btn-cover-crop" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="拖动调整裁剪区域"><i data-lucide="move-vertical" class="w-4 h-4 text-[#4B5563]"></i></button>
+        </div>
       </div>
       <div class="flex-1 overflow-y-auto scrollbar-thin">
         <div class="p-4 space-y-4">
@@ -658,9 +742,7 @@ function renderMobilePanel() {
             <button class="inline-flex items-center gap-0.5 px-2 py-0.5 text-[11px] rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" onclick="deleteMaterial('${item.id}')"><i data-lucide="trash-2" class="w-3 h-3"></i>删除</button>
           </div>
           <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">核心信息</h3><ul class="space-y-1">${item.details.summary.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">•</span>${s}</li>`).join('')}</ul></div>
-          <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">页面内容</h3><ul class="space-y-1">${item.details.pageContent.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">-</span>${s}</li>`).join('')}</ul></div>
-          <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">功能导航</h3><ul class="space-y-1">${item.details.navigation.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">-</span>${s}</li>`).join('')}</ul></div>
-        </div>
+                  </div>
       </div>
       <div class="shrink-0 px-4 py-3 border-t border-[#E5E7EB]">
         <div class="flex items-center gap-1.5 text-[11px] text-[#6B7280] mb-2.5 truncate"><i data-lucide="external-link" class="w-2.5 h-2.5 shrink-0"></i><span class="truncate">${item.url}</span></div>
@@ -670,6 +752,7 @@ function renderMobilePanel() {
         </div>
       </div>
     </div>`;
+  bindCoverEdit(item);
   } else if (panelMode === 'waterfall' && panelCollection) {
     const items = getMaterialsByCollection(panelCollection);
     let html = `<div class="flex flex-col h-full">
@@ -683,9 +766,8 @@ function renderMobilePanel() {
       html += '<div class="collection-grid">';
       items.forEach(item => {
         const isActive = item.id === selectedId;
-        const isPortrait = item.aspectRatio === '3:5';
-        html += `<div><div onclick="selectCard('${item.id}')" class="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isActive ? 'border-[#1A1A1A] shadow-md' : 'border-[#E5E7EB]'}">
-          <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full ${isPortrait ? 'aspect-[3/5]' : 'aspect-[4/3]'}">${item.getPreviewHTML()}</div>
+                html += `<div><div onclick="selectCard('${item.id}')" class="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isActive ? 'border-[#1A1A1A] shadow-md' : 'border-[#E5E7EB]'}">
+          <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>
           <div class="p-3"><div class="text-sm font-medium text-[#1A1A1A] leading-snug line-clamp-2 mb-1">${item.title}</div></div>
         </div></div>`;
       });
