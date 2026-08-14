@@ -383,7 +383,7 @@ function parseMaterialItem(item, index) {
     collection: item.topic || item.topic_name || item.collection || '未分类',
     aspectRatio: item.aspectRatio || '4:3',
     coverUrl: item.cover_url || item.coverUrl || '',
-    coverPos: item.coverPos || null,
+    coverPos: item.coverpos || null,
     previewBg: item.previewBg || 'bg-gradient-to-br from-slate-50 to-blue-50',
     title: item.title || '素材标题',
     url: item.url || '',

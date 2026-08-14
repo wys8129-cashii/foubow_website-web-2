@@ -17,7 +17,8 @@ module.exports = {
   moveMaterialWorkflowId:        '7655030742292283419',  // 修改素材所属合集（流式）
   deleteMaterialWorkflowId:      '7664793140239499298',  // 删除素材（流式）
   searchWorkflowId:              '7664793519996207155',  // 搜索素材
-  updateMaterialCoverWorkflowId: process.env.COZE_UPDATE_MATERIAL_COVER_WORKFLOW_ID || '',  // 更新素材封面裁剪位置（需手动建 Coze 工作流，未配则跳过持久化）
+  updateMaterialCoverWorkflowId: process.env.COZE_UPDATE_MATERIAL_COVER_WORKFLOW_ID || '7673732265646964774',  // 更新素材封面裁剪位置
+  updateMaterialCoverAppId:      process.env.COZE_UPDATE_MATERIAL_COVER_APP_ID      || '7635532712145076243',  // 该工作流所属 Coze 应用（与主 COZE_APP_ID 不同）
 
   // ── API 地址 ──
   baseUrl:       process.env.COZE_BASE_URL        || 'https://api.coze.cn/v1/workflow/run',

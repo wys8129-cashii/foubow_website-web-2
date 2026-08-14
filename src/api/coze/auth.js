@@ -616,7 +616,7 @@ async function cozeUpdateMaterialCover(params) {
     throw new Error('未配置 COZE_UPDATE_MATERIAL_COVER_WORKFLOW_ID（跳过持久化）');
   }
   try {
-    const appId = cozeConfig.appId;
+    const appId = cozeConfig.updateMaterialCoverAppId;
     const baseUrl = cozeConfig.streamBaseUrl;
 
     console.log('调用 Coze 更新素材封面裁剪位置 API:', {
@@ -625,7 +625,7 @@ async function cozeUpdateMaterialCover(params) {
       app_id: appId,
       email: params.email,
       title: params.title,
-      cover_pos: params.coverPos,
+      coverpos: params.coverPos,
     });
 
     const requestData = {
@@ -634,7 +634,7 @@ async function cozeUpdateMaterialCover(params) {
       parameters: {
         email: params.email,
         title: params.title,
-        cover_pos: params.coverPos,
+        coverpos: params.coverPos,
       },
     };
 
