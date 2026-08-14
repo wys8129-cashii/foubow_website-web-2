@@ -578,13 +578,13 @@ function bindCoverEdit(item) {
       frame.classList.remove('aspect-[4/3]');
       frame.classList.add('bg-transparent');
       img.classList.remove('object-cover', 'w-full', 'h-full');
-      img.classList.add('object-contain', 'max-w-full', 'max-h-[55vh]', 'shadow-lg');
+      img.classList.add('object-contain', 'max-w-full', 'max-h-[55vh]', 'shadow-lg', 'rounded-xl');
       img.style.objectPosition = '0% 50%';
     } else {
       frame.classList.add('aspect-[4/3]');
       frame.classList.remove('bg-transparent');
       img.classList.add('object-cover', 'w-full', 'h-full');
-      img.classList.remove('object-contain', 'max-w-full', 'max-h-[55vh]', 'shadow-lg');
+      img.classList.remove('object-contain', 'max-w-full', 'max-h-[55vh]', 'shadow-lg', 'rounded-xl');
       img.style.objectPosition = item.coverPos || '50% 50%';
     }
   });
