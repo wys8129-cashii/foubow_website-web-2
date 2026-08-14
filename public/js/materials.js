@@ -464,11 +464,22 @@ function renderCollectionDetail(name) {
   const container = document.getElementById('main-content');
   const items = getMaterialsByCollection(name);
   const outputs = getOutputsByCollection(name);
-  container.innerHTML = `<div class="flex items-center gap-2 mb-5">
-    <button onclick="navigateTo('overview')" class="p-1.5 rounded-md hover:bg-[#F3F4F6] transition-colors flex items-center gap-1 text-sm text-[#6B7280] hover:text-[#1A1A1A]">
-      <i data-lucide="arrow-left" class="w-4 h-4"></i> 返回
-    </button>
-    <h1 class="text-base font-semibold text-[#1A1A1A]">${name} <span class="text-xs font-normal text-[#9CA3AF] ml-1">${items.length} 个素材</span><span class="text-xs font-normal text-[#9CA3AF] ml-1 cursor-pointer hover:text-[#1A1A1A] underline underline-offset-2" onclick="openCollectionOutputs('${name.replace(/'/g, "\\'")}')">${outputs.length} 个产出物</span></h1>
+  const escName = escHtml(name);
+  container.innerHTML = `<div class="flex items-center justify-between gap-2 mb-5 flex-wrap">
+    <div class="flex items-center gap-2 min-w-0">
+      <button onclick="navigateTo('overview')" class="p-1.5 rounded-md hover:bg-[#F3F4F6] transition-colors flex items-center gap-1 text-sm text-[#6B7280] hover:text-[#1A1A1A] shrink-0">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> 返回
+      </button>
+      <h1 class="text-base font-semibold text-[#1A1A1A] truncate">${escName} <span class="text-xs font-normal text-[#9CA3AF] ml-1">${items.length} 个素材</span><span class="text-xs font-normal text-[#9CA3AF] ml-1 cursor-pointer hover:text-[#1A1A1A] underline underline-offset-2" onclick="openCollectionOutputs('${escName}')">${outputs.length} 个产出物</span></h1>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <button id="btn-export-collection" onclick="exportCollectionAsMD('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-[#F3F4F6] text-[#4B5563] hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors flex items-center gap-1.5" title="导出当前合集为 Markdown">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i>导出
+      </button>
+      <button id="btn-share-collection" onclick="shareCollection('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors flex items-center gap-1.5" title="生成移动端阅览的分享页 HTML">
+        <i data-lucide="share-2" class="w-3.5 h-3.5"></i>分享
+      </button>
+    </div>
   </div><div class="cards-grid" id="cards-container"></div>`;
   if (items.length === 0) {
     document.getElementById('cards-container').innerHTML = '<div class="col-span-full text-sm text-[#9CA3AF] text-center py-12">该合集暂无素材</div>';
@@ -708,6 +719,220 @@ function renderCollectionOutputPanel(content) {
   html += '</div></div>';
   content.innerHTML = html;
   lucide.createIcons();
+}
+
+// ===== Collection Export & Share =====
+// 导出当前合集素材为 Markdown 文件（含封面图链接）
+function exportCollectionAsMD(name) {
+  const items = getMaterialsByCollection(name);
+  if (!items.length) { alert('该合集暂无素材，无法导出'); return; }
+  const lines = [];
+  lines.push(`# ${name}`);
+  lines.push('');
+  lines.push(`> 共收录 **${items.length}** 个素材`);
+  lines.push('');
+  lines.push(`导出时间：${new Date().toLocaleString('zh-CN')}`);
+  lines.push('');
+  lines.push('---');
+  lines.push('');
+  items.forEach((item, i) => {
+    lines.push(`## ${i + 1}. ${item.title || '未命名素材'}`);
+    lines.push('');
+    if (item.coverUrl) {
+      lines.push(`![封面图](${item.coverUrl})`);
+      lines.push('');
+    }
+    if (item.url) {
+      lines.push(`**来源**：[${item.url}](${item.url})`);
+      lines.push('');
+    }
+    const summary = item.details?.summary || [];
+    if (summary.length) {
+      lines.push('### 说明');
+      summary.forEach(s => lines.push(`- ${s}`));
+      lines.push('');
+    }
+    const pageContent = item.details?.pageContent || [];
+    if (pageContent.length) {
+      lines.push('### 页面内容');
+      pageContent.forEach(s => lines.push(`- ${s}`));
+      lines.push('');
+    }
+    const navigation = item.details?.navigation || [];
+    if (navigation.length) {
+      lines.push('### 功能导航');
+      navigation.forEach(s => lines.push(`- ${s}`));
+      lines.push('');
+    }
+    lines.push('---');
+    lines.push('');
+  });
+  const md = lines.join('\n');
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = `${name}_合集_${new Date().toISOString().slice(0, 10)}.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+}
+
+// 生成移动端阅览的分享页 HTML（背景渐变 / 3:4 竖向卡片 / 大标题+说明+截图横向排列）
+function generateShareHTML(name, items) {
+  const dateStr = new Date().toLocaleDateString('zh-CN');
+  const cards = items.map((item, i) => {
+    const title = escHtml(item.title || '未命名素材');
+    const summaryList = (item.details?.summary || [])
+      .map(s => `<li>${escHtml(s)}</li>`).join('');
+    const shotsList = (item.details?.pageContent || [])
+      .map(s => `<div class="shot">${escHtml(s)}</div>`).join('');
+    const coverHTML = item.coverUrl
+      ? `<img src="${escHtml(item.coverUrl)}" alt="${title}" loading="lazy" />`
+      : `<div class="placeholder">${title}</div>`;
+    const urlBlock = item.url
+      ? `<div class="url">🔗 <a href="${escHtml(item.url)}" target="_blank" rel="noopener">${escHtml(item.url)}</a></div>`
+      : '';
+    return `
+      <article class="card">
+        <div class="cover">${coverHTML}</div>
+        <h2 class="title">${title}</h2>
+        ${urlBlock}
+        ${summaryList ? `<div class="desc"><div class="label">说 明</div><ul>${summaryList}</ul></div>` : ''}
+        ${shotsList ? `<div class="shots-label">页面内容</div><div class="shots">${shotsList}</div>` : ''}
+      </article>`;
+  }).join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escHtml(name)} · Foubow 合集</title>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;background:linear-gradient(135deg,#fce7f3 0%,#fbcfe8 25%,#ddd6fe 60%,#c7d2fe 100%);min-height:100vh;color:#1a1a1a;-webkit-font-smoothing:antialiased;}
+  .container{max-width:420px;margin:0 auto;padding:36px 18px 64px;}
+  .header{text-align:center;margin-bottom:36px;}
+  .header .label{font-size:11px;color:rgba(0,0,0,.5);letter-spacing:3px;font-weight:500;}
+  .header h1{font-size:28px;font-weight:700;margin:12px 0 8px;letter-spacing:.5px;}
+  .header .meta{font-size:12px;color:rgba(0,0,0,.6);}
+  .card{background:rgba(255,255,255,.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:20px;padding:16px;margin-bottom:24px;box-shadow:0 8px 32px rgba(60,40,120,.08);border:1px solid rgba(255,255,255,.5);}
+  .cover{width:100%;aspect-ratio:3/4;background:linear-gradient(135deg,#fafafa,#efefef);border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+  .cover img{max-width:100%;max-height:100%;object-fit:contain;}
+  .cover .placeholder{font-size:13px;color:rgba(0,0,0,.4);padding:24px;text-align:center;}
+  .title{font-size:19px;font-weight:600;margin:14px 6px 8px;line-height:1.4;color:#1a1a1a;}
+  .url{font-size:12px;color:rgba(0,0,0,.55);word-break:break-all;margin:0 6px 14px;}
+  .url a{color:rgba(80,60,140,.7);text-decoration:none;}
+  .desc{background:rgba(255,255,255,.55);border-radius:12px;padding:12px 14px;margin:0 4px 14px;font-size:13px;line-height:1.65;color:#4b5563;}
+  .desc .label,.shots-label{font-size:10px;color:#9ca3af;letter-spacing:1.8px;font-weight:500;padding:0 8px;margin-bottom:8px;}
+  .desc ul{margin:0;padding-left:18px;}
+  .desc li{margin-bottom:4px;}
+  .shots{display:flex;gap:10px;overflow-x:auto;padding:4px 6px 10px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
+  .shots::-webkit-scrollbar{height:4px;}
+  .shots::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:2px;}
+  .shot{flex:0 0 130px;background:linear-gradient(135deg,#ffffff,#f4f4f5);border-radius:12px;padding:16px 12px;font-size:12px;line-height:1.55;color:#4b5563;border:1px solid rgba(0,0,0,.05);scroll-snap-align:start;box-shadow:0 2px 8px rgba(0,0,0,.04);}
+  .shot::before{content:"▍";display:block;color:rgba(120,80,180,.5);margin-bottom:6px;font-size:14px;}
+  .footer{text-align:center;font-size:11px;color:rgba(0,0,0,.4);padding:28px 0 0;letter-spacing:.5px;}
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="label">COLLECTION</div>
+      <h1>${escHtml(name)}</h1>
+      <div class="meta">${items.length} 个素材 · 整理于 ${escHtml(dateStr)}</div>
+    </div>
+    ${cards}
+    <div class="footer">由 Foubow 生成 · ${escHtml(dateStr)}</div>
+  </div>
+</body>
+</html>`;
+}
+
+let sharePreviewState = null;
+// 打开分享预览弹窗：iframe 渲染生成的 HTML，可下载 / 复制
+function shareCollection(name) {
+  const items = getMaterialsByCollection(name);
+  if (!items.length) { alert('该合集暂无素材，无法生成'); return; }
+  if (document.getElementById('share-preview-overlay')) return;
+  const html = generateShareHTML(name, items);
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const blobUrl = URL.createObjectURL(blob);
+  sharePreviewState = { name, html, blobUrl };
+
+  const overlay = document.createElement('div');
+  overlay.id = 'share-preview-overlay';
+  overlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4';
+  overlay.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[460px] max-h-[90vh] overflow-hidden flex flex-col">
+      <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#E5E7EB] shrink-0">
+        <div class="flex items-center gap-2 min-w-0">
+          <i data-lucide="eye" class="w-4 h-4 text-[#6B7280] shrink-0"></i>
+          <span class="text-sm font-medium text-[#1A1A1A] truncate">分享预览 · ${escHtml(name)}</span>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button id="share-btn-download" class="px-2.5 py-1 text-xs rounded-md bg-[#F3F4F6] hover:bg-[#E5E7EB] transition-colors flex items-center gap-1" title="下载HTML文件">
+            <i data-lucide="download" class="w-3 h-3"></i><span>下载HTML</span>
+          </button>
+          <button id="share-btn-copy" data-orig="复制源码" class="px-2.5 py-1 text-xs rounded-md bg-[#F3F4F6] hover:bg-[#E5E7EB] transition-colors flex items-center gap-1" title="复制HTML源码">
+            <i data-lucide="copy" class="w-3 h-3"></i><span>复制源码</span>
+          </button>
+          <button id="share-btn-close" class="p-1 rounded-md hover:bg-[#F3F4F6] transition-colors" title="关闭">
+            <i data-lucide="x" class="w-4 h-4 text-[#6B7280]"></i>
+          </button>
+        </div>
+      </div>
+      <iframe id="share-preview-iframe" class="w-full flex-1 border-0 bg-[#F3F4F6]" src="${blobUrl}"></iframe>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  lucide.createIcons();
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeSharePreview(); });
+  document.getElementById('share-btn-download').addEventListener('click', downloadShareHTML);
+  document.getElementById('share-btn-copy').addEventListener('click', (e) => copyShareHTML(e.currentTarget));
+  document.getElementById('share-btn-close').addEventListener('click', closeSharePreview);
+}
+
+function closeSharePreview() {
+  const overlay = document.getElementById('share-preview-overlay');
+  if (overlay) overlay.remove();
+  if (sharePreviewState?.blobUrl) {
+    setTimeout(() => URL.revokeObjectURL(sharePreviewState.blobUrl), 500);
+  }
+  sharePreviewState = null;
+}
+
+function downloadShareHTML() {
+  if (!sharePreviewState) return;
+  const { name, html } = sharePreviewState;
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${name}_分享页_${new Date().toISOString().slice(0, 10)}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function copyShareHTML(btn) {
+  if (!sharePreviewState) return;
+  if (!navigator.clipboard?.writeText) { alert('当前浏览器不支持一键复制'); return; }
+  try {
+    await navigator.clipboard.writeText(sharePreviewState.html);
+    const orig = btn.dataset.orig || btn.textContent;
+    btn.dataset.orig = orig;
+    const span = btn.querySelector('span');
+    if (span) span.textContent = '✓ 已复制';
+    btn.disabled = true;
+    setTimeout(() => { if (span) span.textContent = orig; btn.disabled = false; }, 1500);
+  } catch (e) {
+    alert('复制失败：' + e.message);
+  }
 }
 
 // ===== Mobile Panel =====

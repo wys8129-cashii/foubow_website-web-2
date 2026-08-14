@@ -1014,6 +1014,10 @@ video {
   max-height: 55vh;
 }
 
+.max-h-\[90vh\] {
+  max-height: 90vh;
+}
+
 .min-h-\[1024px\] {
   min-height: 1024px;
 }
@@ -1120,6 +1124,10 @@ video {
 
 .max-w-\[200px\] {
   max-width: 200px;
+}
+
+.max-w-\[460px\] {
+  max-width: 460px;
 }
 
 .max-w-\[480px\] {
@@ -1564,6 +1572,10 @@ video {
 
 .bg-black\/40 {
   background-color: rgb(0 0 0 / 0.4);
+}
+
+.bg-black\/60 {
+  background-color: rgb(0 0 0 / 0.6);
 }
 
 .bg-error-container {
