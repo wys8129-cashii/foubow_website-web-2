@@ -833,9 +833,9 @@ function generateShareHTML(name, items) {
   .card{background:#fff;border-radius:18px;box-shadow:0 8px 28px rgba(60,40,120,.10);overflow:hidden;text-decoration:none;color:inherit;display:block;transition:transform .2s ease,box-shadow .2s ease;}
   .card:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(60,40,120,.16);}
   .card:active{transform:scale(.99);}
-  .image-wrap{background:linear-gradient(135deg,#fafafa,#efefef);padding:16px;display:flex;align-items:center;justify-content:center;min-height:200px;}
-  .image-wrap img{max-width:100%;max-height:380px;object-fit:contain;border-radius:10px;}
-  .image-wrap .placeholder{font-size:13px;color:rgba(0,0,0,.4);padding:36px;text-align:center;}
+  .image-wrap{background:linear-gradient(135deg,#fafafa,#efefef);padding:14px;display:flex;align-items:center;justify-content:center;}
+  .image-wrap img{display:block;width:100%;height:auto;max-height:82vh;object-fit:contain;border-radius:10px;}
+  .image-wrap .placeholder{font-size:13px;color:rgba(0,0,0,.4);min-height:220px;display:flex;align-items:center;justify-content:center;padding:36px;text-align:center;}
   .title{padding:14px 18px 18px;font-size:15px;line-height:1.55;color:#1a1a1a;text-align:center;font-weight:500;}
   .footer{text-align:center;margin-top:60px;font-size:11px;color:rgba(0,0,0,.45);letter-spacing:1.5px;}
 </style>
@@ -871,7 +871,7 @@ function shareCollection(name) {
   overlay.id = 'share-preview-overlay';
   overlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4';
   overlay.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[760px] max-h-[90vh] overflow-hidden flex flex-col">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[920px] max-h-[96vh] overflow-hidden flex flex-col">
       <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#E5E7EB] shrink-0 flex-wrap">
         <div class="flex items-center gap-2 min-w-0">
           <i data-lucide="eye" class="w-4 h-4 text-[#6B7280] shrink-0"></i>
