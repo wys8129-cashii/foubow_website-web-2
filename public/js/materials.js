@@ -634,7 +634,7 @@ function bindCoverEdit(item) {
     window.removeEventListener('touchmove', onMove);
     window.removeEventListener('mouseup', onUp);
     window.removeEventListener('touchend', onUp);
-    saveCoverPos(item);
+    // 拖动结束不保存——只有点击"确定"按钮才保存
   };
 
   const enterCrop = () => {
@@ -655,24 +655,46 @@ function bindCoverEdit(item) {
     top = Math.max(0, Math.min(rect.height - winH, top));
     cropWin.style.top = top + 'px';
     cropWin.style.display = 'block';
-    btnCrop.classList.add('bg-[#1A1A1A]');
+    // 裁剪按钮变身：黑底绿色对勾 + "确定"标题
+    btnCrop?.classList.remove('hover:bg-[#F3F4F6]');
+    btnCrop?.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
+    btnCrop.title = '确定并保存裁剪';
     const ic = btnCrop.querySelector('i');
-    ic?.classList.add('text-white');
+    if (ic) {
+      ic.setAttribute('data-lucide', 'check');
+      ic.classList.remove('text-[#4B5563]');
+      ic.classList.add('text-white');
+      if (window.lucide) window.lucide.createIcons();
+    }
   };
   const exitCrop = () => {
     cropMode = false;
     cropWin.style.display = 'none';
     img.style.pointerEvents = '';
-    btnCrop.classList.remove('bg-[#1A1A1A]');
+    // 还原裁剪按钮：白底灰 move-vertical
+    btnCrop?.classList.add('hover:bg-[#F3F4F6]');
+    btnCrop?.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
+    btnCrop.title = '拖动调整裁剪区域';
     const ic = btnCrop.querySelector('i');
-    ic?.classList.remove('text-white');
+    if (ic) {
+      ic.setAttribute('data-lucide', 'move-vertical');
+      ic.classList.add('text-[#4B5563]');
+      ic.classList.remove('text-white');
+      if (window.lucide) window.lucide.createIcons();
+    }
   };
 
   cropWin.addEventListener('mousedown', onDown);
   cropWin.addEventListener('touchstart', onDown, { passive: false });
   btnCrop?.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (cropMode) exitCrop(); else enterCrop();
+    if (cropMode) {
+      // 当前是"确定"按钮形态：保存并退出裁剪
+      saveCoverPos(item);
+      exitCrop();
+    } else {
+      enterCrop();
+    }
   });
 }
 
