@@ -536,7 +536,7 @@ function renderPanelDetail(content) {
     </div>
     <div class="sticky top-0 z-10 bg-white relative" id="detail-cover-wrap">
       ${imgHTML}
-      <div class="absolute bottom-2 right-2 flex gap-2" id="detail-cover-tools">
+      <div class="absolute bottom-2 right-2 flex gap-2 z-20" id="detail-cover-tools">
         <button type="button" id="btn-cover-fit" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="查看图片核心信息"><i data-lucide="eye" class="w-4 h-4 text-[#4B5563]"></i></button>
         <button type="button" id="btn-cover-crop" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="拖动调整裁剪区域"><i data-lucide="move-vertical" class="w-4 h-4 text-[#4B5563]"></i></button>
       </div>
@@ -683,8 +683,9 @@ function bindCoverEdit(item) {
     top = Math.max(0, Math.min(rect.height - winH, top));
     cropWin.style.top = top + 'px';
     cropWin.style.display = 'block';
-    // 裁剪按钮变身：黑底绿色对勾 + "确定"标题
-    btnCrop?.classList.remove('hover:bg-[#F3F4F6]');
+    // 裁剪按钮变身：绿底白色对勾 + "确定"标题
+    // 必须移除 bg-white，否则 CSS 中靠后的 bg-white 会覆盖 bg-emerald-500（两者 specificity 相同）
+    btnCrop?.classList.remove('bg-white', 'hover:bg-[#F3F4F6]');
     btnCrop?.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
     btnCrop.title = '确定并保存裁剪';
     const ic = btnCrop.querySelector('i');
@@ -700,7 +701,7 @@ function bindCoverEdit(item) {
     cropWin.style.display = 'none';
     img.style.pointerEvents = '';
     // 还原裁剪按钮：白底灰 move-vertical
-    btnCrop?.classList.add('hover:bg-[#F3F4F6]');
+    btnCrop?.classList.add('bg-white', 'hover:bg-[#F3F4F6]');
     btnCrop?.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
     btnCrop.title = '拖动调整裁剪区域';
     const ic = btnCrop.querySelector('i');
@@ -1098,7 +1099,7 @@ function renderMobilePanel() {
       </div>
       <div class="sticky top-[49px] z-10 bg-white relative" id="detail-cover-wrap">
         ${imgHTML}
-        <div class="absolute bottom-2 right-2 flex gap-2" id="detail-cover-tools">
+        <div class="absolute bottom-2 right-2 flex gap-2 z-20" id="detail-cover-tools">
           <button type="button" id="btn-cover-fit" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="查看图片核心信息"><i data-lucide="eye" class="w-4 h-4 text-[#4B5563]"></i></button>
           <button type="button" id="btn-cover-crop" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="拖动调整裁剪区域"><i data-lucide="move-vertical" class="w-4 h-4 text-[#4B5563]"></i></button>
         </div>
