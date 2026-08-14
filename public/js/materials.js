@@ -525,8 +525,8 @@ function renderPanelDetail(content) {
   const item = materials.find(m => m.id === selectedId);
   if (!item) return;
   const imgHTML = item.coverUrl
-    ? `<div class="w-full aspect-[4/3] overflow-hidden bg-[#1A1A1A] relative" id="detail-cover-frame">
-        <img src="${item.coverUrl}" alt="${escHtml(item.title)}" id="detail-cover-img" class="w-full h-full object-cover cursor-zoom-in" style="object-position:${item.coverPos||'50% 50%'}" onclick="openLightbox('${item.coverUrl}')" />
+    ? `<div class="w-full bg-[#1A1A1A] flex items-center justify-center overflow-hidden relative" id="detail-cover-frame">
+        <img src="${item.coverUrl}" alt="${escHtml(item.title)}" id="detail-cover-img" class="max-w-full max-h-[60vh] object-contain cursor-zoom-in" style="object-position:${item.coverPos||'50% 50%'}" onclick="openLightbox('${item.coverUrl}')" />
       </div>`
     : `<div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>`;
   content.innerHTML = `<div class="flex flex-col h-full">
@@ -537,7 +537,7 @@ function renderPanelDetail(content) {
     <div class="sticky top-0 z-10 bg-white relative" id="detail-cover-wrap">
       ${imgHTML}
       <div class="absolute bottom-2 right-2 flex gap-2" id="detail-cover-tools">
-        <button type="button" id="btn-cover-fit" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="完整小图（左对齐）"><i data-lucide="image" class="w-4 h-4 text-[#4B5563]"></i></button>
+        <button type="button" id="btn-cover-fit" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="查看图片核心信息"><i data-lucide="eye" class="w-4 h-4 text-[#4B5563]"></i></button>
         <button type="button" id="btn-cover-crop" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="拖动调整裁剪区域"><i data-lucide="move-vertical" class="w-4 h-4 text-[#4B5563]"></i></button>
       </div>
     </div>
@@ -575,16 +575,16 @@ function bindCoverEdit(item) {
     e.stopPropagation();
     fitMode = !fitMode;
     if (fitMode) {
-      frame.classList.remove('aspect-[4/3]');
-      frame.classList.add('bg-transparent');
-      img.classList.remove('object-cover', 'w-full', 'h-full');
-      img.classList.add('object-contain', 'max-w-full', 'max-h-[55vh]', 'shadow-lg', 'rounded-xl');
+      // 小图模式：高度减半（55vh→27vh）、左对齐、加 16px 左间距、加强阴影
+      frame.classList.add('bg-transparent', 'justify-start');
+      img.classList.remove('max-h-[60vh]');
+      img.classList.add('max-h-[27vh]', 'shadow-2xl', 'rounded-xl', 'ml-4');
       img.style.objectPosition = '0% 50%';
     } else {
-      frame.classList.add('aspect-[4/3]');
-      frame.classList.remove('bg-transparent');
-      img.classList.add('object-cover', 'w-full', 'h-full');
-      img.classList.remove('object-contain', 'max-w-full', 'max-h-[55vh]', 'shadow-lg', 'rounded-xl');
+      // 退出，恢复默认完整高度图
+      frame.classList.remove('bg-transparent', 'justify-start');
+      img.classList.remove('max-h-[27vh]', 'shadow-2xl', 'rounded-xl', 'ml-4');
+      img.classList.add('max-h-[60vh]');
       img.style.objectPosition = item.coverPos || '50% 50%';
     }
   });
@@ -1007,7 +1007,7 @@ function renderMobilePanel() {
       <div class="sticky top-[49px] z-10 bg-white relative" id="detail-cover-wrap">
         ${imgHTML}
         <div class="absolute bottom-2 right-2 flex gap-2" id="detail-cover-tools">
-          <button type="button" id="btn-cover-fit" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="完整小图（左对齐）"><i data-lucide="image" class="w-4 h-4 text-[#4B5563]"></i></button>
+          <button type="button" id="btn-cover-fit" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="查看图片核心信息"><i data-lucide="eye" class="w-4 h-4 text-[#4B5563]"></i></button>
           <button type="button" id="btn-cover-crop" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="拖动调整裁剪区域"><i data-lucide="move-vertical" class="w-4 h-4 text-[#4B5563]"></i></button>
         </div>
       </div>

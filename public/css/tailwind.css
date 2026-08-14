@@ -839,6 +839,10 @@ video {
   margin-left: 0.25rem;
 }
 
+.ml-4 {
+  margin-left: 1rem;
+}
+
 .ml-auto {
   margin-left: auto;
 }
@@ -1022,8 +1026,12 @@ video {
   height: 100vh;
 }
 
-.max-h-\[55vh\] {
-  max-height: 55vh;
+.max-h-\[27vh\] {
+  max-height: 27vh;
+}
+
+.max-h-\[60vh\] {
+  max-height: 60vh;
 }
 
 .max-h-\[90vh\] {
@@ -1281,6 +1289,10 @@ video {
 
 .items-center {
   align-items: center;
+}
+
+.justify-start {
+  justify-content: flex-start;
 }
 
 .justify-end {
