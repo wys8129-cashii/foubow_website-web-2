@@ -779,29 +779,18 @@ function exportCollectionAsMD(name) {
   setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 }
 
-// 生成移动端阅览的分享页 HTML（背景渐变 / 3:4 竖向卡片 / 大标题+说明+截图横向排列）
+// 生成移动端阅览的分享页 HTML（背景渐变 / 卡片列表 = 完整封面图 + 小标题）
 function generateShareHTML(name, items) {
-  const dateStr = new Date().toLocaleDateString('zh-CN');
-  const cards = items.map((item, i) => {
+  const cards = items.map(item => {
     const title = escHtml(item.title || '未命名素材');
-    const summaryList = (item.details?.summary || [])
-      .map(s => `<li>${escHtml(s)}</li>`).join('');
-    const shotsList = (item.details?.pageContent || [])
-      .map(s => `<div class="shot">${escHtml(s)}</div>`).join('');
-    const coverHTML = item.coverUrl
+    const href = item.url ? escHtml(item.url) : '#';
+    const img = item.coverUrl
       ? `<img src="${escHtml(item.coverUrl)}" alt="${title}" loading="lazy" />`
       : `<div class="placeholder">${title}</div>`;
-    const urlBlock = item.url
-      ? `<div class="url">🔗 <a href="${escHtml(item.url)}" target="_blank" rel="noopener">${escHtml(item.url)}</a></div>`
-      : '';
-    return `
-      <article class="card">
-        <div class="cover">${coverHTML}</div>
-        <h2 class="title">${title}</h2>
-        ${urlBlock}
-        ${summaryList ? `<div class="desc"><div class="label">说 明</div><ul>${summaryList}</ul></div>` : ''}
-        ${shotsList ? `<div class="shots-label">页面内容</div><div class="shots">${shotsList}</div>` : ''}
-      </article>`;
+    return `<a class="card" href="${href}" target="_blank" rel="noopener noreferrer">
+      <div class="image-wrap">${img}</div>
+      <div class="title">${title}</div>
+    </a>`;
   }).join('\n');
 
   return `<!DOCTYPE html>
@@ -814,28 +803,20 @@ function generateShareHTML(name, items) {
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;background:linear-gradient(135deg,#fce7f3 0%,#fbcfe8 25%,#ddd6fe 60%,#c7d2fe 100%);min-height:100vh;color:#1a1a1a;-webkit-font-smoothing:antialiased;}
-  .container{max-width:420px;margin:0 auto;padding:36px 18px 64px;}
+  .container{max-width:560px;margin:0 auto;padding:42px 18px 80px;}
   .header{text-align:center;margin-bottom:36px;}
   .header .label{font-size:11px;color:rgba(0,0,0,.5);letter-spacing:3px;font-weight:500;}
   .header h1{font-size:28px;font-weight:700;margin:12px 0 8px;letter-spacing:.5px;}
-  .header .meta{font-size:12px;color:rgba(0,0,0,.6);}
-  .card{background:rgba(255,255,255,.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:20px;padding:16px;margin-bottom:24px;box-shadow:0 8px 32px rgba(60,40,120,.08);border:1px solid rgba(255,255,255,.5);}
-  .cover{width:100%;aspect-ratio:3/4;background:linear-gradient(135deg,#fafafa,#efefef);border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;}
-  .cover img{max-width:100%;max-height:100%;object-fit:contain;}
-  .cover .placeholder{font-size:13px;color:rgba(0,0,0,.4);padding:24px;text-align:center;}
-  .title{font-size:19px;font-weight:600;margin:14px 6px 8px;line-height:1.4;color:#1a1a1a;}
-  .url{font-size:12px;color:rgba(0,0,0,.55);word-break:break-all;margin:0 6px 14px;}
-  .url a{color:rgba(80,60,140,.7);text-decoration:none;}
-  .desc{background:rgba(255,255,255,.55);border-radius:12px;padding:12px 14px;margin:0 4px 14px;font-size:13px;line-height:1.65;color:#4b5563;}
-  .desc .label,.shots-label{font-size:10px;color:#9ca3af;letter-spacing:1.8px;font-weight:500;padding:0 8px;margin-bottom:8px;}
-  .desc ul{margin:0;padding-left:18px;}
-  .desc li{margin-bottom:4px;}
-  .shots{display:flex;gap:10px;overflow-x:auto;padding:4px 6px 10px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
-  .shots::-webkit-scrollbar{height:4px;}
-  .shots::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:2px;}
-  .shot{flex:0 0 130px;background:linear-gradient(135deg,#ffffff,#f4f4f5);border-radius:12px;padding:16px 12px;font-size:12px;line-height:1.55;color:#4b5563;border:1px solid rgba(0,0,0,.05);scroll-snap-align:start;box-shadow:0 2px 8px rgba(0,0,0,.04);}
-  .shot::before{content:"▍";display:block;color:rgba(120,80,180,.5);margin-bottom:6px;font-size:14px;}
-  .footer{text-align:center;font-size:11px;color:rgba(0,0,0,.4);padding:28px 0 0;letter-spacing:.5px;}
+  .header .meta{font-size:12px;color:rgba(0,0,0,.55);}
+  .cards{display:flex;flex-direction:column;gap:22px;}
+  .card{background:#fff;border-radius:18px;box-shadow:0 8px 28px rgba(60,40,120,.10);overflow:hidden;text-decoration:none;color:inherit;display:block;transition:transform .2s ease,box-shadow .2s ease;}
+  .card:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(60,40,120,.16);}
+  .card:active{transform:scale(.99);}
+  .image-wrap{background:linear-gradient(135deg,#fafafa,#efefef);padding:16px;display:flex;align-items:center;justify-content:center;min-height:200px;}
+  .image-wrap img{max-width:100%;max-height:380px;object-fit:contain;border-radius:10px;}
+  .image-wrap .placeholder{font-size:13px;color:rgba(0,0,0,.4);padding:36px;text-align:center;}
+  .title{padding:14px 18px 18px;font-size:15px;line-height:1.55;color:#1a1a1a;text-align:center;font-weight:500;}
+  .footer{text-align:center;margin-top:60px;font-size:11px;color:rgba(0,0,0,.45);letter-spacing:1.5px;}
 </style>
 </head>
 <body>
@@ -843,10 +824,12 @@ function generateShareHTML(name, items) {
     <div class="header">
       <div class="label">COLLECTION</div>
       <h1>${escHtml(name)}</h1>
-      <div class="meta">${items.length} 个素材 · 整理于 ${escHtml(dateStr)}</div>
+      <div class="meta">${items.length} 个素材</div>
     </div>
-    ${cards}
-    <div class="footer">由 Foubow 生成 · ${escHtml(dateStr)}</div>
+    <div class="cards">
+      ${cards}
+    </div>
+    <div class="footer">Foubow.fun</div>
   </div>
 </body>
 </html>`;
@@ -867,13 +850,16 @@ function shareCollection(name) {
   overlay.id = 'share-preview-overlay';
   overlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4';
   overlay.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[460px] max-h-[90vh] overflow-hidden flex flex-col">
-      <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#E5E7EB] shrink-0">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[760px] max-h-[90vh] overflow-hidden flex flex-col">
+      <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#E5E7EB] shrink-0 flex-wrap">
         <div class="flex items-center gap-2 min-w-0">
           <i data-lucide="eye" class="w-4 h-4 text-[#6B7280] shrink-0"></i>
           <span class="text-sm font-medium text-[#1A1A1A] truncate">分享预览 · ${escHtml(name)}</span>
         </div>
-        <div class="flex items-center gap-1 shrink-0">
+        <div class="flex items-center gap-1 shrink-0 flex-wrap">
+          <button id="share-btn-link" class="px-2.5 py-1 text-xs rounded-md bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors flex items-center gap-1" title="生成分享链接并复制">
+            <i data-lucide="link" class="w-3 h-3"></i><span>以链接方式分享</span>
+          </button>
           <button id="share-btn-download" class="px-2.5 py-1 text-xs rounded-md bg-[#F3F4F6] hover:bg-[#E5E7EB] transition-colors flex items-center gap-1" title="下载HTML文件">
             <i data-lucide="download" class="w-3 h-3"></i><span>下载HTML</span>
           </button>
@@ -891,6 +877,7 @@ function shareCollection(name) {
   document.body.appendChild(overlay);
   lucide.createIcons();
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeSharePreview(); });
+  document.getElementById('share-btn-link').addEventListener('click', (e) => copyShareLink(e.currentTarget));
   document.getElementById('share-btn-download').addEventListener('click', downloadShareHTML);
   document.getElementById('share-btn-copy').addEventListener('click', (e) => copyShareHTML(e.currentTarget));
   document.getElementById('share-btn-close').addEventListener('click', closeSharePreview);
@@ -933,6 +920,50 @@ async function copyShareHTML(btn) {
   } catch (e) {
     alert('复制失败：' + e.message);
   }
+}
+
+// 以链接方式分享：把生成的 HTML 存到后端临时文件，返回 URL 并自动复制
+async function copyShareLink(btn) {
+  if (!sharePreviewState) return;
+  if (!navigator.clipboard?.writeText) { alert('当前浏览器不支持一键复制，请在下载HTML后手动分享'); return; }
+  const span = btn.querySelector('span');
+  const origLabel = span ? span.textContent : btn.textContent;
+  if (span) span.textContent = '生成中…';
+  btn.disabled = true;
+  try {
+    const res = await fetchWithTimeout('/api/share/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: sharePreviewState.name, html: sharePreviewState.html }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.code) { throw new Error(data.msg || `HTTP ${res.status}`); }
+    const url = data.data.url;
+    await navigator.clipboard.writeText(url);
+    if (span) span.textContent = '✓ 已复制链接';
+    showShareToast(`已复制到剪贴板：${url}`);
+    setTimeout(() => { if (span) span.textContent = origLabel; btn.disabled = false; }, 2200);
+  } catch (e) {
+    if (span) span.textContent = origLabel;
+    btn.disabled = false;
+    alert('生成链接失败：' + e.message + '\n（如部署在 serverless 环境请改用下载HTML）');
+  }
+}
+
+// 弹一个轻量 toast 显示链接
+let shareToastTimer = null;
+function showShareToast(text) {
+  let el = document.getElementById('share-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'share-toast';
+    el.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-lg bg-[#1A1A1A] text-white text-xs shadow-2xl max-w-[80vw] break-all';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.style.display = 'block';
+  if (shareToastTimer) clearTimeout(shareToastTimer);
+  shareToastTimer = setTimeout(() => { el.style.display = 'none'; }, 3500);
 }
 
 // ===== Mobile Panel =====

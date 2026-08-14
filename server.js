@@ -40,7 +40,7 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   methods: ['GET', 'POST'],
 }));
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname))); 
 
@@ -87,6 +87,45 @@ const uploadLimiter = rateLimit ? rateLimit({
 
 app.use(globalLimiter);
 
+// ===== 合集分享：保存 HTML 为临时文件，生成可访问链接（仅本地非 Serverless 有效）=====
+if (!isServerless) {
+  const fs = require('fs');
+  const crypto = require('crypto');
+  const SHARE_DIR = path.join(__dirname, 'public', 'share');
+  if (!fs.existsSync(SHARE_DIR)) fs.mkdirSync(SHARE_DIR, { recursive: true });
+
+  // 提供 /share/* 静态访问
+  app.use('/share', express.static(SHARE_DIR, { maxAge: '5m' }));
+
+  app.post('/api/share/save', async (req, res) => {
+    try {
+      const { name, html } = req.body || {};
+      if (typeof html !== 'string' || html.length === 0 || html.length > 500000) {
+        return res.status(400).json({ code: 0, msg: 'HTML 内容不合法或过大（>500KB）' });
+      }
+      const id = crypto.randomBytes(6).toString('hex'); // 12 位
+      const safeName = String(name || 'collection')
+        .replace(/[^\w一-龥\-]/g, '_')
+        .slice(0, 30);
+      const filename = `${safeName}_${id}.html`;
+      const filepath = path.join(SHARE_DIR, filename);
+      fs.writeFileSync(filepath, html, 'utf-8');
+      const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').toString().split(',')[0];
+      const host = req.headers['x-forwarded-host'] || req.get('host');
+      const url = `${proto}://${host}/share/${filename}`;
+      console.log(`[share] 已保存 ${filename} (${(html.length / 1024).toFixed(1)}KB), URL=${url}`);
+      res.json({ code: 1, msg: 'ok', data: { url, filename } });
+    } catch (e) {
+      console.error('[share] 保存失败:', e.message);
+      res.status(500).json({ code: 0, msg: e.message });
+    }
+  });
+} else {
+  app.post('/api/share/save', (req, res) => {
+    res.status(501).json({ code: 0, msg: '当前为 serverless 环境，不支持生成分享链接，请下载 HTML 文件' });
+  });
+}
+
 // 注册（加防暴力破解限流）
 app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
@@ -95,7 +134,6 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
     if (!email || !login_password || !user_name) {
       return res.json({ code: 0, msg: '缺少必要参数' });
     }
-
     const { data, error } = await supabase.auth.signUp({
       email,
       password: login_password,
