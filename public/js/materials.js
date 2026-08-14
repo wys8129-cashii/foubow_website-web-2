@@ -525,8 +525,8 @@ function renderPanelDetail(content) {
   const item = materials.find(m => m.id === selectedId);
   if (!item) return;
   const imgHTML = item.coverUrl
-    ? `<div class="w-full bg-[#1A1A1A] flex items-center justify-center overflow-hidden relative" id="detail-cover-frame">
-        <img src="${item.coverUrl}" alt="${escHtml(item.title)}" id="detail-cover-img" class="max-w-full max-h-[60vh] object-contain cursor-zoom-in" style="object-position:${item.coverPos||'50% 50%'}" onclick="openLightbox('${item.coverUrl}')" />
+    ? `<div class="w-full relative overflow-hidden" id="detail-cover-frame">
+        <img src="${item.coverUrl}" alt="${escHtml(item.title)}" id="detail-cover-img" class="w-full h-auto cursor-zoom-in" style="object-position:${item.coverPos||'50% 50%'}" onclick="openLightbox('${item.coverUrl}')" />
       </div>`
     : `<div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>`;
   content.innerHTML = `<div class="flex flex-col h-full">
@@ -575,16 +575,16 @@ function bindCoverEdit(item) {
     e.stopPropagation();
     fitMode = !fitMode;
     if (fitMode) {
-      // 小图模式：高度减半（55vh→27vh）、左对齐、加 16px 左间距、加强阴影
-      frame.classList.add('bg-transparent', 'justify-start');
-      img.classList.remove('max-h-[60vh]');
+      // 小图模式：保持原比例完整小图、左对齐、加左间距、加强阴影、圆角
+      frame.classList.add('bg-transparent', 'flex', 'justify-start');
+      img.classList.remove('w-full');
       img.classList.add('max-h-[27vh]', 'shadow-2xl', 'rounded-xl', 'ml-4');
       img.style.objectPosition = '0% 50%';
     } else {
-      // 退出，恢复默认完整高度图
-      frame.classList.remove('bg-transparent', 'justify-start');
+      // 退出，恢复默认完整宽图（100% 宽、不限高、无黑边）
+      frame.classList.remove('bg-transparent', 'flex', 'justify-start');
+      img.classList.add('w-full');
       img.classList.remove('max-h-[27vh]', 'shadow-2xl', 'rounded-xl', 'ml-4');
-      img.classList.add('max-h-[60vh]');
       img.style.objectPosition = item.coverPos || '50% 50%';
     }
   });
