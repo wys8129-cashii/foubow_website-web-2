@@ -602,6 +602,61 @@ async function cozeSearchMaterials(params) {
   }
 }
 
+/**
+ * 调用 Coze API 更新素材封面裁剪位置（持久化 coverPos）
+ * @param {Object} params 参数
+ * @param {string} params.email 用户邮箱
+ * @param {string} params.title 素材标题（更新主键，与 move/delete 一致）
+ * @param {string} params.coverPos CSS object-position 值，如 "50% 30%"
+ * @returns {Promise<any>} Coze 接口返回结果
+ */
+async function cozeUpdateMaterialCover(params) {
+  const workflowId = cozeConfig.updateMaterialCoverWorkflowId;
+  if (!workflowId) {
+    throw new Error('未配置 COZE_UPDATE_MATERIAL_COVER_WORKFLOW_ID（跳过持久化）');
+  }
+  try {
+    const appId = cozeConfig.appId;
+    const baseUrl = cozeConfig.streamBaseUrl;
+
+    console.log('调用 Coze 更新素材封面裁剪位置 API:', {
+      url: baseUrl,
+      workflow_id: workflowId,
+      app_id: appId,
+      email: params.email,
+      title: params.title,
+      cover_pos: params.coverPos,
+    });
+
+    const requestData = {
+      workflow_id: workflowId,
+      app_id: appId,
+      parameters: {
+        email: params.email,
+        title: params.title,
+        cover_pos: params.coverPos,
+      },
+    };
+
+    const response = await cozeAxios.post(
+      baseUrl,
+      requestData,
+      {
+        headers: {
+          "Authorization": `Bearer ${cozeConfig.token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    logCozeResponse('更新素材封面裁剪位置', response);
+    return response.data;
+  } catch (error) {
+    console.error('Coze 更新素材封面裁剪位置失败:', error.message);
+    throw new Error(`更新封面裁剪位置失败：${error.response?.data?.message || error.message}`);
+  }
+}
+
 // 导出方法
 module.exports = {
   cozeGetMaterials,
@@ -616,4 +671,5 @@ module.exports = {
   cozeMoveMaterial,
   cozeDeleteMaterial,
   cozeSearchMaterials,
+  cozeUpdateMaterialCover,
 };

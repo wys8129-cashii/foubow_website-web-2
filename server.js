@@ -28,7 +28,7 @@ async function authMiddleware(req, res, next) {
 const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
 const rateLimit = isServerless ? null : require('express-rate-limit');
 const ipKeyGenerator = rateLimit ? rateLimit.ipKeyGenerator : null;
-const { cozeGetMaterials, cozeGetCollections, cozeGetMaterialDetail, cozeFilterByCollection, cozeUploadMaterial, cozeCreateCollection, cozeUpdateCollection, cozeDeleteCollection, cozeUploadFile, cozeMoveMaterial, cozeDeleteMaterial, cozeSearchMaterials } = require('./src/api/coze');
+const { cozeGetMaterials, cozeGetCollections, cozeGetMaterialDetail, cozeFilterByCollection, cozeUploadMaterial, cozeCreateCollection, cozeUpdateCollection, cozeDeleteCollection, cozeUploadFile, cozeMoveMaterial, cozeDeleteMaterial, cozeSearchMaterials, cozeUpdateMaterialCover } = require('./src/api/coze');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024, files: 20 } });
 
@@ -242,6 +242,23 @@ app.post('/api/coze/materials', authMiddleware, cozeApiLimiter, async (req, res)
     res.json({ code: 1, msg: '获取成功', data: result });
   } catch (error) {
     console.error('获取素材列表错误:', error.message);
+    res.json({ code: 0, msg: error.message });
+  }
+});
+
+// 更新素材封面裁剪位置（持久化 coverPos）
+app.post('/api/coze/materials/cover', authMiddleware, cozeApiLimiter, async (req, res) => {
+  try {
+    const email = req.userEmail;
+    const { title, coverPos } = req.body;
+    if (!title) return res.json({ code: 0, msg: '缺少素材标题' });
+    if (!coverPos) return res.json({ code: 0, msg: '缺少裁剪位置' });
+
+    console.log('更新素材封面裁剪位置:', { email, title, coverPos });
+    const result = await cozeUpdateMaterialCover({ email, title, coverPos });
+    res.json({ code: 1, msg: '保存成功', data: result });
+  } catch (error) {
+    console.error('更新封面裁剪位置错误:', error.message);
     res.json({ code: 0, msg: error.message });
   }
 });

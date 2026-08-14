@@ -536,7 +536,7 @@ function renderPanelDetail(content) {
     </div>
     <div class="sticky top-0 z-10 bg-white relative" id="detail-cover-wrap">
       ${imgHTML}
-      <div class="absolute top-2 right-2 flex gap-2" id="detail-cover-tools">
+      <div class="absolute bottom-2 right-2 flex gap-2" id="detail-cover-tools">
         <button type="button" id="btn-cover-fit" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="完整小图（左对齐）"><i data-lucide="image" class="w-4 h-4 text-[#4B5563]"></i></button>
         <button type="button" id="btn-cover-crop" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="拖动调整裁剪区域"><i data-lucide="move-vertical" class="w-4 h-4 text-[#4B5563]"></i></button>
       </div>
@@ -614,10 +614,11 @@ function bindCoverEdit(item) {
     dragging = false;
     window.removeEventListener('mousemove', onMove);
     window.removeEventListener('mouseup', onUp);
+    saveCoverPos(item);
   };
   const onTouchStart = (e) => { if (cropMode) { dragging = true; setPos(e.touches[0].clientY); e.preventDefault(); } };
   const onTouchMove = (e) => { if (dragging && cropMode) { setPos(e.touches[0].clientY); e.preventDefault(); } };
-  const onTouchEnd = () => { dragging = false; };
+  const onTouchEnd = () => { dragging = false; saveCoverPos(item); };
 
   btnCrop?.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -631,6 +632,26 @@ function bindCoverEdit(item) {
   img.addEventListener('touchstart', onTouchStart, { passive: false });
   img.addEventListener('touchmove', onTouchMove, { passive: false });
   img.addEventListener('touchend', onTouchEnd);
+}
+
+let _coverSaveTimer = null;
+function saveCoverPos(item) {
+  if (!item || !item.coverPos) return;
+  const payload = { title: item.title, coverPos: item.coverPos };
+  clearTimeout(_coverSaveTimer);
+  _coverSaveTimer = setTimeout(async () => {
+    try {
+      const res = await fetchWithTimeout('/api/coze/materials/cover', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      });
+      const r = await res.json();
+      if (r.code !== 1) console.warn('保存封面裁剪位置失败:', r.msg);
+    } catch (e) {
+      console.warn('保存封面裁剪位置异常:', e.message);
+    }
+  }, 400);
 }
 
 function refreshCoverInLists(id, pos) {
@@ -985,7 +1006,7 @@ function renderMobilePanel() {
       </div>
       <div class="sticky top-[49px] z-10 bg-white relative" id="detail-cover-wrap">
         ${imgHTML}
-        <div class="absolute top-2 right-2 flex gap-2" id="detail-cover-tools">
+        <div class="absolute bottom-2 right-2 flex gap-2" id="detail-cover-tools">
           <button type="button" id="btn-cover-fit" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="完整小图（左对齐）"><i data-lucide="image" class="w-4 h-4 text-[#4B5563]"></i></button>
           <button type="button" id="btn-cover-crop" class="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-[#F3F4F6] transition-colors" title="拖动调整裁剪区域"><i data-lucide="move-vertical" class="w-4 h-4 text-[#4B5563]"></i></button>
         </div>
