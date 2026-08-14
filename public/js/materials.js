@@ -683,16 +683,15 @@ function bindCoverEdit(item) {
     top = Math.max(0, Math.min(rect.height - winH, top));
     cropWin.style.top = top + 'px';
     cropWin.style.display = 'block';
-    // 裁剪按钮变身：绿底白色对勾 + "确定"标题
-    // 必须移除 bg-white，否则 CSS 中靠后的 bg-white 会覆盖 bg-emerald-500（两者 specificity 相同）
-    btnCrop?.classList.remove('bg-white', 'hover:bg-[#F3F4F6]');
-    btnCrop?.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
+    // 裁剪按钮变身：白底深色对勾 + "确定"标题
+    btnCrop?.classList.add('bg-white', 'hover:bg-[#F3F4F6]');
+    btnCrop?.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
     btnCrop.title = '确定并保存裁剪';
     const ic = btnCrop.querySelector('i');
     if (ic) {
       ic.setAttribute('data-lucide', 'check');
-      ic.classList.remove('text-[#4B5563]');
-      ic.classList.add('text-white');
+      ic.classList.add('text-[#4B5563]');
+      ic.classList.remove('text-white');
       if (window.lucide) window.lucide.createIcons();
     }
   };
