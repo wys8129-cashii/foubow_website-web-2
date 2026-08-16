@@ -389,7 +389,7 @@ function parseMaterialItem(item, index) {
     title: item.title || '素材标题',
     url: item.url || '',
     details: {
-      summary: item.summary ? [item.summary] : (item.details?.summary || ['暂无摘要信息']),
+      summary: item.summary ? [item.summary] : (item.details?.summary || []),
       pageContent: item.details?.pageContent || ['暂无页面内容'],
       navigation: item.details?.navigation || ['暂无导航信息'],
     },
@@ -520,7 +520,7 @@ function renderCardsInto(containerId, items, showCollection = false) {
 // ===== Right Panel =====
 function renderTagBlock(item) {
   const arr = Array.isArray(item.tags) ? item.tags : (item.tags ? [item.tags] : []);
-  const chips = arr.map(t => `<span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280]">${escHtml(t)}</span>`).join('');
+  const chips = arr.map(t => `<span class="tag-chip inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors" data-tag="${escHtml(t)}" title="点击复制">${escHtml(t)}</span>`).join('');
   return `<div class="mb-4"><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">标签</h3><div class="flex flex-wrap gap-1.5">${chips || '<span class="text-xs text-[#9CA3AF]">暂无标签</span>'}</div></div>`;
 }
 
@@ -896,15 +896,38 @@ function openAllCollectionUrls(name) {
 
 // 生成移动端阅览的分享页 HTML（背景渐变 / 卡片列表 = 完整封面图 + 小标题）
 function generateShareHTML(name, items) {
+  const externalIconSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
+
   const cards = items.map(item => {
     const title = escHtml(item.title || '未命名素材');
     const href = item.url ? escHtml(item.url) : '#';
-    const img = item.coverUrl
-      ? `<img src="${escHtml(item.coverUrl)}" alt="${title}" loading="lazy" />`
+    const collection = item.collection && item.collection !== '未分类' ? escHtml(item.collection) : '';
+    const tagsArr = Array.isArray(item.tags) ? item.tags : (item.tags ? [item.tags] : []);
+    const rawSummary = (item.details && Array.isArray(item.details.summary)) ? item.details.summary : [];
+    const summaryArr = rawSummary.filter(s => s && s !== '暂无摘要信息');
+
+    const imgHTML = item.coverUrl
+      ? `<img src="${escHtml(item.coverUrl)}" alt="${title}" loading="lazy" decoding="async" style="object-position:${escHtml(item.coverPos || '50% 50%')}" />`
       : `<div class="placeholder">${title}</div>`;
+
+    const collectionChip = collection ? `<span class="collection-chip">${collection}</span>` : '';
+    const urlRow = `<div class="url-row">${collectionChip}<span class="url-text">${escHtml(item.url || '')}</span><span class="url-icon">${externalIconSVG}</span></div>`;
+
+    const tagsHTML = tagsArr.length
+      ? `<div class="tags-row">${tagsArr.map(t => `<span class="tag">${escHtml(t)}</span>`).join('')}</div>`
+      : '';
+    const summaryHTML = summaryArr.length
+      ? `<ul class="summary">${summaryArr.map(s => `<li>${escHtml(s)}</li>`).join('')}</ul>`
+      : '';
+
     return `<a class="card" href="${href}" target="_blank" rel="noopener noreferrer">
-      <div class="image-wrap">${img}</div>
-      <div class="title">${title}</div>
+      <div class="image-wrap">${imgHTML}</div>
+      <div class="body">
+        <h3 class="title">${title}</h3>
+        ${urlRow}
+        ${summaryHTML}
+        ${tagsHTML}
+      </div>
     </a>`;
   }).join('\n');
 
@@ -917,21 +940,33 @@ function generateShareHTML(name, items) {
 <style>
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
-  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;background:linear-gradient(135deg,#fce7f3 0%,#fbcfe8 25%,#ddd6fe 60%,#c7d2fe 100%);min-height:100vh;color:#1a1a1a;-webkit-font-smoothing:antialiased;}
-  .container{max-width:560px;margin:0 auto;padding:42px 18px 80px;}
-  .header{text-align:center;margin-bottom:36px;}
-  .header .label{font-size:11px;color:rgba(0,0,0,.5);letter-spacing:3px;font-weight:500;}
-  .header h1{font-size:28px;font-weight:700;margin:12px 0 8px;letter-spacing:.5px;}
-  .header .meta{font-size:12px;color:rgba(0,0,0,.55);}
-  .cards{display:flex;flex-direction:column;gap:22px;}
-  .card{background:#fff;border-radius:18px;box-shadow:0 8px 28px rgba(60,40,120,.10);overflow:hidden;text-decoration:none;color:inherit;display:block;transition:transform .2s ease,box-shadow .2s ease;}
-  .card:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(60,40,120,.16);}
-  .card:active{transform:scale(.99);}
-  .image-wrap{background:linear-gradient(135deg,#fafafa,#efefef);padding:14px;display:flex;align-items:center;justify-content:center;}
-  .image-wrap img{display:block;width:100%;height:auto;max-height:82vh;object-fit:contain;border-radius:10px;}
-  .image-wrap .placeholder{font-size:13px;color:rgba(0,0,0,.4);min-height:220px;display:flex;align-items:center;justify-content:center;padding:36px;text-align:center;}
-  .title{padding:14px 18px 18px;font-size:15px;line-height:1.55;color:#1a1a1a;text-align:center;font-weight:500;}
-  .footer{text-align:center;margin-top:60px;font-size:11px;color:rgba(0,0,0,.45);letter-spacing:1.5px;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;background:#F9FAFB;min-height:100vh;color:#1a1a1a;-webkit-font-smoothing:antialiased;}
+  .container{max-width:960px;margin:0 auto;padding:32px 18px 80px;}
+  .header{margin-bottom:28px;}
+  .header .label{font-size:11px;color:#9CA3AF;letter-spacing:2px;font-weight:500;}
+  .header h1{font-size:24px;font-weight:700;margin:8px 0 6px;color:#1a1a1a;letter-spacing:.3px;}
+  .header .meta{font-size:12px;color:#6B7280;}
+  .cards{display:grid;grid-template-columns:1fr;gap:18px;}
+  @media (min-width:640px){.cards{grid-template-columns:repeat(2,1fr);}}
+  @media (min-width:960px){.cards{grid-template-columns:repeat(3,1fr);}}
+  .card{background:#fff;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden;text-decoration:none;color:inherit;display:block;transition:transform .15s ease,box-shadow .15s ease;}
+  .card:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.06);}
+  .image-wrap{background:#f5f5f5;width:100%;aspect-ratio:4/3;overflow:hidden;}
+  .image-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+  .image-wrap .placeholder{font-size:13px;color:#9CA3AF;padding:36px;text-align:center;display:flex;align-items:center;justify-content:center;height:100%;}
+  .body{padding:14px 16px 16px;}
+  .title{font-size:14px;font-weight:500;color:#1a1a1a;line-height:1.5;margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .url-row{display:flex;align-items:center;gap:8px;}
+  .collection-chip{display:inline-block;padding:3px 8px;font-size:11px;border-radius:6px;background:#F3F4F6;color:#6B7280;flex-shrink:0;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .url-text{flex:1;min-width:0;font-size:12px;color:#9CA3AF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .url-icon{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;color:#9CA3AF;}
+  .url-icon svg{width:14px;height:14px;}
+  .tags-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .tag{display:inline-block;padding:2px 8px;font-size:11px;border-radius:6px;background:#F3F4F6;color:#6B7280;}
+  .summary{list-style:none;padding:0;margin:10px 0 0;display:flex;flex-direction:column;gap:4px;}
+  .summary li{font-size:12px;color:#4B5563;line-height:1.6;display:flex;gap:6px;}
+  .summary li::before{content:"•";color:#9CA3AF;flex-shrink:0;}
+  .footer{text-align:center;margin-top:48px;font-size:11px;color:#9CA3AF;letter-spacing:1px;}
 </style>
 </head>
 <body>
@@ -965,7 +1000,7 @@ function shareCollection(name) {
   overlay.id = 'share-preview-overlay';
   overlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4';
   overlay.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[920px] max-h-[96vh] overflow-hidden flex flex-col">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[920px] h-[96vh] overflow-hidden flex flex-col">
       <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#E5E7EB] shrink-0 flex-wrap">
         <div class="flex items-center gap-2 min-w-0">
           <i data-lucide="eye" class="w-4 h-4 text-[#6B7280] shrink-0"></i>
@@ -1271,6 +1306,26 @@ async function selectCollection(name) {
 }
 
 function copyLink(url) { navigator.clipboard.writeText(url).then(() => alert('链接已复制')); }
+
+// 复制标签文字
+function copyTagText(tag) {
+  if (!navigator.clipboard || !navigator.clipboard.writeText) { alert('当前浏览器不支持一键复制'); return; }
+  navigator.clipboard.writeText(tag).then(function () {
+    showShareToast('已复制标签：「' + tag + '」');
+  }).catch(function (err) {
+    alert('复制失败：' + err.message);
+  });
+}
+
+// 标签单击复制：采用事件委托，保留原生文字选择（用户正在拖选文字时不复制）
+document.addEventListener('click', function (e) {
+  const chip = e.target.closest && e.target.closest('.tag-chip');
+  if (!chip || !chip.hasAttribute('data-tag')) return;
+  const sel = window.getSelection && window.getSelection();
+  if (sel && sel.toString().trim()) return; // 正在选择文字，交还原生行为
+  if (sel && sel.removeAllRanges) sel.removeAllRanges();
+  copyTagText(chip.getAttribute('data-tag'));
+});
 
 // ===== Delete Material =====
 async function deleteMaterial(id) {
