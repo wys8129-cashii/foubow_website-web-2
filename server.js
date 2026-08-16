@@ -28,7 +28,7 @@ async function authMiddleware(req, res, next) {
 const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
 const rateLimit = isServerless ? null : require('express-rate-limit');
 const ipKeyGenerator = rateLimit ? rateLimit.ipKeyGenerator : null;
-const { cozeGetMaterials, cozeGetCollections, cozeGetMaterialDetail, cozeFilterByCollection, cozeUploadMaterial, cozeCreateCollection, cozeUpdateCollection, cozeDeleteCollection, cozeUploadFile, cozeMoveMaterial, cozeDeleteMaterial, cozeSearchMaterials, cozeUpdateMaterialCover } = require('./src/api/coze');
+const { cozeGetMaterials, cozeGetCollections, cozeGetMaterialDetail, cozeFilterByCollection, cozeUploadMaterial, cozeCreateCollection, cozeUpdateCollection, cozeDeleteCollection, cozeUploadFile, cozeMoveMaterial, cozeDeleteMaterial, cozeSearchMaterials, cozeUpdateMaterialCover, cozeReorderCollections } = require('./src/api/coze');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024, files: 20 } });
 
@@ -385,6 +385,29 @@ app.post('/api/coze/collections/update', authMiddleware, cozeApiLimiter, async (
     res.json({ code: 1, msg: '修改合集成功', data: result });
   } catch (error) {
     console.error('修改合集错误:', error.message);
+    res.json({ code: 0, msg: error.message });
+  }
+});
+
+// 修改合集排序（持久化 sort）
+app.post('/api/coze/collections/reorder', authMiddleware, cozeApiLimiter, async (req, res) => {
+  try {
+    const email = req.userEmail;
+    const { topicName, sort } = req.body;
+
+    console.log('收到修改合集排序请求:', { email, topicName, sort });
+
+    if (!topicName || sort === undefined || sort === null) {
+      return res.json({ code: 0, msg: '缺少必要参数' });
+    }
+
+    const result = await cozeReorderCollections({ email, topicName, sort });
+
+    console.log('Coze 返回结果:', result);
+
+    res.json({ code: 1, msg: '修改合集排序成功', data: result });
+  } catch (error) {
+    console.error('修改合集排序错误:', error.message);
     res.json({ code: 0, msg: error.message });
   }
 });

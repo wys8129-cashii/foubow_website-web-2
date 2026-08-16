@@ -1,6 +1,7 @@
 // ===== Data =====
 let materials = [];
 let collections = [];           // API 返回的合集（用户自己创建的）
+let collectionSortMap = {};      // topic -> sort 序号（服务端排序真相源；缺失时回退 localStorage）
 let editingCollection = null;
 let uploadImages = [];
 
@@ -242,6 +243,7 @@ function parseCollectionsData(data) {
         id: String(item.id || index + 1),
         topic: item.topic || item.topic_name || item.title || item.name || '未命名合集',
         count: item.count || item.material_count || 0,
+        sort: Number(item.sort ?? index + 1),  // 服务端排序序号，缺失时回退索引
       }));
     }
     
@@ -1449,20 +1451,43 @@ function renderCollections() {
   });
 }
 
-// 按持久化顺序重排合集（前端 + localStorage；后端暂无排序接口）
+// 按持久化顺序重排合集：重算 sort 并持久化到服务端（localStorage 兜底）
 function reorderCollections(fromIdx, toIdx) {
   const arr = [...collections];
   const [moved] = arr.splice(fromIdx, 1);
   arr.splice(toIdx > fromIdx ? toIdx - 1 : toIdx, 0, moved);
   collections = arr;
+  // 重算所有合集的 sort 序号（1 起）
+  collectionSortMap = {};
+  collections.forEach((name, idx) => { collectionSortMap[name] = idx + 1; });
   try {
     localStorage.setItem('foubow-collection-order', JSON.stringify(arr));
   } catch (e) { /* quota / private mode */ }
+  persistCollectionOrder(); // 服务端持久化（失败不阻断 UI）
   renderCollections();
 }
 
-// 把持久化顺序应用到新拉取的合集列表
+// 把当前合集顺序逐个提交到服务端（topic_name + sort）
+async function persistCollectionOrder() {
+  let email = null;
+  try { email = localStorage.getItem('userEmail'); } catch (e) {}
+  if (!email) email = 'wcc';
+  for (const name of collections) {
+    try {
+      await fetchWithTimeout('/api/coze/collections/reorder', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ topicName: name, sort: collectionSortMap[name] }),
+      });
+    } catch (e) {
+      console.warn('保存合集排序失败:', name, e.message);
+    }
+  }
+}
+
+// 把持久化顺序应用到新拉取的合集列表（仅在服务端无 sort 时兜底）
 function applyCollectionOrder() {
+  if (Object.keys(collectionSortMap).length > 0) return; // 服务端已有 sort，不再用本地兜底
   let saved = [];
   try {
     saved = JSON.parse(localStorage.getItem('foubow-collection-order') || '[]');
@@ -1754,10 +1779,16 @@ async function init() {
   // 2. 加载合集列表
   const apiCollections = await fetchCollections();
   if (apiCollections.length > 0) {
-    collections = apiCollections.map(c => c.topic || c.name || '未命名合集');
+    // 建立 sort 映射并按服务端 sort 序号排序（真相源）
+    collectionSortMap = {};
+    apiCollections.forEach(c => { collectionSortMap[c.topic] = c.sort; });
+    collections = apiCollections
+      .slice()
+      .sort((a, b) => (a.sort ?? 999) - (b.sort ?? 999))
+      .map(c => c.topic);
     collections = [...new Set(collections)];
   }
-  applyCollectionOrder(); // 应用拖动排序持久化顺序
+  applyCollectionOrder(); // 应用拖动排序持久化顺序（仅服务端无 sort 时兜底）
 
   // 3. 加载素材数据
   materials = await fetchMaterials();

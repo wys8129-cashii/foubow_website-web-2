@@ -652,8 +652,63 @@ async function cozeUpdateMaterialCover(params) {
     logCozeResponse('更新素材封面裁剪位置', response);
     return response.data;
   } catch (error) {
-    console.error('Coze 更新素材封面裁剪位置失败:', error.message);
-    throw new Error(`更新封面裁剪位置失败：${error.response?.data?.message || error.message}`);
+    console.error("Coze 更新素材封面裁剪位置接口调用失败：", error.message);
+    throw new Error(`更新素材封面裁剪位置失败：${error.response?.data?.message || error.message}`);
+  }
+}
+
+/**
+ * 调用 Coze API 修改合集排序（持久化 sort）
+ * @param {Object} params 参数
+ * @param {string} params.email 用户邮箱
+ * @param {string} params.topicName 合集名称（标识，对应查询返回的 topic；Coze 工作流入参名 topic_name）
+ * @param {number} params.sort 新排序序号（整数，从 1 起）
+ * @returns {Promise<any>} Coze 接口返回结果
+ */
+async function cozeReorderCollections(params) {
+  const workflowId = cozeConfig.reorderCollectionWorkflowId;
+  if (!workflowId) {
+    throw new Error('未配置 COZE_REORDER_COLLECTION_WORKFLOW_ID（跳过持久化）');
+  }
+  try {
+    const appId = cozeConfig.reorderCollectionAppId || cozeConfig.appId;
+    const baseUrl = cozeConfig.streamBaseUrl;
+
+    console.log('调用 Coze 修改合集排序 API:', {
+      url: baseUrl,
+      workflow_id: workflowId,
+      app_id: appId,
+      email: params.email,
+      topic_name: params.topicName,
+      sort: params.sort,
+    });
+
+    const requestData = {
+      workflow_id: workflowId,
+      app_id: appId,
+      parameters: {
+        email: params.email,
+        topic_name: params.topicName,
+        sort: params.sort,
+      },
+    };
+
+    const response = await cozeAxios.post(
+      baseUrl,
+      requestData,
+      {
+        headers: {
+          "Authorization": `Bearer ${cozeConfig.token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    logCozeResponse('修改合集排序', response);
+    return response.data;
+  } catch (error) {
+    console.error("Coze 修改合集排序接口调用失败：", error.message);
+    throw new Error(`修改合集排序失败：${error.response?.data?.message || error.message}`);
   }
 }
 
@@ -672,4 +727,5 @@ module.exports = {
   cozeDeleteMaterial,
   cozeSearchMaterials,
   cozeUpdateMaterialCover,
+  cozeReorderCollections,
 };
