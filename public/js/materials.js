@@ -1389,18 +1389,18 @@ function renderCollections() {
     const escName = escHtml(name);
     const count = getMaterialsByCollection(name).length;
     const displayCount = count >= 100 ? '99+' : count;
-    html += `<div class="collection-item relative" draggable="true" data-collection-index="${idx}" title="长按拖动可排序">
+    html += `<div class="collection-item relative group" draggable="true" data-collection-index="${idx}" title="长按拖动可排序">
       <button onclick="selectCollection('${escName}')"
         class="w-full pl-3 pr-9 py-2 rounded-lg text-sm text-left transition-colors duration-150 flex items-center gap-2 ${
           isActive ? 'bg-white text-[#1A1A1A] font-medium shadow-sm'
                    : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-white/60 hover:text-[#1A1A1A]'
         }">
         <span class="flex-1 truncate">${escName}</span>
-        <span class="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 text-[11px] leading-none rounded-full ${
-          isActive ? 'bg-[#1A1A1A] text-white' : 'bg-white text-[#6B7280]'
-        }">${displayCount}</span>
       </button>
-      <button class="collection-edit-btn absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[#E5E7EB]"
+      <span class="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 text-[11px] leading-none rounded-full ${
+        isActive ? 'bg-[#1A1A1A] text-white' : 'bg-white text-[#6B7280]'
+      } group-hover:hidden">${displayCount}</span>
+      <button class="collection-edit-btn hidden group-hover:flex absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[#E5E7EB]"
         onclick="event.stopPropagation(); openEditModal('${escName}')" title="编辑合集">
         <i data-lucide="pencil" class="w-3 h-3 text-[#9CA3AF]"></i>
       </button>
