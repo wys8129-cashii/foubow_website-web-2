@@ -457,7 +457,7 @@ function renderOverview() {
 function renderAllMaterials() {
   const container = document.getElementById('main-content');
   container.innerHTML = `<h1 class="text-base font-semibold text-[#1A1A1A] mb-4">所有素材</h1><div class="cards-grid" id="cards-container"></div>`;
-  renderCardsInto('cards-container', materials);
+  renderCardsInto('cards-container', materials, true);
 }
 
 function renderCollectionDetail(name) {
@@ -489,16 +489,20 @@ function renderCollectionDetail(name) {
   lucide.createIcons();
 }
 
-function renderCardsInto(containerId, items) {
+function renderCardsInto(containerId, items, showCollection = false) {
   const container = document.getElementById(containerId);
   if (!container) return;
   container.innerHTML = items.map(item => {
         const isActive = item.id === selectedId;
+        const collectionChip = showCollection && item.collection && item.collection !== '未分类'
+          ? `<div class="mb-1.5 -mt-0.5"><span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors" onclick="event.stopPropagation(); selectCollection('${escHtml(item.collection).replace(/'/g, "\\'")}')" title="进入合集「${escHtml(item.collection)}」">${escHtml(item.collection)}</span></div>`
+          : '';
     return `<div><div onclick="selectCard('${item.id}')"
       class="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md ${isActive ? 'border-[#1A1A1A] shadow-md' : 'border-[#E5E7EB]'}">
       <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>
       <div class="p-3">
         <h3 class="text-sm font-medium text-[#1A1A1A] leading-snug line-clamp-2 mb-1">${item.title}</h3>
+        ${collectionChip}
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-1 text-xs text-[#9CA3AF] truncate flex-1 min-w-0"><i data-lucide="external-link" class="w-2.5 h-2.5 shrink-0"></i><span class="truncate">${item.url}</span></div>
           ${item.url ? `<button class="p-1 rounded-md hover:bg-[#F3F4F6] transition-colors shrink-0" onclick="event.stopPropagation(); window.open('${item.url}','_blank')" title="新窗口打开链接"><i data-lucide="square-arrow-out-up-right" class="w-3.5 h-3.5 text-[#9CA3AF]"></i></button>` : ''}
@@ -1378,15 +1382,21 @@ function renderCollections() {
   const container = document.getElementById('collection-buttons');
   let html = '';
   // 第一部分：API 返回的合集（用户自己创建的）
-  collections.forEach(name => {
+  collections.forEach((name, idx) => {
     const isActive = viewMode !== 'overview' && activeCollection === name;
     const escName = escHtml(name);
-    html += `<div class="collection-item">
+    const count = getMaterialsByCollection(name).length;
+    html += `<div class="collection-item relative" draggable="true" data-collection-index="${idx}" title="长按拖动可排序">
       <button onclick="selectCollection('${escName}')"
-        class="w-full px-3 py-2 rounded-lg text-sm text-left transition-colors duration-150 ${
+        class="w-full pl-3 pr-9 py-2 rounded-lg text-sm text-left transition-colors duration-150 flex items-center gap-2 ${
           isActive ? 'bg-white text-[#1A1A1A] font-medium shadow-sm'
                    : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-white/60 hover:text-[#1A1A1A]'
-        }">${escName}</button>
+        }">
+        <span class="flex-1 truncate">${escName}</span>
+        <span class="inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 text-[10px] rounded-md ${
+          isActive ? 'bg-[#1A1A1A] text-white' : 'bg-white text-[#6B7280]'
+        }">${count}</span>
+      </button>
       <button class="collection-edit-btn absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[#E5E7EB]"
         onclick="event.stopPropagation(); openEditModal('${escName}')" title="编辑合集">
         <i data-lucide="pencil" class="w-3 h-3 text-[#9CA3AF]"></i>
@@ -1398,6 +1408,69 @@ function renderCollections() {
     <i data-lucide="plus" class="w-3.5 h-3.5"></i>添加合集</button>`;
   container.innerHTML = html;
   lucide.createIcons();
+
+  // 拖动排序
+  container.querySelectorAll('.collection-item').forEach((el) => {
+    el.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', el.dataset.collectionIndex);
+      e.dataTransfer.effectAllowed = 'move';
+      el.classList.add('opacity-40');
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('opacity-40');
+      container.querySelectorAll('.collection-item').forEach(n => {
+        n.classList.remove('border-t-2', 'border-[#1A1A1A]', 'border-b-2', 'border-[#1A1A1A]');
+      });
+    });
+    el.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const rect = el.getBoundingClientRect();
+      const isUpper = (e.clientY - rect.top) < rect.height / 2;
+      el.classList.toggle('border-t-2', isUpper);
+      el.classList.toggle('border-b-2', !isUpper);
+      el.classList.toggle('border-[#1A1A1A]', true);
+    });
+    el.addEventListener('dragleave', () => {
+      el.classList.remove('border-t-2', 'border-b-2', 'border-[#1A1A1A]');
+    });
+    el.addEventListener('drop', (e) => {
+      e.preventDefault();
+      el.classList.remove('border-t-2', 'border-b-2', 'border-[#1A1A1A]');
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      const toIdx = parseInt(el.dataset.collectionIndex, 10);
+      if (Number.isInteger(fromIdx) && fromIdx !== toIdx) {
+        const rect = el.getBoundingClientRect();
+        const isUpper = (e.clientY - rect.top) < rect.height / 2;
+        const target = isUpper ? toIdx : toIdx + 1;
+        reorderCollections(fromIdx, target);
+      }
+    });
+  });
+}
+
+// 按持久化顺序重排合集（前端 + localStorage；后端暂无排序接口）
+function reorderCollections(fromIdx, toIdx) {
+  const arr = [...collections];
+  const [moved] = arr.splice(fromIdx, 1);
+  arr.splice(toIdx > fromIdx ? toIdx - 1 : toIdx, 0, moved);
+  collections = arr;
+  try {
+    localStorage.setItem('foubow-collection-order', JSON.stringify(arr));
+  } catch (e) { /* quota / private mode */ }
+  renderCollections();
+}
+
+// 把持久化顺序应用到新拉取的合集列表
+function applyCollectionOrder() {
+  let saved = [];
+  try {
+    saved = JSON.parse(localStorage.getItem('foubow-collection-order') || '[]');
+  } catch (e) { return; }
+  if (!Array.isArray(saved) || saved.length === 0) return;
+  const set = new Set(saved);
+  // 顺序以 saved 为准（含当前 collections 的），其余追加在尾部
+  collections = [...saved.filter(n => collections.includes(n)), ...collections.filter(n => !set.has(n))];
 }
 
 // ===== Sidebar =====
@@ -1684,6 +1757,7 @@ async function init() {
     collections = apiCollections.map(c => c.topic || c.name || '未命名合集');
     collections = [...new Set(collections)];
   }
+  applyCollectionOrder(); // 应用拖动排序持久化顺序
 
   // 3. 加载素材数据
   materials = await fetchMaterials();
