@@ -243,7 +243,7 @@ function parseCollectionsData(data) {
         id: String(item.id || index + 1),
         topic: item.topic || item.topic_name || item.title || item.name || '未命名合集',
         count: item.count || item.material_count || 0,
-        sort: Number(item.sort ?? index + 1),  // 服务端排序序号，缺失时回退索引
+        sort: (item.sort === null || item.sort === undefined) ? null : Number(item.sort),  // 服务端排序序号；缺失保持 null（加载时排末尾，按数组序）
       }));
     }
     
@@ -1464,24 +1464,26 @@ function reorderCollections(fromIdx, toIdx) {
   try {
     localStorage.setItem('foubow-collection-order', JSON.stringify(arr));
   } catch (e) { /* quota / private mode */ }
-  persistCollectionOrder(moved); // 单个更新：仅提交被移动的合集（失败不阻断 UI）
+  persistCollectionOrder(); // 重排后逐个提交全部合集 sort（失败不阻断 UI）
   renderCollections();
 }
 
-// 单个合集排序更新：提交 topic_name + sort 到 Coze 工作流（单次更新模式）
-async function persistCollectionOrder(movedName) {
+// 合集排序更新：拖拽后重算全部 sort 并逐个提交到 Coze 单条更新工作流
+// （每个调用仍是单集合更新，符合工作流语义；但全量提交使全局 sort 一致，重载即按序）
+async function persistCollectionOrder() {
   let email = null;
   try { email = localStorage.getItem('userEmail'); } catch (e) {}
   if (!email) email = 'wcc';
-  if (!movedName) return;
-  try {
-    await fetchWithTimeout('/api/coze/collections/reorder', {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ topicName: movedName, sort: collectionSortMap[movedName] }),
-    });
-  } catch (e) {
-    console.warn('保存合集排序失败:', movedName, e.message);
+  for (const name of collections) {
+    try {
+      await fetchWithTimeout('/api/coze/collections/reorder', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ topicName: name, sort: collectionSortMap[name] }),
+      });
+    } catch (e) {
+      console.warn('保存合集排序失败:', name, e.message);
+    }
   }
 }
 
