@@ -497,16 +497,16 @@ function renderCardsInto(containerId, items, showCollection = false) {
   container.innerHTML = items.map(item => {
         const isActive = item.id === selectedId;
         const collectionChip = showCollection && item.collection && item.collection !== '未分类'
-          ? `<div class="mb-1.5 -mt-0.5"><span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors" onclick="event.stopPropagation(); selectCollection('${escHtml(item.collection).replace(/'/g, "\\'")}')" title="进入合集「${escHtml(item.collection)}」">${escHtml(item.collection)}</span></div>`
+          ? `<span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors shrink-0" onclick="event.stopPropagation(); selectCollection('${escHtml(item.collection).replace(/'/g, "\\'")}')" title="进入合集「${escHtml(item.collection)}」">${escHtml(item.collection)}</span>`
           : '';
     return `<div><div onclick="selectCard('${item.id}')"
       class="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md ${isActive ? 'border-[#1A1A1A] shadow-md' : 'border-[#E5E7EB]'}">
       <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>
       <div class="p-3">
         <h3 class="text-sm font-medium text-[#1A1A1A] leading-snug line-clamp-2 mb-1">${item.title}</h3>
-        ${collectionChip}
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-1 text-xs text-[#9CA3AF] truncate flex-1 min-w-0"><i data-lucide="external-link" class="w-2.5 h-2.5 shrink-0"></i><span class="truncate">${item.url}</span></div>
+        <div class="flex items-center gap-2">
+          ${collectionChip}
+          <div class="flex items-center gap-1 text-xs text-[#9CA3AF] truncate flex-1 min-w-0"><span class="truncate">${item.url}</span></div>
           ${item.url ? `<button class="p-1 rounded-md hover:bg-[#F3F4F6] transition-colors shrink-0" onclick="event.stopPropagation(); window.open('${item.url}','_blank')" title="新窗口打开链接"><i data-lucide="square-arrow-out-up-right" class="w-3.5 h-3.5 text-[#9CA3AF]"></i></button>` : ''}
         </div>
       </div>
