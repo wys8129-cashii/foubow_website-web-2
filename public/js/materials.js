@@ -1388,6 +1388,7 @@ function renderCollections() {
     const isActive = viewMode !== 'overview' && activeCollection === name;
     const escName = escHtml(name);
     const count = getMaterialsByCollection(name).length;
+    const displayCount = count >= 100 ? '99+' : count;
     html += `<div class="collection-item relative" draggable="true" data-collection-index="${idx}" title="长按拖动可排序">
       <button onclick="selectCollection('${escName}')"
         class="w-full pl-3 pr-9 py-2 rounded-lg text-sm text-left transition-colors duration-150 flex items-center gap-2 ${
@@ -1395,9 +1396,9 @@ function renderCollections() {
                    : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-white/60 hover:text-[#1A1A1A]'
         }">
         <span class="flex-1 truncate">${escName}</span>
-        <span class="inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 text-[10px] rounded-md ${
+        <span class="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 text-[11px] leading-none rounded-full ${
           isActive ? 'bg-[#1A1A1A] text-white' : 'bg-white text-[#6B7280]'
-        }">${count}</span>
+        }">${displayCount}</span>
       </button>
       <button class="collection-edit-btn absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[#E5E7EB]"
         onclick="event.stopPropagation(); openEditModal('${escName}')" title="编辑合集">
@@ -1457,31 +1458,30 @@ function reorderCollections(fromIdx, toIdx) {
   const [moved] = arr.splice(fromIdx, 1);
   arr.splice(toIdx > fromIdx ? toIdx - 1 : toIdx, 0, moved);
   collections = arr;
-  // 重算所有合集的 sort 序号（1 起）
+  // 重算所有合集的 sort 序号（1 起），UI 顺序一致
   collectionSortMap = {};
   collections.forEach((name, idx) => { collectionSortMap[name] = idx + 1; });
   try {
     localStorage.setItem('foubow-collection-order', JSON.stringify(arr));
   } catch (e) { /* quota / private mode */ }
-  persistCollectionOrder(); // 服务端持久化（失败不阻断 UI）
+  persistCollectionOrder(moved); // 单个更新：仅提交被移动的合集（失败不阻断 UI）
   renderCollections();
 }
 
-// 把当前合集顺序逐个提交到服务端（topic_name + sort）
-async function persistCollectionOrder() {
+// 单个合集排序更新：提交 topic_name + sort 到 Coze 工作流（单次更新模式）
+async function persistCollectionOrder(movedName) {
   let email = null;
   try { email = localStorage.getItem('userEmail'); } catch (e) {}
   if (!email) email = 'wcc';
-  for (const name of collections) {
-    try {
-      await fetchWithTimeout('/api/coze/collections/reorder', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ topicName: name, sort: collectionSortMap[name] }),
-      });
-    } catch (e) {
-      console.warn('保存合集排序失败:', name, e.message);
-    }
+  if (!movedName) return;
+  try {
+    await fetchWithTimeout('/api/coze/collections/reorder', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ topicName: movedName, sort: collectionSortMap[movedName] }),
+    });
+  } catch (e) {
+    console.warn('保存合集排序失败:', movedName, e.message);
   }
 }
 
