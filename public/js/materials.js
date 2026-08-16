@@ -393,6 +393,7 @@ function parseMaterialItem(item, index) {
       pageContent: item.details?.pageContent || ['暂无页面内容'],
       navigation: item.details?.navigation || ['暂无导航信息'],
     },
+    tags: Array.isArray(item.tags) ? item.tags : (item.tag ? [item.tag] : []),
     detectAspectRatio: () => detectAspectRatio(item.cover_url || item.coverUrl),
     getPreviewHTML() {
       if (this.coverUrl) {
@@ -520,8 +521,17 @@ function renderCardsInto(containerId, items, showCollection = false) {
 // ===== Right Panel =====
 function renderTagBlock(item) {
   const arr = Array.isArray(item.tags) ? item.tags : (item.tags ? [item.tags] : []);
+  if (arr.length === 0) return '';
   const chips = arr.map(t => `<span class="tag-chip inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors" data-tag="${escHtml(t)}" title="点击复制">${escHtml(t)}</span>`).join('');
-  return `<div class="mb-4"><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">标签</h3><div class="flex flex-wrap gap-1.5">${chips || '<span class="text-xs text-[#9CA3AF]">暂无标签</span>'}</div></div>`;
+  return `<div class="mb-4"><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">标签</h3><div class="flex flex-wrap gap-1.5">${chips}</div></div>`;
+}
+
+// 详情工作流返回的 content 正文变量（多行笔记正文，含 emoji 小标题）
+function renderContentBlock(item) {
+  const text = (item && item.detailContent) ? String(item.detailContent) : '';
+  if (!text.trim()) return '';
+  const body = escHtml(text).replace(/\r?\n/g, '<br>');
+  return `<div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">正文内容</h3><div class="text-xs text-[#4B5563] leading-relaxed">${body}</div></div>`;
 }
 
 function renderRightPanel() {
@@ -563,7 +573,7 @@ function renderPanelDetail(content) {
           <button class="inline-flex items-center gap-0.5 px-2.5 py-1 text-[11px] rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" onclick="deleteMaterial('${item.id}')"><i data-lucide="trash-2" class="w-3 h-3"></i>删除</button>
         </div>
         ${renderTagBlock(item)}
-        <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">核心信息</h3><ul class="space-y-1">${item.details.summary.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">•</span>${s}</li>`).join('')}</ul></div>
+        ${renderContentBlock(item)}
       </div>
     </div>
     <div class="shrink-0 px-4 py-3 border-t border-[#E5E7EB]">
@@ -1148,7 +1158,7 @@ function renderMobilePanel() {
             <button class="inline-flex items-center gap-0.5 px-2 py-0.5 text-[11px] rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" onclick="deleteMaterial('${item.id}')"><i data-lucide="trash-2" class="w-3 h-3"></i>删除</button>
           </div>
           ${renderTagBlock(item)}
-        <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">核心信息</h3><ul class="space-y-1">${item.details.summary.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">•</span>${s}</li>`).join('')}</ul></div>
+          ${renderContentBlock(item)}
                   </div>
       </div>
       <div class="shrink-0 px-4 py-3 border-t border-[#E5E7EB]">
@@ -1226,6 +1236,7 @@ async function selectCard(id) {
       if (detail.coverUrl) currentItem.coverUrl = detail.coverUrl;
       if (detail.url) currentItem.url = detail.url;
       currentItem.tags = detail.tags || [];
+      currentItem.detailContent = detail.content || '';
     }
   }
 
