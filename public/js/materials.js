@@ -510,6 +510,12 @@ function renderCardsInto(containerId, items) {
 }
 
 // ===== Right Panel =====
+function renderTagBlock(item) {
+  const arr = Array.isArray(item.tags) ? item.tags : (item.tags ? [item.tags] : []);
+  const chips = arr.map(t => `<span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280]">${escHtml(t)}</span>`).join('');
+  return `<div class="mb-4"><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">标签</h3><div class="flex flex-wrap gap-1.5">${chips || '<span class="text-xs text-[#9CA3AF]">暂无标签</span>'}</div></div>`;
+}
+
 function renderRightPanel() {
   const panel = document.getElementById('detail-desktop');
   if (!panelMode) { panel.style.display = 'none'; return; }
@@ -548,6 +554,7 @@ function renderPanelDetail(content) {
           <span class="inline-block px-2.5 py-1 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors" onclick="showChangeCollectionModal('${item.id}')">${escHtml(item.collection)}</span>
           <button class="inline-flex items-center gap-0.5 px-2.5 py-1 text-[11px] rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" onclick="deleteMaterial('${item.id}')"><i data-lucide="trash-2" class="w-3 h-3"></i>删除</button>
         </div>
+        ${renderTagBlock(item)}
         <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">核心信息</h3><ul class="space-y-1">${item.details.summary.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">•</span>${s}</li>`).join('')}</ul></div>
       </div>
     </div>
@@ -572,6 +579,14 @@ function bindCoverEdit(item) {
 
   let fitMode = false;
   let cropMode = false;
+
+  // 切换裁剪按钮图标：重建 innerHTML 后重新 createIcons
+  // （注意：页面初始化时 lucide 已把 <i> 替换成 <svg>，直接 querySelector('i') 会拿不到元素）
+  const setCropBtnIcon = (name) => {
+    if (!btnCrop) return;
+    btnCrop.innerHTML = `<i data-lucide="${name}" class="w-4 h-4 text-[#4B5563]"></i>`;
+    if (window.lucide) window.lucide.createIcons();
+  };
 
   const exitFit = () => {
     fitMode = false;
@@ -683,33 +698,19 @@ function bindCoverEdit(item) {
     top = Math.max(0, Math.min(rect.height - winH, top));
     cropWin.style.top = top + 'px';
     cropWin.style.display = 'block';
-    // 裁剪按钮变身：白底深色对勾 + "确定"标题
-    btnCrop?.classList.add('bg-white', 'hover:bg-[#F3F4F6]');
-    btnCrop?.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
+    // 裁剪态：隐藏"查看核心信息"按钮，裁剪按钮变身对勾
+    btnFit.style.display = 'none';
     btnCrop.title = '确定并保存裁剪';
-    const ic = btnCrop.querySelector('i');
-    if (ic) {
-      ic.setAttribute('data-lucide', 'check');
-      ic.classList.add('text-[#4B5563]');
-      ic.classList.remove('text-white');
-      if (window.lucide) window.lucide.createIcons();
-    }
+    setCropBtnIcon('check');
   };
   const exitCrop = () => {
     cropMode = false;
     cropWin.style.display = 'none';
     img.style.pointerEvents = '';
-    // 还原裁剪按钮：白底灰 move-vertical
-    btnCrop?.classList.add('bg-white', 'hover:bg-[#F3F4F6]');
-    btnCrop?.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
+    // 还原：显示"查看核心信息"，裁剪按钮变回 move-vertical
+    btnFit.style.display = '';
     btnCrop.title = '拖动调整裁剪区域';
-    const ic = btnCrop.querySelector('i');
-    if (ic) {
-      ic.setAttribute('data-lucide', 'move-vertical');
-      ic.classList.add('text-[#4B5563]');
-      ic.classList.remove('text-white');
-      if (window.lucide) window.lucide.createIcons();
-    }
+    setCropBtnIcon('move-vertical');
   };
 
   cropWin.addEventListener('mousedown', onDown);
@@ -1110,7 +1111,8 @@ function renderMobilePanel() {
             <span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors" onclick="showChangeCollectionModal('${item.id}')">${escHtml(item.collection)}</span>
             <button class="inline-flex items-center gap-0.5 px-2 py-0.5 text-[11px] rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" onclick="deleteMaterial('${item.id}')"><i data-lucide="trash-2" class="w-3 h-3"></i>删除</button>
           </div>
-          <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">核心信息</h3><ul class="space-y-1">${item.details.summary.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">•</span>${s}</li>`).join('')}</ul></div>
+          ${renderTagBlock(item)}
+        <div><h3 class="text-xs font-medium text-[#1A1A1A] mb-1.5">核心信息</h3><ul class="space-y-1">${item.details.summary.map(s=>`<li class="text-xs text-[#4B5563] leading-relaxed flex gap-1.5"><span class="text-[#9CA3AF] shrink-0">•</span>${s}</li>`).join('')}</ul></div>
                   </div>
       </div>
       <div class="shrink-0 px-4 py-3 border-t border-[#E5E7EB]">
@@ -1187,6 +1189,7 @@ async function selectCard(id) {
       };
       if (detail.coverUrl) currentItem.coverUrl = detail.coverUrl;
       if (detail.url) currentItem.url = detail.url;
+      currentItem.tags = detail.tags || [];
     }
   }
 
