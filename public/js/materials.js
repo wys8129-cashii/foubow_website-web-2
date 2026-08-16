@@ -242,7 +242,6 @@ function parseCollectionsData(data) {
       return finalData.output.map((item, index) => ({
         id: String(item.id || index + 1),
         topic: item.topic || item.topic_name || item.title || item.name || '未命名合集',
-        count: item.count || item.material_count || 0,
         sort: (item.sort === null || item.sort === undefined) ? null : Number(item.sort),  // 服务端排序序号；缺失保持 null（加载时排末尾，按数组序）
       }));
     }
@@ -477,6 +476,9 @@ function renderCollectionDetail(name) {
     <div class="flex items-center gap-2 shrink-0">
       <button id="btn-export-collection" onclick="exportCollectionAsMD('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-[#F3F4F6] text-[#4B5563] hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors flex items-center gap-1.5" title="导出当前合集为 Markdown">
         <i data-lucide="download" class="w-3.5 h-3.5"></i>导出
+      </button>
+      <button id="btn-open-all-urls" onclick="openAllCollectionUrls('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-white border border-[#E5E7EB] text-[#4B5563] hover:border-[#3B82F6] hover:text-[#3B82F6] transition-colors flex items-center gap-1.5" title="新窗口打开合集内全部链接页面（超过 30 个会弹窗确认）">
+        <i data-lucide="square-arrow-out-up-right" class="w-3.5 h-3.5"></i>打开全部页面
       </button>
       <button id="btn-share-collection" onclick="shareCollection('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors flex items-center gap-1.5" title="生成移动端阅览的分享页 HTML">
         <i data-lucide="share-2" class="w-3.5 h-3.5"></i>分享
@@ -866,24 +868,6 @@ function exportCollectionAsMD(name) {
       lines.push(`**来源**：[${item.url}](${item.url})`);
       lines.push('');
     }
-    const summary = item.details?.summary || [];
-    if (summary.length) {
-      lines.push('### 说明');
-      summary.forEach(s => lines.push(`- ${s}`));
-      lines.push('');
-    }
-    const pageContent = item.details?.pageContent || [];
-    if (pageContent.length) {
-      lines.push('### 页面内容');
-      pageContent.forEach(s => lines.push(`- ${s}`));
-      lines.push('');
-    }
-    const navigation = item.details?.navigation || [];
-    if (navigation.length) {
-      lines.push('### 功能导航');
-      navigation.forEach(s => lines.push(`- ${s}`));
-      lines.push('');
-    }
     lines.push('---');
     lines.push('');
   });
@@ -897,6 +881,17 @@ function exportCollectionAsMD(name) {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+}
+
+// 新窗口打开合集内全部带链接的页面（>30 个二次确认）
+function openAllCollectionUrls(name) {
+  const items = getMaterialsByCollection(name);
+  const urls = items.map(i => i.url).filter(Boolean);
+  if (!urls.length) { alert('该合集没有可打开的链接页面'); return; }
+  if (urls.length > 30) {
+    if (!confirm(`即将打开 ${urls.length} 个页面。\n大量窗口可能被浏览器拦截或导致卡顿，是否继续？`)) return;
+  }
+  urls.forEach(u => { try { window.open(u, '_blank', 'noopener,noreferrer'); } catch (e) { console.warn('打开失败:', u, e.message); } });
 }
 
 // 生成移动端阅览的分享页 HTML（背景渐变 / 卡片列表 = 完整封面图 + 小标题）
