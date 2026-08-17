@@ -301,14 +301,22 @@ function parseMaterialDetailData(data) {
         finalData = parsedData.data;
       }
     }
-    
-    console.log('最终解析到的详情项:', finalData);
+
+    // Coze 工作流把条目包在 output 数组里，需下钻到 output[0]
+    let item = finalData;
+    if (Array.isArray(finalData.output) && finalData.output.length) {
+      item = finalData.output[0];
+    } else if (Array.isArray(finalData) && finalData.length) {
+      item = finalData[0];
+    }
+
+    console.log('最终解析到的详情项:', item);
     return {
-      title: finalData.title || '',
-      url: finalData.web_url || finalData.url || '',
-      content: finalData.content || '',
-      coverUrl: finalData.cover_url || finalData.coverUrl || '',
-      tags: finalData.tag || [],
+      title: item.title || '',
+      url: item.web_url || item.url || '',
+      content: item.content || '',
+      coverUrl: item.cover_url || item.coverUrl || '',
+      tags: item.tag || [],
     };
   } catch (error) {
     console.error('解析素材详情数据错误:', error);
