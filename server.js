@@ -25,7 +25,7 @@ async function authMiddleware(req, res, next) {
 }
 
 // 频率限制：仅在非 Serverless 环境启用（Vercel Serverless 使用 Edge 限流）
-const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
+const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.IS_IGA;
 const rateLimit = isServerless ? null : require('express-rate-limit');
 const ipKeyGenerator = rateLimit ? rateLimit.ipKeyGenerator : null;
 const { cozeGetMaterials, cozeGetCollections, cozeGetMaterialDetail, cozeFilterByCollection, cozeUploadMaterial, cozeCreateCollection, cozeUpdateCollection, cozeDeleteCollection, cozeUploadFile, cozeMoveMaterial, cozeDeleteMaterial, cozeSearchMaterials, cozeUpdateMaterialCover, cozeReorderCollections } = require('./src/api/coze');
@@ -532,29 +532,29 @@ app.post('/api/coze/materials/search', authMiddleware, cozeApiLimiter, async (re
   }
 });
 
-// 路由到 HTML 文件
+// 路由到 HTML 文件（统一从 public/ 目录读取，本地 ECS 与 IGA Pages 一致）
 app.get('/register', (req, res) => {
-  res.sendFile(path.join(__dirname, 'register.html'));
+  res.sendFile(path.join(__dirname, 'public', 'register.html'));
 });
 
 app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'login.html'));
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 app.get('/material.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'material.html'));
+  res.sendFile(path.join(__dirname, 'public', 'material.html'));
 });
 
 app.get('/privacy.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'privacy.html'));
+  res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
 });
 
 app.get('/terms.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'terms.html'));
+  res.sendFile(path.join(__dirname, 'public', 'terms.html'));
 });
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // 启动服务器（Vercel Serverless 不需要 listen，直接导出 app）
