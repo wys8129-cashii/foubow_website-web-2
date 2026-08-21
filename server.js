@@ -551,6 +551,12 @@ app.post('/api/coze/materials/search', authMiddleware, cozeApiLimiter, async (re
   }
 });
 
+// 健康检查：供 veFaaS / 负载均衡探活，不依赖前端静态文件
+// 纯后端部署（无 public/ 目录）时，用这个地址验证服务是否正常
+app.get('/health', (req, res) => {
+  res.json({ code: 1, msg: 'ok', ts: Date.now() });
+});
+
 // 路由到 HTML 文件（统一从 public/ 目录读取，本地 ECS 与 IGA Pages 一致）
 app.get('/register', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'register.html'));
