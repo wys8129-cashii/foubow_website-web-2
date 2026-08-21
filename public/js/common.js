@@ -1,3 +1,17 @@
+// ======================
+// API 基础地址（前后端分离部署支持）
+// ======================
+// 由 js/config.js 提供 window.__API_BASE__：
+//   留空     → 同源部署（本地 / 单机 ECS）
+//   完整 URL → 分离部署（前端 IGA Pages + 后端 veFaaS）
+const API_BASE = (window.__API_BASE__ || '').replace(/\/+$/, '');
+
+// 把 /api/* 相对路径改写为后端绝对地址（API_BASE 为空时原样返回）
+function resolveApiUrl(url) {
+  if (!API_BASE || typeof url !== 'string') return url;
+  return url.startsWith('/api/') ? API_BASE + url : url;
+}
+
 // 带超时保护的 fetch 封装（全局），避免后端无响应时浏览器无限转圈
 async function fetchWithTimeout(url, options = {}, timeout = 30000) {
   const controller = new AbortController();
@@ -74,7 +88,7 @@ async function ensureValidToken() {
 
   _refreshing = (async () => {
     try {
-      const res = await fetch('/api/auth/refresh', {
+      const res = await _originalFetch(resolveApiUrl('/api/auth/refresh'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: refreshToken })
@@ -97,13 +111,14 @@ async function ensureValidToken() {
   return _refreshing.finally(() => { _refreshing = null; });
 }
 
-// 包装 fetch：自动注入 token 并在过期时刷新
+// 包装 fetch：自动注入 token、过期时刷新，并把 /api/* 指向后端 API_BASE
 const _originalFetch = window.fetch;
 window.fetch = async function(url, options = {}) {
   const urlStr = typeof url === 'string' ? url : url.url;
+  const isApi = !!urlStr && urlStr.startsWith('/api/');
+
   if (
-    urlStr &&
-    urlStr.startsWith('/api/') &&
+    isApi &&
     !urlStr.startsWith('/api/auth/login') &&
     !urlStr.startsWith('/api/auth/register') &&
     !urlStr.startsWith('/api/auth/refresh')
@@ -118,7 +133,9 @@ window.fetch = async function(url, options = {}) {
       'Authorization': `Bearer ${token}`
     };
   }
-  return _originalFetch(url, options);
+
+  // 分离部署时改写为后端绝对地址；同源部署保持原样
+  return _originalFetch(isApi ? resolveApiUrl(urlStr) : url, options);
 };
 
 document.addEventListener('DOMContentLoaded', () => {

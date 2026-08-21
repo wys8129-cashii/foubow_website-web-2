@@ -2,12 +2,8 @@
 module.exports = {
   darkMode: "class",
  content: [
-  "./index.html",
-  "./login.html",
-  "./register.html",
-  "./material.html",
-  "./privacy.html",
-  "./terms.html",
+  // HTML 已统一移入 public/（IGA Pages 的 outputDirectory）
+  "./public/**/*.html",
   "./public/js/*.js",
   "./src/**/*.js"
 ],

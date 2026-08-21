@@ -33,16 +33,27 @@ const { cozeGetMaterials, cozeGetCollections, cozeGetMaterialDetail, cozeFilterB
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024, files: 20 } });
 
 const app = express();
-const PORT = process.env.PORT || 2300;
+// 端口优先级：veFaaS 运行时注入的 _FAAS_RUNTIME_PORT > 自定义 PORT > 本地默认 2300
+const PORT = process.env._FAAS_RUNTIME_PORT || process.env.PORT || 2300;
 app.set('trust proxy', 1);
+
+// CORS：支持逗号分隔的多域名白名单（前后端分离部署时填前端域名）
+// 例：CORS_ORIGIN=https://foubow.igapages.com,https://www.foubow.com
+const corsOriginEnv = (process.env.CORS_ORIGIN || '*').trim();
+const corsOrigin = corsOriginEnv === '*'
+  ? '*'
+  : corsOriginEnv.split(',').map(s => s.trim()).filter(Boolean);
+
 // 中间件
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  methods: ['GET', 'POST'],
+  origin: corsOrigin,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json({ limit: '2mb' }));
+// 静态资源仅托管 public/（单机部署时用；分离部署时前端由 IGA Pages 托管）
+// 注意：不要再 static 整个 __dirname，否则会把 .env 与后端源码暴露到公网
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname))); 
 
 // 频率限制配置（仅在非 Serverless 环境生效）
 const noop = (req, res, next) => next();
@@ -91,8 +102,16 @@ app.use(globalLimiter);
 if (!isServerless) {
   const fs = require('fs');
   const crypto = require('crypto');
-  const SHARE_DIR = path.join(__dirname, 'public', 'share');
-  if (!fs.existsSync(SHARE_DIR)) fs.mkdirSync(SHARE_DIR, { recursive: true });
+  // veFaaS 的代码目录是只读的，只有 /tmp 可写；本地/ECS 仍写入 public/share
+  const SHARE_DIR = process.env._FAAS_RUNTIME_PORT
+    ? path.join('/tmp', 'share')
+    : path.join(__dirname, 'public', 'share');
+  try {
+    if (!fs.existsSync(SHARE_DIR)) fs.mkdirSync(SHARE_DIR, { recursive: true });
+  } catch (e) {
+    // 目录不可写时不阻塞服务启动，分享接口会在写入时报错并降级为前端下载 HTML
+    console.warn('[share] 目录不可写，分享链接功能不可用:', SHARE_DIR, e.message);
+  }
 
   // 提供 /share/* 静态访问
   app.use('/share', express.static(SHARE_DIR, { maxAge: '5m' }));
@@ -557,10 +576,13 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 启动服务器（Vercel Serverless 不需要 listen，直接导出 app）
+// 启动服务器
+// - Serverless Function（IGA Pages / Vercel）：平台托管网络层，不 listen，只导出 app
+// - veFaaS Web 应用函数 / 本地 / ECS：真实 HTTP Server，必须监听 0.0.0.0
 if (!isServerless) {
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    const mode = process.env._FAAS_RUNTIME_PORT ? 'veFaaS Web 应用函数' : '本地/ECS';
+    console.log(`[${mode}] Server listening on 0.0.0.0:${PORT}`);
   });
 }
 
