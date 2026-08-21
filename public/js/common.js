@@ -173,18 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 样式和注册按钮完全一样
     // ======================
     if (isLogin) {
-      const logoutBtn = document.createElement('button');
-      logoutBtn.innerText = '退出登录';
-      logoutBtn.className = 'px-6 py-2 bg-primary text-on-primary font-medium rounded-full shadow-lg hover:shadow-cyan-500/20 active:scale-95 transition-all';
-
-      logoutBtn.onclick = function () {
-        localStorage.removeItem('authToken');
-        localStorage.clear();
-        alert('已退出登录');
-        window.location.href = 'index.html';
-      };
-
-      navRight.appendChild(logoutBtn);
+      // 登录态下的「退出登录」与头像入口交由 user-token.js 处理（头像弹窗内含退出按钮）
     }
 
     // ======================
