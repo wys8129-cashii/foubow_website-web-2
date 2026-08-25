@@ -36,7 +36,9 @@
         <code id="at-token" style="flex:1;font-size:12px;word-break:break-all;color:#1A1A1A;font-family:monospace;line-height:1.4">加载中...</code>
         <button id="at-copy" style="border:none;background:#1A1A1A;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;white-space:nowrap;align-self:center">复制</button>
       </div>
-      <button id="at-regen" style="margin-top:10px;width:100%;border:1px solid #E5E7EB;background:#fff;border-radius:8px;padding:8px;font-size:12px;color:#6B7280;cursor:pointer">重置 Token（旧 Token 立即失效）</button>
+      <div style="display:flex;justify-content:flex-end;margin-top:6px">
+        <button id="at-regen" style="border:1px solid #E5E7EB;background:#fff;border-radius:6px;padding:3px 9px;font-size:11px;color:#9CA3AF;cursor:pointer">重置 Token</button>
+      </div>
       <button id="at-logout" style="margin-top:6px;width:100%;border:none;background:none;padding:8px;font-size:12px;color:#EF4444;cursor:pointer">退出登录</button>
     `;
     document.body.appendChild(el);
@@ -59,7 +61,7 @@
           btn.textContent = '已重置';
         } else { btn.textContent = '重置失败'; }
       } catch (e) { btn.textContent = '重置失败'; }
-      setTimeout(function () { btn.textContent = '重置 Token（旧 Token 立即失效）'; }, 1800);
+      setTimeout(function () { btn.textContent = '重置 Token'; }, 1800);
     };
     document.getElementById('at-logout').onclick = function () {
       localStorage.clear(); window.location.href = '/login.html';
