@@ -91,6 +91,11 @@ const fallbackMaterials = [
   },
 ];
 
+// 判断用户是否登录（localStorage 不可用时视为未登录）
+function isUserLoggedIn() {
+  try { return localStorage.getItem('isLogin') === 'true'; } catch (e) { return false; }
+}
+
 // ===== API =====
 async function fetchMaterials() {
   let email = null;
@@ -111,12 +116,13 @@ async function fetchMaterials() {
       console.log('解析后的素材数据:', parsed);
       return parsed;
     } else {
-      console.warn('API 返回失败或无数据，使用备用数据:', result.msg);
-      return fallbackMaterials;
+      console.warn('API 返回失败或无数据:', result.msg);
+      // 登录态无数据 → 展示空白卡片列表；未登录 → 展示演示备用数据
+      return isUserLoggedIn() ? [] : fallbackMaterials;
     }
   } catch (error) {
-    console.error('获取素材列表错误，使用备用数据:', error.message);
-    return fallbackMaterials;
+    console.error('获取素材列表错误:', error.message);
+    return isUserLoggedIn() ? [] : fallbackMaterials;
   }
 }
 
@@ -161,11 +167,12 @@ function parseMaterialsData(data) {
       return parsedData.materials.map((item, index) => parseMaterialItem(item, index));
     }
     
-    console.warn('未找到有效素材数据，使用备用数据');
-    return fallbackMaterials;
+    console.warn('未找到有效素材数据');
+    // 登录态无数据 → 展示空白卡片列表；未登录 → 展示演示备用数据
+    return isUserLoggedIn() ? [] : fallbackMaterials;
   } catch (error) {
-    console.error('解析素材数据错误，使用备用数据:', error);
-    return fallbackMaterials;
+    console.error('解析素材数据错误:', error);
+    return isUserLoggedIn() ? [] : fallbackMaterials;
   }
 }
 
@@ -1826,11 +1833,10 @@ function closeLightbox() {
 
 // ===== Init =====
 async function init() {
-  // 登录守卫：未登录直接跳转，避免加载弹窗卡住
+  // 未登录：不再强制跳转，展示演示数据（备用页面放在未登录情况）
   const isLogin = localStorage.getItem('isLogin') === 'true';
   if (!isLogin) {
-    window.location.replace('/login.html');
-    return;
+    console.log('未登录访问素材页，展示演示数据');
   }
 
   showLoading('正在加载素材...');
