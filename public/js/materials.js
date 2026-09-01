@@ -365,24 +365,24 @@ function parseMaterialItem(item, index) {
   function detectAspectRatio(coverUrl) {
     return new Promise((resolve) => {
       if (!coverUrl) {
-        resolve('3:4'); // 默认横图比例
+        resolve('4:3'); // 默认横图比例
         return;
       }
       const img = new Image();
+      let done = false;
+      const finish = (v) => { if (!done) { done = true; resolve(v); } };
       img.onload = () => {
         const ratio = img.width / img.height;
         // 横图宽 > 高（ratio > 1），竖图高 > 宽（ratio < 1）
         if (ratio >= 0.8) {
-          // 接近正方形或横图，使用 4:3
-          resolve('4:3');
+          finish('4:3'); // 接近正方形或横图
         } else {
-          // 竖图，使用 3:5
-          resolve('3:5');
+          finish('3:5'); // 竖图
         }
       };
-      img.onerror = () => {
-        resolve('4:3'); // 默认横图比例
-      };
+      img.onerror = () => finish('4:3'); // 加载失败兜底
+      // 安全超时：最多等 4s，避免跨域/网络抖动导致请求挂起、首屏卡死
+      setTimeout(() => finish('4:3'), 4000);
       img.src = coverUrl;
     });
   }
@@ -1407,17 +1407,15 @@ async function searchMaterials(keyword) {
         m.url.toLowerCase().includes(searchKeyword.toLowerCase())
       );
     }
-    // 异步检测封面图比例
-    const ratioPromises = searchResults.map(async (m) => {
-      if (m.coverUrl && m.detectAspectRatio) {
-        m.aspectRatio = await m.detectAspectRatio();
-      }
-    });
-    await Promise.all(ratioPromises);
-
     panelMode = null; selectedId = null;
     document.getElementById('detail-desktop').style.display = 'none';
     renderMainContent();
+    // 后台异步检测封面图比例（不阻塞搜索结果渲染；单张失败/超时不影响整体）
+    searchResults.forEach((m) => {
+      if (m.coverUrl && m.detectAspectRatio) {
+        m.detectAspectRatio().then((r) => { m.aspectRatio = r; }).catch(() => {});
+      }
+    });
   } catch (error) {
     console.error('搜索素材错误:', error);
     hideLoading();
@@ -1864,20 +1862,22 @@ async function init() {
   // 3. 加载素材数据
   materials = await fetchMaterials();
 
-  // 4. 异步检测封面图比例
-  const ratioPromises = materials.map(async (m) => {
-    if (m.coverUrl && m.detectAspectRatio) {
-      m.aspectRatio = await m.detectAspectRatio();
-    }
-  });
-  await Promise.all(ratioPromises);
-
   if (!collections.includes('未分类')) collections.push('未分类');
 
+  // 4. 先渲染首屏（绝不要把首屏渲染阻塞在封面图比例检测上）
   renderMainContent();
   renderCollections();
-  lucide.createIcons();
+  if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
   hideLoading();
+
+  // 5. 后台异步检测封面图比例（不阻塞首屏；单张失败/超时不影响整体）
+  materials.forEach((m) => {
+    if (m.coverUrl && m.detectAspectRatio) {
+      m.detectAspectRatio()
+        .then((r) => { m.aspectRatio = r; })
+        .catch(() => {});
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', init);
