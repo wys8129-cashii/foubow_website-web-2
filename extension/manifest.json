@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Foubow Screenshot Uploader (Public)",
+  "version": "1.0.0",
+  "description": "直接上传网页截图+链接到平台保存工作流AI 自动分析截图",
+  "icons": { "16": "icon128.png", "48": "icon128.png", "128": "icon128.png" },
+  "action": { "default_icon": "icon128.png", "default_popup": "popup.html" },
+  "permissions": ["activeTab", "tabs", "storage", "scripting", "notifications", "contextMenus"],
+  "host_permissions": ["https://*.volceapi.com/*"],
+  "background": { "service_worker": "background.js" },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

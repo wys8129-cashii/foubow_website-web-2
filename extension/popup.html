@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { border-radius: 16px; }
+    body {
+      width: 340px;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #333;
+      background: #eceff3;            /* 窗体底色，配合圆角卡片 */
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;            /* 圆角卡片 */
+      padding: 18px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.08);
+    }
+    .header { font-size: 16px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+    .header .dot { width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; }
+    input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; }
+    input[type="text"]:focus { outline: none; border-color: #4CAF50; }
+    .btn { width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 10px; font-size: 14px; cursor: pointer; }
+    .btn:hover { background: #45a049; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+    .btn.secondary { background: #fff; color: #4CAF50; border: 1px solid #4CAF50; margin-top: 10px; }
+    .btn.secondary:hover { background: #f1f8f1; }
+    .status { margin-top: 12px; padding: 10px; border-radius: 10px; font-size: 13px; text-align: center; display: none; }
+    .status.success { background: #e8f5e9; color: #2e7d32; }
+    .status.error { background: #ffebee; color: #c62828; }
+    .info { font-size: 12px; color: #999; margin-top: 10px; line-height: 1.5; }
+    .hidden { display: none !important; }
+
+    /* 状态区 */
+    .result-icon { font-size: 40px; text-align: center; margin-bottom: 8px; }
+    .result-title { font-size: 15px; font-weight: 600; text-align: center; margin-bottom: 8px; }
+    .result-title.ok { color: #2e7d32; }
+    .result-title.fail { color: #c62828; }
+    .result-msg { font-size: 13px; color: #555; text-align: center; margin-bottom: 12px; word-break: break-word; }
+    .account { font-size: 13px; color: #555; text-align: center; background: #f6f8fa; border-radius: 10px; padding: 10px; margin-bottom: 12px; word-break: break-all; }
+    .result-raw { background: #f6f6f6; border: 1px solid #eee; border-radius: 10px; padding: 10px; font-size: 12px; color: #444; max-height: 180px; overflow: auto; white-space: pre-wrap; word-break: break-all; font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .result-raw-label { font-size: 12px; color: #999; margin: 12px 0 4px; }
+    .result-meta { font-size: 11px; color: #aaa; text-align: center; margin-top: 8px; }
+
+    /* 打赏提醒区块（达限后显示，仅提醒不限制上传） */
+    .reward-section { margin-top: 14px; text-align: center; background: #fff8e1; border: 1px solid #ffe082; border-radius: 12px; padding: 14px; }
+    .reward-title { font-size: 13px; color: #f57f17; font-weight: 600; margin-bottom: 10px; line-height: 1.5; }
+    .reward-btn { background: #ffb300; width: auto; padding: 9px 28px; margin: 0 auto; font-size: 14px; }
+    .reward-btn:hover { background: #ffa000; }
+    .reward-qr { display: block; margin: 12px auto 0; width: 200px; height: 200px; border-radius: 8px; background: #fff; }
+    .reward-hint { font-size: 11px; color: #999; margin-top: 10px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header"><span class="dot"></span>上传状态（公开版）</div>
+
+    <!-- 状态视图（默认）：查看上传结果；未上传则显示账号 -->
+    <div id="statusSection">
+      <div class="result-icon" id="statusIcon"></div>
+      <div class="result-title" id="statusTitle"></div>
+      <div class="result-msg" id="statusMsg"></div>
+      <div class="account hidden" id="accountInfo"></div>
+      <div class="result-raw-label hidden" id="rawLabel">返回内容</div>
+      <pre class="result-raw hidden" id="resultRaw"></pre>
+      <div class="result-meta hidden" id="resultMeta"></div>
+      <button class="btn secondary hidden" id="clearBtn">清除状态</button>
+      <button class="btn secondary" id="settingBtn">设置 Token</button>
+
+      <!-- 打赏提醒区块：达到 10 张素材后显示，仅提醒，不做功能限制 -->
+      <div id="rewardSection" class="reward-section hidden">
+        <div class="reward-title">🙏 请打赏支持后再继续截图上传</div>
+        <button class="btn reward-btn" id="rewardBtn">打赏</button>
+        <img id="rewardQr" class="reward-qr hidden" alt="管理员微信收款码">
+        <div class="reward-hint hidden" id="rewardHint">二维码图片未设置：请将管理员微信收款码命名为 reward-qrcode.png 放入插件目录</div>
+      </div>
+    </div>
+
+    <!-- 配置视图：设置 API Token / 用户名（邮箱） -->
+    <div id="configSection" class="hidden">
+      <div class="form-group">
+        <label>API Token（fob_ 开头）</label>
+        <input type="text" id="tokenInput" placeholder="请输入网页生成的 fob_ Token">
+      </div>
+      <div class="form-group">
+        <label>用户名（邮箱）</label>
+        <input type="text" id="userIdInput" placeholder="请输入邮箱">
+      </div>
+      <button class="btn" id="saveBtn">保存配置</button>
+      <div class="status" id="status"></div>
+      <button class="btn secondary" id="backBtn">返回</button>
+      <div class="info">Token 仅存储在本地。配置后，在网页上右键选择「上传到我的foubow」即可上传截图。公开版每位用户累计 10 张素材后，将提示打赏支持（仅提醒，不影响继续上传）。</div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="pluginApi.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
