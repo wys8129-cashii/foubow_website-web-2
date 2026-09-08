@@ -456,7 +456,7 @@ function renderOverview() {
     } else {
       html += '<div class="mini-cards">';
       showCards.forEach(item => {
-                html += `<div class="mini-card" onclick="selectCard('${item.id}')" title="${escHtml(item.title)}">
+                html += `<div class="mini-card" draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(item.collection)}" data-material-url="${escHtml(item.url || '')}" onclick="selectCard('${item.id}')" title="${escHtml(item.title)}">
           <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">
             ${item.getPreviewHTML().replace(/text-xs/g,'text-[7px]').replace(/text-\[10px\]/g,'text-[7px]').replace(/text-sm/g,'text-[8px]').replace(/text-lg/g,'text-[9px]').replace(/text-2xl/g,'text-xs').replace(/w-14 h-20/g,'w-9 h-12').replace(/w-10 h-14/g,'w-6 h-8').replace(/w-16 h-12/g,'w-10 h-8').replace(/w-8 h-6/g,'w-5 h-4').replace(/w-20 h-16/g,'w-12 h-10').replace(/w-12 h-12/g,'w-7 h-7').replace(/w-10 h-10/g,'w-6 h-6').replace(/gap-2/g,'gap-0.5').replace(/gap-1\.5/g,'gap-0.5').replace(/gap-3/g,'gap-1').replace(/p-4 text-center/g,'p-1.5 text-center').replace(/p-3/g,'p-1.5').replace(/max-w-\[200px\]/g,'max-w-[90px]').replace(/mb-3/g,'mb-1').replace(/mb-2/g,'mb-0.5').replace(/mb-1/g,'mb-0').replace(/mt-2/g,'mt-0.5').replace(/leading-relaxed/g,'leading-tight').replace(/rounded /g,'rounded-sm ').replace(/rounded-lg /g,'rounded-sm ')}
           </div>
@@ -817,59 +817,15 @@ function renderPanelWaterfall(content) {
   lucide.createIcons();
 }
 
+// 产出物分栏渲染：委托给 output-docs.js（支持新增/无序/有序/拖入卡片）
 function renderCollectionOutputPanel(content) {
-  const outputs = getOutputsByCollection(panelCollection);
-  const escCol = escHtml(panelCollection);
-  let html = `<div class="flex flex-col h-full">
-    <div class="panel-header">
-      <span class="text-sm font-medium text-[#1A1A1A]">产出物</span>
-      <div class="flex items-center gap-2">
-        <button class="px-2 py-1 text-xs rounded-md bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors" onclick="alert('AI 总结功能即将上线')">AI 总结</button>
-        <button class="p-1 rounded-md hover:bg-[#F3F4F6] transition-colors" onclick="closeRightPanel()"><i data-lucide="x" class="w-4 h-4 text-[#6B7280]"></i></button>
-      </div>
-    </div>
-    <div class="flex-1 overflow-y-auto scrollbar-thin">`;
-  if (outputs.length === 0) {
-    html += '<div class="text-sm text-[#9CA3AF] text-center py-12">暂无产出物</div>';
-  } else {
-    html += '<div class="p-3 space-y-2">';
-    outputs.forEach(o => {
-      html += `<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#F8F9FA] border border-[#EAECF0] hover:bg-[#F0F1F3] transition-colors cursor-pointer">
-        <span class="text-lg">${o.emoji}</span>
-        <span class="text-sm text-[#1A1A1A] font-medium">${escHtml(o.title)}</span>
-      </div>`;
-    });
-    html += '</div>';
-  }
-  html += '</div></div>';
-  content.innerHTML = html;
-  lucide.createIcons();
-}
-
-function renderCollectionOutputPanel(content) {
-  const outputs = getOutputsByCollection(panelCollection);
-  const escCol = escHtml(panelCollection);
-  let html = `<div class="flex flex-col h-full">
-    <div class="panel-header">
-      <span class="text-sm font-medium text-[#1A1A1A]">产出物</span>
-      <div class="flex items-center gap-2">
-        <button class="px-2 py-1 text-xs rounded-md bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors" onclick="alert('AI 总结功能即将上线')">AI 总结</button>
-        <button class="p-1 rounded-md hover:bg-[#F3F4F6] transition-colors" onclick="closeRightPanel()"><i data-lucide="x" class="w-4 h-4 text-[#6B7280]"></i></button>
-      </div>
-    </div>
-    <div class="flex-1 overflow-y-auto scrollbar-thin">`;
-  if (outputs.length === 0) {
-    html += '<div class="text-sm text-[#9CA3AF] text-center py-12">暂无产出物</div>';
-  } else {
-    html += '<div class="p-3 space-y-2">';
-    outputs.forEach(o => {
-      html += `<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#F8F9FA] border border-[#EAECF0] hover:bg-[#F0F1F3] transition-colors cursor-pointer"><span class="text-lg">${o.emoji}</span><span class="text-sm text-[#1A1A1A] font-medium">${escHtml(o.title)}</span></div>`;
-    });
-    html += '</div>';
-  }
-  html += '</div></div>';
-  content.innerHTML = html;
-  lucide.createIcons();
+  if (!window.OutputDocs) return;
+  OutputDocs.renderPanel({
+    container: content,
+    collection: panelCollection,
+    onClose: () => closeRightPanel(),
+    onAi: () => alert('AI 总结功能即将上线'),
+  });
 }
 
 // ===== Collection Export & Share =====
@@ -1215,7 +1171,7 @@ function renderMobilePanel() {
       html += '<div class="collection-grid">';
       items.forEach(item => {
         const isActive = item.id === selectedId;
-                html += `<div><div onclick="selectCard('${item.id}')" class="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isActive ? 'border-[#1A1A1A] shadow-md' : 'border-[#E5E7EB]'}">
+                html += `<div><div draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(item.collection)}" data-material-url="${escHtml(item.url || '')}" onclick="selectCard('${item.id}')" class="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isActive ? 'border-[#1A1A1A] shadow-md' : 'border-[#E5E7EB]'}">
           <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>
           <div class="p-3"><div class="text-sm font-medium text-[#1A1A1A] leading-snug line-clamp-2 mb-1">${item.title}</div></div>
         </div></div>`;
@@ -1225,23 +1181,15 @@ function renderMobilePanel() {
     html += '</div></div>';
     panel.innerHTML = html;
   } else if (panelMode === 'collection-output' && panelCollection) {
-    const outputs = getOutputsByCollection(panelCollection);
-    let html = `<div class="flex flex-col h-full">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-[#E5E7EB] shrink-0 bg-white sticky top-0 z-10">
-        <span class="text-sm font-medium text-[#1A1A1A]">产出物</span>
-        <div class="flex items-center gap-2"><button class="px-2 py-1 text-xs rounded-md bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors" onclick="alert('AI 总结功能即将上线')">AI 总结</button><button class="p-1 rounded-md hover:bg-[#F3F4F6]" onclick="closeMobilePanel()"><i data-lucide="x" class="w-4 h-4 text-[#6B7280]"></i></button></div>
-      </div>
-      <div class="flex-1 overflow-y-auto scrollbar-thin">`;
-    if (outputs.length === 0) { html += '<div class="text-sm text-[#9CA3AF] text-center py-12">暂无产出物</div>'; }
-    else {
-      html += '<div class="p-3 space-y-2">';
-      outputs.forEach(o => {
-        html += `<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#F8F9FA] border border-[#EAECF0] hover:bg-[#F0F1F3] transition-colors cursor-pointer"><span class="text-lg">${o.emoji}</span><span class="text-sm text-[#1A1A1A] font-medium">${escHtml(o.title)}</span></div>`;
+    if (window.OutputDocs) {
+      OutputDocs.renderPanel({
+        container: panel,
+        collection: panelCollection,
+        onClose: () => closeMobilePanel(),
+        onAi: () => alert('AI 总结功能即将上线'),
+        isMobile: true,
       });
-      html += '</div>';
     }
-    html += '</div></div>';
-    panel.innerHTML = html;
   }
   panel.classList.add('open');
   overlay.classList.add('open');
@@ -1542,6 +1490,21 @@ function renderCollections() {
       }
     });
   });
+
+  // 给合集卡片追加产出物拖入 payload（不覆盖排序用的 text/plain）
+  if (window.OutputDocs) {
+    container.querySelectorAll('.collection-item').forEach((el) => {
+      const nameSpan = el.querySelector('button .truncate');
+      const name = nameSpan ? nameSpan.textContent.trim() : '';
+      const badge = el.querySelector('span[class*="min-w-"]');
+      const count = badge ? (parseInt((badge.textContent || '0').replace(/[^\d]/g, ''), 10) || 0) : 0;
+      el.addEventListener('dragstart', (e) => {
+        try {
+          e.dataTransfer.setData(OutputDocs.CARD_MIME, JSON.stringify({ kind: 'collection', name, count }));
+        } catch (err) { /* 忽略 */ }
+      });
+    });
+  }
 }
 
 // 按持久化顺序重排合集：重算 sort 并持久化到服务端（localStorage 兜底）

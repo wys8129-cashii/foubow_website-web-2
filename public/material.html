@@ -249,6 +249,95 @@
     }
     .weekday-chip.active { border-color: #1A1A1A; background: #1A1A1A; color: #fff; }
     .collection-has-reminder { color: #F59E0B !important; }
+    /* ===== 产出物文档 (output-docs.js) ===== */
+    .output-panel-body { padding: 0; }
+    .output-empty {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 48px 16px; text-align: center;
+    }
+    .output-doc {
+      background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px;
+      overflow: hidden; transition: all 0.2s ease;
+    }
+    .output-doc:hover { border-color: #D1D5DB; }
+    .output-doc.drag-over { border-color: #1A1A1A; box-shadow: 0 0 0 3px rgba(0,0,0,0.06); }
+    .output-doc-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 10px; border-bottom: 1px solid transparent; gap: 8px;
+    }
+    .output-doc:not(.collapsed) .output-doc-head { border-bottom-color: #F3F4F6; }
+    .output-doc-title-wrap { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+    .output-doc-emoji { display: inline-flex; align-items: center; }
+    .output-doc-title {
+      flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+      font-size: 13px; font-weight: 600; color: #1A1A1A; padding: 4px 2px;
+    }
+    .output-doc-title:focus { background: #F9FAFB; border-radius: 6px; }
+    .output-doc-actions { display: flex; align-items: center; gap: 4px; }
+    .output-doc-actions button {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border: none; background: transparent; border-radius: 6px;
+      color: #6B7280; cursor: pointer; transition: all 0.15s;
+    }
+    .output-doc-actions button:hover { background: #F3F4F6; color: #1A1A1A; }
+    .output-doc-actions button.active { background: #1A1A1A; color: #fff; }
+    .output-doc-actions button.active:hover { background: #1A1A1A; color: #fff; }
+    .output-type-toggle { display: inline-flex; border: 1px solid #E5E7EB; border-radius: 6px; overflow: hidden; }
+    .output-type-toggle button { border-radius: 0 !important; width: 24px !important; height: 24px !important; }
+    .output-type-toggle button + button { border-left: 1px solid #E5E7EB; }
+    .output-doc-del:hover { background: #FEE2E2 !important; color: #DC2626 !important; }
+    .output-doc-body { padding: 6px 10px 10px; }
+    .output-doc.collapsed .output-doc-body { display: none; }
+    .output-list { list-style: none; margin: 0; padding: 0; }
+    .output-list-ol { list-style: none; counter-reset: ol; }
+    .output-list-ol .output-item { counter-increment: ol; }
+    .output-list-ol .output-marker::before { content: counter(ol) "."; color: #1A1A1A; font-weight: 600; min-width: 18px; text-align: right; }
+    .output-list-ul .output-marker::before { content: "·"; color: #6B7280; font-weight: 700; font-size: 16px; line-height: 1; min-width: 14px; text-align: center; }
+    .output-item {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 4px; border-radius: 6px; transition: background 0.15s;
+    }
+    .output-item:hover { background: #F9FAFB; }
+    .output-marker {
+      display: inline-flex; align-items: center; justify-content: center;
+      flex: 0 0 auto; font-size: 12px; color: #6B7280;
+    }
+    .output-text-input {
+      flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+      font-size: 13px; color: #1A1A1A; padding: 2px 4px;
+    }
+    .output-text-input:focus { background: #F3F4F6; border-radius: 4px; }
+    .output-ref-chip {
+      flex: 1; min-width: 0; display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 8px; background: #F3F4F6; border: 1px solid #E5E7EB;
+      border-radius: 6px; font-size: 12px; color: #1A1A1A;
+    }
+    .output-ref-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .output-item-del {
+      display: none; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border: none; background: transparent; border-radius: 4px;
+      color: #9CA3AF; cursor: pointer; flex: 0 0 auto;
+    }
+    .output-item:hover .output-item-del { display: inline-flex; }
+    .output-item-del:hover { background: #FEE2E2; color: #DC2626; }
+    .output-add-row {
+      display: flex; align-items: center; gap: 4px; margin-top: 6px; padding: 0 4px;
+    }
+    .output-add-input {
+      flex: 1; min-width: 0; border: 1px solid #E5E7EB; outline: none; background: #fff;
+      font-size: 12px; color: #1A1A1A; padding: 6px 8px; border-radius: 6px;
+    }
+    .output-add-input:focus { border-color: #1A1A1A; }
+    .output-add-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border: 1px solid #1A1A1A; background: #1A1A1A;
+      color: #fff; border-radius: 6px; cursor: pointer; flex: 0 0 auto; transition: all 0.15s;
+    }
+    .output-add-btn:hover { background: #333; }
+    .output-drop-hint {
+      margin-top: 6px; padding: 6px 8px; text-align: center;
+      font-size: 11px; color: #9CA3AF; border: 1px dashed #E5E7EB; border-radius: 6px;
+    }
   </style>
 </head>
 <body class="bg-white h-screen overflow-hidden flex">
@@ -421,6 +510,7 @@
   <script src="/js/config.js"></script>
   <script src="/js/common.js"></script>
   <script src="/js/user-token.js"></script>
+  <script src="/js/output-docs.js"></script>
   <script src="/js/materials.js"></script>
 </body>
 </html>
