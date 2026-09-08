@@ -64,3 +64,65 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 });
+
+// ======================
+// 回到顶部按钮 + Wiki 卡片点击提示
+// ======================
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.classList.remove('hidden');
+  toast.style.transition = 'opacity 0.25s';
+  toast.style.opacity = '1';
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.classList.add('hidden'), 250);
+  }, 3200);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // 回到顶部按钮
+  const backToTop = document.getElementById('back-to-top');
+  window.scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (backToTop) {
+    const toggleBackTop = () => {
+      if (window.scrollY > 400) backToTop.classList.remove('hidden');
+      else backToTop.classList.add('hidden');
+    };
+    window.addEventListener('scroll', toggleBackTop, { passive: true });
+    toggleBackTop();
+  }
+
+  // Wiki 卡片与「探索 Wiki」按钮点击提示
+  const wikiTips = {
+    '工作 Wiki': '职场生活·技能成长知识库，汇集工作方法、效率工具与职场进阶干货。',
+    '旅游 Wiki': '出行打卡·美食游玩指南，覆盖目的地攻略、行程规划与避坑经验。',
+    '求职 Wiki': '求职面试·职场准入参考，整理简历技巧、面试题库与行业洞察。',
+    '艺术 Wiki': '创作·风格学习，收录设计灵感、艺术流派与创作方法论。',
+    '商业 Wiki': '营销运营·品牌商业洞察，分享增长案例、品牌策略与商业模式。',
+    '文化 Wiki': '对话空间·议题写作，汇聚文化观察、观点表达与深度长文。',
+    '成长 Wiki': '情绪管理·认知升级，聚焦自我提升、心理建设与思维训练。',
+    '潮流 Wiki': '新品上新·好物速递，追踪趋势单品、生活方式与消费风向。'
+  };
+
+  document.querySelectorAll('#wiki-grid .glass-card').forEach(card => {
+    const h4 = card.querySelector('h4');
+    const title = h4 ? h4.textContent.trim() : '';
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => {
+      const desc = wikiTips[title] || '该知识板块正在筹备中，敬请期待更多精彩内容。';
+      showToast('【' + title + '】' + desc);
+    });
+  });
+
+  const exploreBtn = document.getElementById('explore-wiki-btn');
+  if (exploreBtn) {
+    exploreBtn.addEventListener('click', () => {
+      const grid = document.getElementById('wiki-grid');
+      if (grid) grid.scrollIntoView({ behavior: 'smooth' });
+      showToast('向下滚动即可浏览 Foubow 整理好的各类知识共享 Wiki');
+    });
+  }
+});

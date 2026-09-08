@@ -43,7 +43,7 @@
 <span class="material-symbols-outlined">rocket_launch</span>
                             立即开始
                         </button>
-<button class="flex items-center gap-2 px-8 py-4 bg-surface-container-highest/50 border border-outline-variant/30 rounded-xl font-title-md hover:bg-surface-container-highest transition-all">
+<button id="explore-wiki-btn" class="flex items-center gap-2 px-8 py-4 bg-surface-container-highest/50 border border-outline-variant/30 rounded-xl font-title-md hover:bg-surface-container-highest transition-all">
 <span class="material-symbols-outlined text-primary">explore</span>
                             探索 Wiki
                         </button>
@@ -106,7 +106,7 @@
 </div>
 </section>
 <!-- 知识共享 Wiki Bento Grid -->
-<section class="py-24 bg-surface">
+<section class="py-24 bg-surface" id="wiki-grid">
 <div class="max-w-container-max mx-auto px-6 md:px-16">
 <div class="text-center mb-16 space-y-4">
 <h2 class="font-headline-lg text-headline-lg">知识共享</h2>
@@ -230,6 +230,14 @@
 </div>
 </div>
 </footer>
+
+<!-- 轻提示 toast -->
+<div id="toast" class="fixed top-24 left-1/2 -translate-x-1/2 z-[60] hidden max-w-[90vw] px-5 py-3 rounded-xl bg-on-surface text-surface text-body-md shadow-xl"></div>
+
+<!-- 回到顶部悬浮按钮 -->
+<button id="back-to-top" class="fixed bottom-8 right-8 z-50 hidden w-12 h-12 rounded-full bg-primary text-on-primary shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center" aria-label="回到顶部" onclick="window.scrollToTop()">
+<span class="material-symbols-outlined">arrow_upward</span>
+</button>
 
 <!-- 导航遮罩 -->
 <div id="mobile-nav-overlay" class="fixed inset-0 bg-black/40 z-40 hidden md:hidden"></div>
