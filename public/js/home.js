@@ -14,31 +14,38 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ======================
-// 移动端导航抽屉（由首页 FAB 触发）
+// 移动端导航（顶部汉堡包按钮 / 底部导航栏）
 // ======================
 document.addEventListener('DOMContentLoaded', () => {
+  const navToggle = document.getElementById('mobile-nav-toggle');
   const navFab = document.getElementById('mobile-nav-fab');
   const navOverlay = document.getElementById('mobile-nav-overlay');
   const navPanel = document.getElementById('mobile-nav-panel');
   const navAuth = document.getElementById('mobile-nav-auth');
-  if (!navFab || !navOverlay || !navPanel) return;
+  if (!navOverlay || !navPanel) return;
 
+  // 用内联样式控制位移，避免 Tailwind 编译产物中 translate-y-* 规则缺失导致「点了没反应」
+  navPanel.style.transform = 'translateY(100%)';
+
+  function isOpen() { return navOverlay.classList.contains('is-open'); }
   function openNav() {
     navOverlay.classList.remove('hidden');
-    navPanel.classList.remove('translate-y-full');
-    navPanel.classList.add('translate-y-0');
+    void navPanel.offsetWidth; // 强制 reflow，确保过渡动画生效
+    navPanel.style.transform = 'translateY(0)';
+    navOverlay.classList.add('is-open');
   }
   function closeNav() {
-    navOverlay.classList.add('hidden');
-    navPanel.classList.add('translate-y-full');
-    navPanel.classList.remove('translate-y-0');
+    navPanel.style.transform = 'translateY(100%)';
+    navOverlay.classList.remove('is-open');
+    setTimeout(() => { if (!navOverlay.classList.contains('is-open')) navOverlay.classList.add('hidden'); }, 300);
   }
-  navFab.addEventListener('click', () => {
-    if (navOverlay.classList.contains('hidden')) openNav(); else closeNav();
-  });
-  navOverlay.addEventListener('click', closeNav);
+  function toggleNav() { isOpen() ? closeNav() : openNav(); }
+  // 供顶部汉堡包按钮的 onclick="toggleMobileNav()" 调用
+  window.toggleMobileNav = toggleNav;
 
-  // 点击任意导航链接后关闭面板
+  // 仅在底部 FAB（无 onclick 属性）上挂监听；顶部汉堡按钮用 inline onclick="toggleMobileNav()" 触发 window.toggleMobileNav
+  if (navFab) navFab.addEventListener('click', toggleNav);
+  navOverlay.addEventListener('click', closeNav);
   navPanel.querySelectorAll('a').forEach(link => link.addEventListener('click', closeNav));
 
   // 登录态同步（与顶部导航栏一致）
@@ -52,8 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = 'index.html';
       };
     } else {
-      navAuth.innerHTML = '<a href="/login" class="w-full text-center px-4 py-3 border border-primary text-primary font-medium rounded-xl active:scale-95 transition-all">登录</a>' +
-                          '<a href="/register" class="w-full text-center px-4 py-3 bg-primary text-on-primary font-medium rounded-xl active:scale-95 transition-all">注册</a>';
+      navAuth.innerHTML = '<a href="/login.html" class="w-full text-center px-4 py-3 border border-primary text-primary font-medium rounded-xl active:scale-95 transition-all">登录</a>' +
+                          '<a href="/register.html" class="w-full text-center px-4 py-3 bg-primary text-on-primary font-medium rounded-xl active:scale-95 transition-all">注册</a>';
     }
   }
 });

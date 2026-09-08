@@ -496,6 +496,9 @@ function renderCollectionDetail(name) {
       <button id="btn-open-all-urls" onclick="openAllCollectionUrls('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-white border border-[#E5E7EB] text-[#4B5563] hover:border-[#3B82F6] hover:text-[#3B82F6] transition-colors flex items-center gap-1.5" title="新窗口打开合集内全部链接页面（超过 30 个会弹窗确认）">
         <i data-lucide="square-arrow-out-up-right" class="w-3.5 h-3.5"></i>打开全部页面
       </button>
+      <button id="btn-remind-collection" onclick="openReminderModal('${escName}')" class="reminder-btn px-2.5 py-1.5 text-xs rounded-md border border-[#E5E7EB] bg-white text-[#4B5563] transition-colors flex items-center gap-1.5" title="设置合集提醒">
+        <i data-lucide="bell" class="w-3.5 h-3.5"></i>提醒
+      </button>
       <button id="btn-share-collection" onclick="shareCollection('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors flex items-center gap-1.5" title="生成移动端阅览的分享页 HTML">
         <i data-lucide="share-2" class="w-3.5 h-3.5"></i>分享
       </button>
@@ -507,6 +510,7 @@ function renderCollectionDetail(name) {
     renderCardsInto('cards-container', items);
   }
   lucide.createIcons();
+  updateReminderButton(name);
 }
 
 function renderCardsInto(containerId, items, showCollection = false) {
@@ -561,7 +565,7 @@ function renderRightPanel() {
 }
 
 function renderPanelDetail(content) {
-  const item = materials.find(m => m.id === selectedId);
+  const item = getMaterialById(selectedId);
   if (!item) return;
   const imgHTML = item.coverUrl
     ? `<div class="w-full relative overflow-hidden" id="detail-cover-frame">
@@ -1142,13 +1146,26 @@ function showShareToast(text) {
 }
 
 // ===== Mobile Panel =====
+// 跨 materials / searchResults 查找素材（搜索结果项的 id 由搜索接口下标生成，
+// 与 materials 列表的下标体系不同，单纯在 materials 里按 id 查找会找不到）
+function getMaterialById(id) {
+  if (id == null) return null;
+  const sid = String(id);
+  for (const list of [materials, searchResults]) {
+    if (!Array.isArray(list)) continue;
+    const found = list.find(m => String(m.id) === sid);
+    if (found) return found;
+  }
+  return null;
+}
+
 function renderMobilePanel() {
   const overlay = document.getElementById('detail-overlay');
   const panel = document.getElementById('detail-mobile');
   if (!panelMode) return;
 
   if (panelMode === 'detail' && selectedId) {
-    const item = materials.find(m => m.id === selectedId);
+    const item = getMaterialById(selectedId);
     if (!item) return;
     const imgHTML = item.coverUrl
       ? `<img src="${item.coverUrl}" alt="${escHtml(item.title)}" class="w-full h-auto cursor-zoom-in" onclick="openLightbox('${item.coverUrl}')" />`
@@ -1236,7 +1253,7 @@ async function selectCard(id) {
   selectedId = id;
   
   // 调用 API 获取详情
-  const currentItem = materials.find(m => String(m.id) === String(id));
+  const currentItem = getMaterialById(id);
   if (currentItem) {
     showLoading('正在加载详情...');
     const detail = await fetchMaterialDetail(currentItem.title);
@@ -1355,7 +1372,7 @@ document.addEventListener('click', function (e) {
 
 // ===== Delete Material =====
 async function deleteMaterial(id) {
-  const item = materials.find(m => m.id === id);
+  const item = getMaterialById(id);
   if (!item) return;
   if (!confirm(`确定要删除素材「${item.title}」吗？\n此操作不可撤销。`)) return;
 
@@ -1463,13 +1480,14 @@ function renderCollections() {
     const escName = escHtml(name);
     const count = getMaterialsByCollection(name).length;
     const displayCount = count >= 100 ? '99+' : count;
+    const hasReminder = !!getReminderConfig(name);
     html += `<div class="collection-item relative group" draggable="true" data-collection-index="${idx}" title="长按拖动可排序">
       <button onclick="selectCollection('${escName}')"
         class="w-full pl-3 pr-9 py-2 rounded-lg text-sm text-left transition-colors duration-150 flex items-center gap-2 ${
           isActive ? 'bg-white text-[#1A1A1A] font-medium shadow-sm'
                    : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-white/60 hover:text-[#1A1A1A]'
         }">
-        <span class="flex-1 truncate">${escName}</span>
+        <span class="flex-1 truncate flex items-center gap-1.5">${hasReminder ? '<i data-lucide="bell" class="w-3.5 h-3.5 collection-has-reminder shrink-0"></i>' : ''}${escName}</span>
       </button>
       <span class="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 text-[11px] leading-none rounded-full ${
         isActive ? 'bg-[#1A1A1A] text-white' : 'bg-white text-[#6B7280]'
@@ -1681,7 +1699,7 @@ let changingItemId = null;
 function showChangeCollectionModal(itemId) {
   changingItemId = itemId;
   const select = document.getElementById('collection-select');
-  const item = materials.find(m => m.id === itemId);
+  const item = getMaterialById(itemId);
   select.innerHTML = getAllCollections().map(c => `<option value="${escHtml(c)}" ${c === item.collection ? 'selected' : ''}>${escHtml(c)}</option>`).join('');
   document.getElementById('collection-select-overlay').classList.add('open');
 }
@@ -1691,7 +1709,7 @@ function closeCollectionSelect() {
 }
 async function changeCollection() {
   const newCollection = document.getElementById('collection-select').value;
-  const item = materials.find(m => m.id === changingItemId);
+  const item = getMaterialById(changingItemId);
   if (!item) return;
   const userEmail = localStorage.getItem('userEmail') || 'guest@foubow.fun';
   try {
@@ -1831,6 +1849,229 @@ function closeLightbox() {
   document.getElementById('image-lightbox').classList.remove('show');
 }
 
+// ===== 合集提醒（Collection Reminder）=====
+// 纯前端原型：配置存于 localStorage，浏览器通知 + 页内兜底。
+const REMINDER_STORE_KEY = 'foubow-collection-reminders';
+const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
+let reminderModalName = null;
+let reminderCurrentMode = 'weekly';
+let reminderWeekdays = [1]; // 默认周一
+
+function loadReminders() {
+  try { return JSON.parse(localStorage.getItem(REMINDER_STORE_KEY) || '{}'); } catch (e) { return {}; }
+}
+function saveRemindersStore(obj) {
+  try { localStorage.setItem(REMINDER_STORE_KEY, JSON.stringify(obj)); } catch (e) {}
+}
+function getReminderConfig(name) {
+  return loadReminders()[name] || null;
+}
+
+// 返回当前周的「周一日期」作为周键，用于每周重置基线
+function getMondayKey(d) {
+  const dt = new Date(d);
+  const day = (dt.getDay() + 6) % 7; // 0=周一
+  dt.setDate(dt.getDate() - day);
+  return dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + dt.getDate();
+}
+
+function openReminderModal(name) {
+  reminderModalName = name;
+  const cfg = getReminderConfig(name);
+  document.getElementById('reminder-modal-name').textContent = '· ' + name;
+  if (cfg) {
+    reminderCurrentMode = cfg.mode || 'weekly';
+    if (cfg.mode === 'weekly') {
+      document.getElementById('reminder-weekly-count').value = cfg.weeklyTarget || 3;
+    } else {
+      reminderWeekdays = (cfg.weekdays && cfg.weekdays.length) ? cfg.weekdays.slice() : [1];
+      document.getElementById('reminder-time').value = cfg.time || '09:00';
+    }
+    document.getElementById('reminder-remove-btn').classList.remove('hidden');
+  } else {
+    reminderCurrentMode = 'weekly';
+    document.getElementById('reminder-weekly-count').value = 3;
+    reminderWeekdays = [1];
+    document.getElementById('reminder-time').value = '09:00';
+    document.getElementById('reminder-remove-btn').classList.add('hidden');
+  }
+  renderWeekdayChips();
+  setReminderMode(reminderCurrentMode);
+  updateReminderHint();
+  document.getElementById('reminder-modal-overlay').classList.add('open');
+  lucide.createIcons();
+}
+
+function closeReminderModal() {
+  const o = document.getElementById('reminder-modal-overlay');
+  if (o) o.classList.remove('open');
+  reminderModalName = null;
+}
+
+function setReminderMode(mode) {
+  reminderCurrentMode = mode;
+  document.getElementById('reminder-seg-weekly').classList.toggle('active', mode === 'weekly');
+  document.getElementById('reminder-seg-schedule').classList.toggle('active', mode === 'schedule');
+  document.getElementById('reminder-pane-weekly').style.display = mode === 'weekly' ? '' : 'none';
+  document.getElementById('reminder-pane-schedule').style.display = mode === 'schedule' ? '' : 'none';
+}
+
+function renderWeekdayChips() {
+  const row = document.getElementById('reminder-weekday-row');
+  if (!row) return;
+  row.innerHTML = WEEKDAY_LABELS.map((lab, i) =>
+    `<button type="button" class="weekday-chip${reminderWeekdays.includes(i) ? ' active' : ''}" data-wd="${i}" onclick="toggleWeekday(${i})">${lab}</button>`
+  ).join('');
+}
+
+function toggleWeekday(i) {
+  if (reminderWeekdays.includes(i)) reminderWeekdays = reminderWeekdays.filter(x => x !== i);
+  else reminderWeekdays.push(i);
+  renderWeekdayChips();
+}
+
+function updateReminderHint() {
+  const name = reminderModalName;
+  const el = document.getElementById('reminder-weekly-hint');
+  if (!name || !el) return;
+  const cfg = getReminderConfig(name);
+  const count = getMaterialsByCollection(name).length;
+  if (cfg && cfg.mode === 'weekly') {
+    const added = Math.max(0, count - (cfg.weeklyBaseline || 0));
+    el.textContent = `当前合集 ${count} 个素材，自设置以来已新增 ${added} 个 / 目标 ${cfg.weeklyTarget} 个`;
+  } else {
+    el.textContent = `当前合集 ${count} 个素材`;
+  }
+}
+
+function updateReminderButton(name) {
+  const btn = document.getElementById('btn-remind-collection');
+  if (!btn) return;
+  const cfg = getReminderConfig(name);
+  if (cfg && cfg.enabled) {
+    btn.classList.add('reminder-active');
+    const desc = cfg.mode === 'weekly'
+      ? `每周新增≥${cfg.weeklyTarget}个`
+      : `每${cfg.weekdays.map(i => WEEKDAY_LABELS[i]).join('、')} ${cfg.time}`;
+    btn.title = '合集提醒已开启：' + desc;
+  } else {
+    btn.classList.remove('reminder-active');
+    btn.title = '设置合集提醒';
+  }
+}
+
+async function saveReminder() {
+  const name = reminderModalName;
+  if (!name) return;
+  // 申请通知权限（用户未决策时）
+  if (!('Notification' in window) || Notification.permission === 'default') {
+    try { await Notification.requestPermission(); } catch (e) {}
+  }
+  const store = loadReminders();
+  const count = getMaterialsByCollection(name).length;
+  const prev = store[name] || {};
+  if (reminderCurrentMode === 'weekly') {
+    const target = Math.max(1, parseInt(document.getElementById('reminder-weekly-count').value, 10) || 3);
+    store[name] = {
+      enabled: true, mode: 'weekly',
+      weeklyTarget: target,
+      weeklyBaseline: count,
+      weekKey: getMondayKey(new Date()),
+      createdAt: prev.createdAt || new Date().toISOString(),
+      lastFiredISO: null,
+    };
+  } else {
+    const time = document.getElementById('reminder-time').value || '09:00';
+    store[name] = {
+      enabled: true, mode: 'schedule',
+      weekdays: reminderWeekdays.slice(),
+      time,
+      createdAt: prev.createdAt || new Date().toISOString(),
+      lastFiredISO: null,
+    };
+  }
+  saveRemindersStore(store);
+  closeReminderModal();
+  updateReminderButton(name);
+  renderCollections();
+  showShareToast('已保存合集提醒：' + name);
+}
+
+function removeReminder() {
+  const name = reminderModalName;
+  if (!name) return;
+  const store = loadReminders();
+  delete store[name];
+  saveRemindersStore(store);
+  closeReminderModal();
+  updateReminderButton(name);
+  renderCollections();
+  showShareToast('已删除合集提醒：' + name);
+}
+
+// 立即触发一次通知（用于本地预览验证）
+function testReminder() {
+  const name = reminderModalName;
+  const cfg = name ? getReminderConfig(name) : null;
+  const modeText = cfg
+    ? (cfg.mode === 'weekly' ? `每周新增 ≥ ${cfg.weeklyTarget} 个素材` : `每${cfg.weekdays.map(i => WEEKDAY_LABELS[i]).join('、')} ${cfg.time}`)
+    : '示例提醒';
+  fireReminderNotification(name || '示例合集', `【合集提醒测试】${name || '示例合集'} · ${modeText}`);
+}
+
+// 统一发送：优先浏览器通知，失败回退页内提示
+function fireReminderNotification(name, body) {
+  const title = 'Foubow 合集提醒' + (name ? '：' + name : '');
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try { new Notification(title, { body }); return; } catch (e) {}
+  }
+  showShareToast('🔔 ' + title + ' — ' + body);
+}
+
+// 定时检查（每分钟），在 init 中启动
+function checkReminders() {
+  const store = loadReminders();
+  const names = Object.keys(store);
+  if (!names.length) return;
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const hhmm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  names.forEach(name => {
+    const cfg = store[name];
+    if (!cfg || !cfg.enabled) return;
+    if (cfg.mode === 'schedule') {
+      const wd = now.getDay();
+      if ((cfg.weekdays || []).includes(wd) && hhmm === (cfg.time || '09:00')) {
+        if ((cfg.lastFiredISO || '').slice(0, 10) !== todayStr) {
+          fireReminderNotification(name, `又到了合集「${name}」的提醒时间（${cfg.time}）`);
+          cfg.lastFiredISO = now.toISOString();
+          saveRemindersStore(store);
+        }
+      }
+    } else if (cfg.mode === 'weekly') {
+      const wk = getMondayKey(now);
+      if (cfg.weekKey !== wk) { // 跨周重置基线
+        cfg.weeklyBaseline = getMaterialsByCollection(name).length;
+        cfg.weekKey = wk;
+      }
+      const count = getMaterialsByCollection(name).length;
+      const added = count - (cfg.weeklyBaseline || 0);
+      if (added >= (cfg.weeklyTarget || 999)) {
+        fireReminderNotification(name, `合集「${name}」本周已新增 ${added} 个素材（目标 ${cfg.weeklyTarget}）`);
+        cfg.weeklyBaseline = count;
+        cfg.lastFiredISO = now.toISOString();
+        saveRemindersStore(store);
+      }
+    }
+  });
+}
+
+function startReminderEngine() {
+  checkReminders();
+  if (window.__reminderTimer) clearInterval(window.__reminderTimer);
+  window.__reminderTimer = setInterval(checkReminders, 60000);
+}
+
 // ===== Init =====
 async function init() {
   // 未登录：不再强制跳转，展示演示数据（备用页面放在未登录情况）
@@ -1868,6 +2109,15 @@ async function init() {
   // 3. 加载素材数据
   materials = await fetchMaterials();
 
+  // 本地预览/演示数据：无 API 合集时，从素材推导合集名，便于进入合集详情体验提醒功能
+  if (!isUserLoggedIn()) {
+    const derived = [...new Set(materials.map(m => m.collection).filter(Boolean))];
+    const known = new Set(collections);
+    const extras = derived.filter(n => !known.has(n));
+    if (extras.length) collections = [...extras, ...collections];
+    collections = [...new Set(collections)];
+  }
+
   if (!collections.includes('未分类')) collections.push('未分类');
 
   // 4. 先渲染首屏（绝不要把首屏渲染阻塞在封面图比例检测上）
@@ -1875,6 +2125,9 @@ async function init() {
   renderCollections();
   if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
   hideLoading();
+
+  // 5. 启动合集提醒引擎（浏览器通知 + 每分钟检查）
+  startReminderEngine();
 
   // 5. 后台异步检测封面图比例（不阻塞首屏；单张失败/超时不影响整体）
   materials.forEach((m) => {
