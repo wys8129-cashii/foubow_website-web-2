@@ -158,13 +158,12 @@
   }
 
   function renderDocRow(d) {
-    const type = d.type === 'ol' ? '有序' : '无序';
     const count = (d.items || []).length;
     return `<div class="doc-row" data-act="open-doc" data-doc="${escHtml(d.id)}">
       <span class="doc-row-icon">${icon('file-text', 'w-4 h-4 text-[#6B7280]')}</span>
       <div class="doc-row-main">
         <div class="doc-row-title">${escHtml(d.title || '未命名文档')}</div>
-        <div class="doc-row-meta">${type} · ${count} 项 · ${fmtTime(d.createdAt)}</div>
+        <div class="doc-row-meta">${count} 项 · ${fmtTime(d.createdAt)}</div>
       </div>
       <span class="doc-row-arrow">${icon('chevron-right', 'w-4 h-4 text-[#9CA3AF]')}</span>
     </div>`;
@@ -211,8 +210,8 @@
       const level = b.it.level || 0;
       if (isOl) { if (level === 0) { curNum++; numList[i] = curNum; } else numList[i] = numList[i - 1] != null ? numList[i - 1] : 0; }
       html += b.it.kind === 'ref'
-        ? renderRefBlock(b.it, b.i, doc.id, isOl ? numList[i] : null)
-        : renderTextBlock(b.it, b.i, isOl ? numList[i] : null);
+        ? renderRefBlock(b.it, b.i, doc.id, isOl, isOl ? numList[i] : null)
+        : renderTextBlock(b.it, b.i, isOl, isOl ? numList[i] : null);
     });
 
     html += `<div class="ob-add">
@@ -223,28 +222,28 @@
     container.innerHTML = html;
   }
 
-  function renderTextBlock(it, idx, num) {
+  function renderTextBlock(it, idx, isOl, num) {
     const level = it.level || 0;
-    const marker = num != null ? `<span class="ob-num">${num}.</span>` : '';
     const collapsed = it.collapsed ? ' ob-collapsed' : '';
+    const bulletCls = isOl ? 'ob-bullet ob-bullet-num' : 'ob-bullet';
+    const marker = isOl ? `<span class="ob-num">${num}.</span>` : '';
     return `<div class="ob-block ob-text${collapsed}" data-idx="${idx}" style="margin-left:${level * 22}px">
-      <button class="ob-bullet" data-act="ob-fold" data-idx="${idx}" title="折叠/展开"></button>
-      ${marker}
+      <button class="${bulletCls}" data-act="ob-fold" data-idx="${idx}" title="折叠/展开">${marker}</button>
       <div class="ob-edit" contenteditable="true" data-idx="${idx}" spellcheck="false">${escHtml(it.value || '')}</div>
     </div>`;
   }
 
-  function renderRefBlock(it, idx, docId, num) {
+  function renderRefBlock(it, idx, docId, isOl, num) {
     const p = it.payload || {};
     const level = it.level || 0;
     const thumb = p.previewHTML
       ? `<div class="ob-thumb ${escHtml(p.previewBg || '')}">${p.previewHTML}</div>`
       : `<div class="ob-thumb ${escHtml(p.previewBg || 'ob-thumb-empty')}"></div>`;
     const link = p.url || (p.collection ? '合集 · ' + p.collection : (p.kind === 'collection' ? '合集 · ' + (p.name || '') : ''));
-    const marker = num != null ? `<span class="ob-num">${num}.</span>` : '';
+    const bulletCls = isOl ? 'ob-bullet ob-bullet-num' : 'ob-bullet';
+    const marker = isOl ? `<span class="ob-num">${num}.</span>` : '';
     return `<div class="ob-block ob-ref" data-idx="${idx}" style="margin-left:${level * 22}px">
-      <button class="ob-bullet" data-act="ob-fold" data-idx="${idx}" title="折叠/展开"></button>
-      ${marker}
+      <button class="${bulletCls}" data-act="ob-fold" data-idx="${idx}" title="折叠/展开">${marker}</button>
       <div class="ob-ref-card">
         ${thumb}
         <div class="ob-ref-meta">
