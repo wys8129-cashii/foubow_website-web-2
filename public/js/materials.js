@@ -521,7 +521,7 @@ function renderCardsInto(containerId, items, showCollection = false) {
         const collectionChip = showCollection && item.collection && item.collection !== '未分类'
           ? `<span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors shrink-0" onclick="event.stopPropagation(); selectCollection('${escHtml(item.collection).replace(/'/g, "\\'")}')" title="进入合集「${escHtml(item.collection)}」">${escHtml(item.collection)}</span>`
           : '';
-    return `<div><div onclick="selectCard('${item.id}')"
+    return `<div><div draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(item.collection || '')}" data-material-url="${escHtml(item.url || '')}" onclick="selectCard('${item.id}')"
       class="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md ${isActive ? 'border-[#1A1A1A] shadow-md' : 'border-[#E5E7EB]'}">
       <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>
       <div class="p-3">
@@ -805,7 +805,7 @@ function renderPanelWaterfall(content) {
     html += '<div class="panel-grid">';
     items.forEach(item => {
       const isActive = item.id === selectedId;
-            html += `<div class="panel-card ${isActive ? 'ring-2 ring-[#1A1A1A]' : ''}" onclick="selectCard('${item.id}')">
+            html += `<div class="panel-card ${isActive ? 'ring-2 ring-[#1A1A1A]' : ''}" draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(panelCollection)}" data-material-url="${escHtml(item.url || '')}" onclick="selectCard('${item.id}')">
         <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML().replace(/text-xs/g,'text-[7px]').replace(/text-\[10px\]/g,'text-[7px]').replace(/text-sm/g,'text-[8px]').replace(/text-lg/g,'text-[9px]').replace(/text-2xl/g,'text-xs').replace(/w-14 h-20/g,'w-8 h-11').replace(/w-10 h-14/g,'w-5 h-7').replace(/w-16 h-12/g,'w-9 h-7').replace(/w-8 h-6/g,'w-4 h-3').replace(/w-20 h-16/g,'w-10 h-8').replace(/w-12 h-12/g,'w-6 h-6').replace(/w-10 h-10/g,'w-5 h-5').replace(/gap-2/g,'gap-0.5').replace(/gap-1\.5/g,'gap-0.5').replace(/gap-3/g,'gap-1').replace(/p-4 text-center/g,'p-1 text-center').replace(/p-3/g,'p-1').replace(/max-w-\[200px\]/g,'max-w-[80px]').replace(/mb-3/g,'mb-0.5').replace(/mb-2/g,'mb-0').replace(/mb-1/g,'mb-0').replace(/mt-2/g,'mt-0.5').replace(/leading-relaxed/g,'leading-tight')}</div>
         <div class="p-2"><div class="text-[10px] font-medium text-[#1A1A1A] leading-snug line-clamp-2">${escHtml(item.title)}</div></div>
       </div>`;
@@ -823,7 +823,7 @@ function renderCollectionOutputPanel(content) {
   OutputDocs.renderPanel({
     container: content,
     collection: panelCollection,
-    onClose: () => closeRightPanel(),
+    onClose: () => { try { closeRightPanel && closeRightPanel(); } catch (e) {} try { closeMobilePanel && closeMobilePanel(); } catch (e) {} },
     onAi: () => alert('AI 总结功能即将上线'),
   });
 }
