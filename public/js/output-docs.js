@@ -26,10 +26,102 @@
       return (p && typeof p === 'object') ? p : {};
     } catch (e) { return {}; }
   }
-  function saveState() {
+  function saveStateRaw() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
   }
+  function saveState() {
+    saveStateRaw();
+    scheduleCloudSync();
+  }
   function uid() { return 'doc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  // ===== 云端同步（Supabase，经后端 fob_xxx 工作区密钥）=====
+  // 策略：localStorage 仍是即时工作副本；每次保存 1.2s 防抖后把本地全量镜像到云端
+  // （删云端多余 + upsert 本地所有文档）。启动时若云端有数据则覆盖本地（云优先）。
+  // 离线 / 无密钥：静默降级为纯本地。
+  const WS_KEY = 'foubow-workspace-key';
+  let _cloudKey = null;
+  let _syncTimer = null;
+  let _syncing = false;
+
+  async function ensureWorkspaceKey() {
+    if (_cloudKey) return _cloudKey;
+    let key = null;
+    try { key = localStorage.getItem(WS_KEY); } catch (e) {}
+    if (key) { _cloudKey = key; return key; }
+    try {
+      const r = await fetch('/api/workspace/init', { method: 'POST' });
+      const j = await r.json();
+      if (j && j.code === 1 && j.data && j.data.apiKey) {
+        key = j.data.apiKey;
+        localStorage.setItem(WS_KEY, key);
+      }
+    } catch (e) { /* 离线：仅本地 */ }
+    _cloudKey = key;
+    return key;
+  }
+
+  async function apiCall(path, opts) {
+    const key = await ensureWorkspaceKey();
+    const headers = { 'Content-Type': 'application/json' };
+    if (key) headers['Authorization'] = 'Bearer ' + key;
+    const res = await fetch(path, Object.assign({ method: 'GET', headers }, opts || {}));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
+  // 本地 state 全量镜像到云端：删云端多余 + upsert 本地全部文档
+  async function pushCloudAll() {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+    if (_syncing) return;
+    const key = await ensureWorkspaceKey();
+    if (!key) return; // 无密钥则仅本地
+    _syncing = true;
+    try {
+      const cloud = await apiCall('/api/output-docs');
+      const cloudMap = (cloud && cloud.code === 1 && cloud.data) ? cloud.data : {};
+      const cloudIds = new Set();
+      Object.keys(cloudMap).forEach((c) => (cloudMap[c] || []).forEach((d) => cloudIds.add(d.id)));
+      const localIds = new Set();
+      Object.keys(state).forEach((c) => (state[c] || []).forEach((d) => localIds.add(d.id)));
+      for (const id of cloudIds) {
+        if (!localIds.has(id)) {
+          try { await apiCall('/api/output-docs/' + encodeURIComponent(id), { method: 'DELETE' }); } catch (e) {}
+        }
+      }
+      for (const c of Object.keys(state)) {
+        for (const d of (state[c] || [])) {
+          try {
+            await apiCall('/api/output-docs', {
+              method: 'POST',
+              body: JSON.stringify({ collection: c, title: d.title, type: d.type, items: d.items || [] }),
+            });
+          } catch (e) {}
+        }
+      }
+    } catch (e) { /* 静默，下次保存重试 */ }
+    finally { _syncing = false; }
+  }
+
+  function scheduleCloudSync() {
+    if (_syncTimer) clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(() => { pushCloudAll().catch(() => {}); }, 1200);
+  }
+
+  // 启动拉取：仅当云端有数据才覆盖本地（避免空云清空本地）
+  async function syncLoadFromCloud() {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+    const key = await ensureWorkspaceKey();
+    if (!key) return;
+    _syncing = true;
+    try {
+      const cloud = await apiCall('/api/output-docs');
+      const cloudMap = (cloud && cloud.code === 1 && cloud.data) ? cloud.data : {};
+      const hasData = Object.keys(cloudMap).some((c) => (cloudMap[c] || []).length > 0);
+      if (hasData) { state = cloudMap; saveStateRaw(); }
+    } catch (e) { /* 静默降级 */ }
+    finally { _syncing = false; }
+  }
 
   // -------- CRUD --------
   function getDocs(name) {
@@ -937,4 +1029,7 @@
       localStorage.setItem('foubow-output-docs-v2-seeded', '1');
     }
   } catch (e) {}
+
+  // 启动后从云端拉取（有数据才覆盖本地）；失败 / 离线静默降级
+  syncLoadFromCloud();
 })();
