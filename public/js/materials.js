@@ -487,17 +487,20 @@ function renderCollectionDetail(name) {
       <button onclick="navigateTo('overview')" class="p-1.5 rounded-md hover:bg-[#F3F4F6] transition-colors flex items-center gap-1 text-sm text-[#6B7280] hover:text-[#1A1A1A] shrink-0">
         <i data-lucide="arrow-left" class="w-4 h-4"></i> 返回
       </button>
-      <h1 class="text-base font-semibold text-[#1A1A1A] truncate">${escName} <span class="text-xs font-normal text-[#9CA3AF] ml-1">${items.length} 个素材</span><span class="text-xs font-normal text-[#9CA3AF] ml-1 cursor-pointer hover:text-[#1A1A1A] underline underline-offset-2" onclick="openCollectionOutputs('${escName}')">${outputs.length} 个产出物</span></h1>
+      <h1 class="text-base font-semibold text-[#1A1A1A] truncate">${escName} <span class="text-xs font-normal text-[#9CA3AF] ml-1">${items.length} 个素材</span></h1>
     </div>
     <div class="flex items-center gap-2 shrink-0">
-      <button id="btn-export-collection" onclick="exportCollectionAsMD('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-[#F3F4F6] text-[#4B5563] hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors flex items-center gap-1.5" title="导出当前合集为 Markdown">
-        <i data-lucide="download" class="w-3.5 h-3.5"></i>导出
+      <button id="btn-outputs-collection" onclick="openCollectionOutputs('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-[#F3F4F6] text-[#4B5563] hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors flex items-center gap-1.5" title="查看本合集的产出物">
+        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>产出物<span class="text-[10px] text-[#9CA3AF] ml-0.5">${outputs.length}</span>
       </button>
       <div class="hdr-menu-wrap relative" data-menu="collection-more">
         <button class="hdr-icon-btn tag" data-act="menu-toggle" data-menu="collection-more" title="更多" aria-label="更多" onclick="event.stopPropagation(); toggleCollectionMore(this)">
           <i data-lucide="more-horizontal" class="w-4 h-4 text-[#4B5563]"></i>
         </button>
         <div class="hdr-menu" data-menu="collection-more" role="menu">
+          <button id="btn-export-collection" class="hdr-menu-item" onclick="exportCollectionAsMD('${escName}')" role="menuitem">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i><span>导出</span>
+          </button>
           <button class="hdr-menu-item" onclick="openAllCollectionUrls('${escName}')" role="menuitem">
             <i data-lucide="square-arrow-out-up-right" class="w-3.5 h-3.5"></i><span>打开全部页面</span>
           </button>
@@ -979,14 +982,24 @@ function generateShareHTML(name, items) {
 
 let sharePreviewState = null;
 // 打开分享预览弹窗：iframe 渲染生成的 HTML，可下载 / 复制
+// 关闭后会保留 sharePreviewState 一段时间（30s），再次点击同合集"分享"按钮可直接复用
 function shareCollection(name) {
-  const items = getMaterialsByCollection(name);
-  if (!items.length) { alert('该合集暂无素材，无法生成'); return; }
   if (document.getElementById('share-preview-overlay')) return;
-  const html = generateShareHTML(name, items);
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const blobUrl = URL.createObjectURL(blob);
-  sharePreviewState = { name, html, blobUrl };
+  // 复用已生成的 HTML（避免重复 generate）
+  let html, blobUrl;
+  if (sharePreviewState && sharePreviewState.name === name && sharePreviewState.html) {
+    html = sharePreviewState.html;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    blobUrl = URL.createObjectURL(blob);
+    sharePreviewState.blobUrl = blobUrl;
+  } else {
+    const items = getMaterialsByCollection(name);
+    if (!items.length) { alert('该合集暂无素材，无法生成'); return; }
+    html = generateShareHTML(name, items);
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    blobUrl = URL.createObjectURL(blob);
+    sharePreviewState = { name, html, blobUrl };
+  }
 
   const overlay = document.createElement('div');
   overlay.id = 'share-preview-overlay';
@@ -1028,10 +1041,49 @@ function shareCollection(name) {
 function closeSharePreview() {
   const overlay = document.getElementById('share-preview-overlay');
   if (overlay) overlay.remove();
-  if (sharePreviewState?.blobUrl) {
-    setTimeout(() => URL.revokeObjectURL(sharePreviewState.blobUrl), 500);
+  // 保留 sharePreviewState 30s（让用户能在短时间内重新点"分享"按钮直接复用预览）
+  // 到期或切换合集时再彻底清理
+  if (sharePreviewState?.revokeTimer) clearTimeout(sharePreviewState.revokeTimer);
+  if (sharePreviewState) {
+    const st = sharePreviewState;
+    st.revokeTimer = setTimeout(() => {
+      if (st.blobUrl) URL.revokeObjectURL(st.blobUrl);
+      sharePreviewState = null;
+    }, 30000);
   }
-  sharePreviewState = null;
+  // 关闭提示：告诉用户预览已关闭，并给一个"再次打开"按钮（一键复用 HTML）
+  showShareClosedToast();
+}
+
+// 关闭预览后的轻量提示：底部居中浮层，3s 后自动消失；带"再次预览"按钮一键复用
+function showShareClosedToast() {
+  let el = document.getElementById('share-closed-toast');
+  if (el) el.remove();
+  el = document.createElement('div');
+  el.id = 'share-closed-toast';
+  el.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 rounded-full bg-[#1A1A1A] text-white text-xs shadow-2xl';
+  el.innerHTML = `
+    <i data-lucide="eye-off" class="w-3.5 h-3.5 text-[#9CA3AF]"></i>
+    <span>预览已关闭</span>
+    <span class="text-[#6B7280]">·</span>
+    <button id="share-closed-reopen" class="flex items-center gap-1 px-2 py-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors" title="再次打开预览（30s 内复用刚才生成的 HTML）">
+      <i data-lucide="refresh-cw" class="w-3 h-3"></i><span>再次预览</span>
+    </button>
+  `;
+  document.body.appendChild(el);
+  lucide.createIcons();
+  document.getElementById('share-closed-reopen').addEventListener('click', () => {
+    el.remove();
+    if (sharePreviewState && sharePreviewState.name) shareCollection(sharePreviewState.name);
+  });
+  setTimeout(() => {
+    if (el && el.parentNode) {
+      el.style.transition = 'opacity 0.2s, transform 0.2s';
+      el.style.opacity = '0';
+      el.style.transform = 'translate(-50%, 8px)';
+      setTimeout(() => el.remove(), 220);
+    }
+  }, 3000);
 }
 
 function downloadShareHTML() {
