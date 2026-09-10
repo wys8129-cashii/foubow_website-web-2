@@ -42,7 +42,9 @@
   const WS_KEY = 'foubow-workspace-key';
   let _cloudKey = null;
   let _syncTimer = null;
-  let _syncing = false;
+  let _pushSyncing = false;
+  let _loadSyncing = false;
+  let _dirty = false;
 
   async function ensureWorkspaceKey() {
     if (_cloudKey) return _cloudKey;
@@ -70,13 +72,14 @@
     return res.json();
   }
 
-  // 本地 state 全量镜像到云端：删云端多余 + upsert 本地全部文档
+  // 本地 state 全量镜像到云端：删云端多余 + upsert 本地全部文档（带 id 幂等）
+  // 使用独立 _pushSyncing 锁，不阻塞初始化拉取（_loadSyncing），避免慢 GET 期间保存无法推云
   async function pushCloudAll() {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
-    if (_syncing) return;
+    if (_pushSyncing) { _dirty = true; return; } // 正在推送中：标记脏，结束后再补推
     const key = await ensureWorkspaceKey();
     if (!key) return; // 无密钥则仅本地
-    _syncing = true;
+    _pushSyncing = true;
     try {
       const cloud = await apiCall('/api/output-docs');
       const cloudMap = (cloud && cloud.code === 1 && cloud.data) ? cloud.data : {};
@@ -94,13 +97,16 @@
           try {
             await apiCall('/api/output-docs', {
               method: 'POST',
-              body: JSON.stringify({ collection: c, title: d.title, type: d.type, items: d.items || [] }),
+              body: JSON.stringify({ id: d.id, collection: c, title: d.title, type: d.type, items: d.items || [] }),
             });
           } catch (e) {}
         }
       }
     } catch (e) { /* 静默，下次保存重试 */ }
-    finally { _syncing = false; }
+    finally {
+      _pushSyncing = false;
+      if (_dirty) { _dirty = false; pushCloudAll().catch(() => {}); } // 补推未决更新
+    }
   }
 
   function scheduleCloudSync() {
@@ -108,19 +114,23 @@
     _syncTimer = setTimeout(() => { pushCloudAll().catch(() => {}); }, 1200);
   }
 
-  // 启动拉取：仅当云端有数据才覆盖本地（避免空云清空本地）
+  // 启动拉取：仅当本地为空且云端有数据时，用云端初始化本地（避免覆盖丢失本地新增）
+  // 使用独立 _loadSyncing 锁，不阻塞 pushCloudAll
   async function syncLoadFromCloud() {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
     const key = await ensureWorkspaceKey();
     if (!key) return;
-    _syncing = true;
+    if (_loadSyncing) return;
+    _loadSyncing = true;
     try {
       const cloud = await apiCall('/api/output-docs');
       const cloudMap = (cloud && cloud.code === 1 && cloud.data) ? cloud.data : {};
       const hasData = Object.keys(cloudMap).some((c) => (cloudMap[c] || []).length > 0);
-      if (hasData) { state = cloudMap; saveStateRaw(); }
+      // 重新校验本地是否为空（GET 期间可能有本地写入），避免覆盖丢失
+      const localEmpty = Object.keys(state).every((c) => !(state[c] && state[c].length));
+      if (hasData && localEmpty) { state = cloudMap; saveStateRaw(); }
     } catch (e) { /* 静默降级 */ }
-    finally { _syncing = false; }
+    finally { _loadSyncing = false; }
   }
 
   // -------- CRUD --------
