@@ -532,14 +532,20 @@
     .share-action-btn:hover { border-color: #1A1A1A; background: #F9FAFB; }
     .share-modal-tip { font-size: 11px; color: #9CA3AF; line-height: 1.5; }
 
-    /* 分享模式：只读预览 */
-    .share-body { padding: 10px 10px 28px; }
-    .share-banner {
-      display: flex; align-items: center; gap: 6px; padding: 8px 12px;
-      background: #EFF6FF; color: #1D4ED8; border-radius: 8px;
-      font-size: 11px; font-weight: 500; margin: 4px 8px 12px;
-    }
-    .share-footer { text-align: center; padding: 24px 0 8px; font-size: 11px; color: #9CA3AF; }
+    /* 分享模式：只读阅读页排版（参考截图重排）*/
+    .share-head { padding: 11px 16px; border-bottom: 1px solid #F3F4F6; }
+    .share-body { padding: 4px 20px 28px; }
+    .share-doc-head { padding: 22px 0 16px; border-bottom: 1px solid #F3F4F6; margin-bottom: 14px; }
+    .share-doc-title { font-size: 22px; font-weight: 700; color: #111827; line-height: 1.4; margin: 0; word-break: break-word; }
+    .share-doc-meta { margin-top: 9px; font-size: 12px; color: #9CA3AF; }
+    .share-blocks { padding: 0; }
+    .share-body .ob-block { margin: 8px 0; }
+    .share-body .ob-edit { font-size: 14px; line-height: 24px; color: #1F2937; }
+    .share-body .ob-edit:empty::before { content: ""; }
+    .share-body .ob-ref-card { background: #fff; }
+    .share-body .ob-thumb { width: 108px; height: 80px; }
+    .share-body .ob-bullet-num { color: #6B7280; }
+    .share-footer { text-align: center; padding: 26px 0 8px; font-size: 11px; color: #9CA3AF; }
 
     /* 分享模式：全屏只读预览，隐藏一切应用外壳（侧栏 / 顶栏 / 主视图） */
     body.share-mode { overflow: hidden; }

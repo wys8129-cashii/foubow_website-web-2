@@ -501,13 +501,14 @@
     let num = 0;
     visible.forEach((it) => {
       const indent = (it.level || 0) * 22;
+      const bulletCls = isOl ? 'ob-bullet ob-bullet-num' : 'ob-bullet';
       let marker = '';
       if (isOl && (it.level || 0) === 0) { num++; marker = `<span class="ob-num">${num}.</span>`; }
       else if (isOl) marker = `<span class="ob-num">↳</span>`;
       else marker = '';
       if (it.kind === 'text') {
         body += `<div class="ob-block" style="margin-left:${indent}px">
-          <div class="ob-bullet">${marker}</div>
+          <div class="${bulletCls}">${marker}</div>
           <div class="ob-edit">${escHtml(it.value || '')}</div>
         </div>`;
       } else {
@@ -516,7 +517,7 @@
           ? `<div class="ob-thumb ${escHtml(p.previewBg || '')}">${p.previewHTML}</div>`
           : `<div class="ob-thumb ob-thumb-empty"></div>`;
         body += `<div class="ob-block" style="margin-left:${indent}px">
-          <div class="ob-bullet">${marker}</div>
+          <div class="${bulletCls}">${marker}</div>
           <div class="ob-ref-card">
             ${thumb}
             <div class="ob-ref-meta">
@@ -528,21 +529,29 @@
       }
     });
 
+    const ctxLabel = share.kind === 'doc' && share.doc
+      ? escHtml(share.name || '合集')
+      : (share.kind === 'collection' ? escHtml(share.name || '全部产出物') : '分享预览');
+    const metaLine = share.kind === 'doc' && share.doc
+      ? `${escHtml(share.name || '')} · ${visible.length} 项 · ${fmtTime(share.doc.createdAt || share.doc.updatedAt || '')}`
+      : (share.kind === 'collection' ? `合集 · ${visible.length} 项` : '只读分享');
+
     const html = `<div class="flex flex-col h-full">
-      <div class="panel-header">
-        <div class="flex items-center gap-1 min-w-0 flex-1">
+      <div class="panel-header share-head">
+        <div class="flex items-center gap-2 min-w-0 flex-1">
           <span class="hdr-badge">${icon('eye', 'w-3 h-3')}<span>分享预览</span></span>
-          <span class="text-sm font-medium text-[#1A1A1A] truncate">${escT}</span>
+          <span class="text-xs text-[#9CA3AF] truncate">${ctxLabel}</span>
         </div>
         <div class="flex items-center gap-1 shrink-0">
           <button class="hdr-icon-btn" data-act="close" title="关闭分享预览">${icon('x')}</button>
         </div>
       </div>
       <div class="flex-1 overflow-y-auto scrollbar-thin share-body">
-        <div class="share-banner">
-          ${icon('info', 'w-3.5 h-3.5')}<span>只读模式 · 由 ${escHtml(share.name || '合集')} 分享</span>
+        <div class="share-doc-head">
+          <h1 class="share-doc-title">${escT}</h1>
+          <div class="share-doc-meta">${metaLine}</div>
         </div>
-        ${body}
+        <div class="share-blocks">${body}</div>
         <div class="share-footer">由 Foubow 产出物分享</div>
       </div>
     </div>`;
