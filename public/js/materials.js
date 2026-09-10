@@ -493,12 +493,19 @@ function renderCollectionDetail(name) {
       <button id="btn-export-collection" onclick="exportCollectionAsMD('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-[#F3F4F6] text-[#4B5563] hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors flex items-center gap-1.5" title="导出当前合集为 Markdown">
         <i data-lucide="download" class="w-3.5 h-3.5"></i>导出
       </button>
-      <button id="btn-open-all-urls" onclick="openAllCollectionUrls('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-white border border-[#E5E7EB] text-[#4B5563] hover:border-[#3B82F6] hover:text-[#3B82F6] transition-colors flex items-center gap-1.5" title="新窗口打开合集内全部链接页面（超过 30 个会弹窗确认）">
-        <i data-lucide="square-arrow-out-up-right" class="w-3.5 h-3.5"></i>打开全部页面
-      </button>
-      <button id="btn-remind-collection" onclick="openReminderModal('${escName}')" class="reminder-btn px-2.5 py-1.5 text-xs rounded-md border border-[#E5E7EB] bg-white text-[#4B5563] transition-colors flex items-center gap-1.5" title="设置合集提醒">
-        <i data-lucide="bell" class="w-3.5 h-3.5"></i>提醒
-      </button>
+      <div class="hdr-menu-wrap relative" data-menu="collection-more">
+        <button class="hdr-icon-btn tag" data-act="menu-toggle" data-menu="collection-more" title="更多" aria-label="更多" onclick="event.stopPropagation(); toggleCollectionMore(this)">
+          <i data-lucide="more-horizontal" class="w-4 h-4 text-[#4B5563]"></i>
+        </button>
+        <div class="hdr-menu" data-menu="collection-more" role="menu">
+          <button class="hdr-menu-item" onclick="openAllCollectionUrls('${escName}')" role="menuitem">
+            <i data-lucide="square-arrow-out-up-right" class="w-3.5 h-3.5"></i><span>打开全部页面</span>
+          </button>
+          <button id="btn-remind-collection" class="hdr-menu-item" onclick="openReminderModal('${escName}')" role="menuitem">
+            <i data-lucide="bell" class="w-3.5 h-3.5"></i><span>提醒</span>
+          </button>
+        </div>
+      </div>
       <button id="btn-share-collection" onclick="shareCollection('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors flex items-center gap-1.5" title="生成移动端阅览的分享页 HTML">
         <i data-lucide="share-2" class="w-3.5 h-3.5"></i>分享
       </button>
@@ -1907,6 +1914,29 @@ function updateReminderHint() {
   }
 }
 
+// 合集页头部 ⋯ 菜单切换（点击 / 点击外部关闭 / ESC 关闭 / 选中项后自动关闭）
+function toggleCollectionMore(btn) {
+  const wrap = btn.closest('.hdr-menu-wrap');
+  if (!wrap) return;
+  const menu = wrap.querySelector('.hdr-menu');
+  const willOpen = !menu.classList.contains('open');
+  // 关闭其它已开的菜单
+  document.querySelectorAll('.hdr-menu.open').forEach(m => {
+    if (m !== menu) m.classList.remove('open');
+  });
+  menu.classList.toggle('open', willOpen);
+}
+function closeAllCollectionMore() {
+  document.querySelectorAll('.hdr-menu.open').forEach(m => m.classList.remove('open'));
+}
+// 任何 hdr-menu-item 点击后，关闭所在气泡（视觉上「已选择」立刻消解）
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.hdr-menu-item')) closeAllCollectionMore();
+  else if (!e.target.closest('.hdr-menu-wrap')) closeAllCollectionMore();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeAllCollectionMore();
+});
 function updateReminderButton(name) {
   const btn = document.getElementById('btn-remind-collection');
   if (!btn) return;
