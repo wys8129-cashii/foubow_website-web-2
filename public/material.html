@@ -543,9 +543,57 @@
     .share-body .ob-edit { font-size: 14px; line-height: 24px; color: #1F2937; }
     .share-body .ob-edit:empty::before { content: ""; }
     .share-body .ob-ref-card { background: #fff; }
-    .share-body .ob-thumb { width: 108px; height: 80px; }
     .share-body .ob-bullet-num { color: #6B7280; }
-    .share-footer { text-align: center; padding: 26px 0 8px; font-size: 11px; color: #9CA3AF; }
+
+    /* 分享画廊卡片：封面在上，标题 + 域名在下 */
+    .share-gallery-card {
+      display: flex; flex-direction: column;
+      flex: 1; min-width: 0; width: 100%;
+      max-width: 720px; background: #fff; border: 1px solid #E5E7EB; border-radius: 14px;
+      overflow: hidden; text-decoration: none; color: inherit;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    }
+    .share-gallery-card:hover {
+      transform: translateY(-2px);
+      border-color: #1A1A1A;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    .share-gallery-cover {
+      position: relative; width: 100%; aspect-ratio: 16 / 9;
+      background: #F3F4F6; overflow: hidden;
+      border-bottom: 1px solid #F3F4F6;
+    }
+    .share-gallery-cover-inner {
+      position: absolute; inset: 0;
+      transform: scale(0.62); transform-origin: center;
+      pointer-events: none;
+    }
+    .share-gallery-cover-empty {
+      display: flex; align-items: center; justify-content: center;
+      color: #9CA3AF; font-size: 13px;
+      transform: none;
+    }
+    .share-gallery-meta {
+      padding: 14px 16px 16px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .share-gallery-title {
+      font-size: 16px; font-weight: 600; color: #1A1A1A; line-height: 1.45;
+      word-break: break-word;
+    }
+    .share-gallery-domain {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; color: #6B7280;
+    }
+    .share-gallery-domain svg { color: #9CA3AF; }
+
+    .share-footer {
+      display: block; text-align: center;
+      padding: 28px 0 12px; font-size: 12px; color: #6B7280;
+      text-decoration: none; transition: color 0.15s;
+    }
+    .share-footer:hover { color: #1A1A1A; }
 
     /* 分享模式：全屏只读预览，隐藏一切应用外壳（侧栏 / 顶栏 / 主视图） */
     body.share-mode { overflow: hidden; }

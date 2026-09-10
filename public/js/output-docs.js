@@ -513,18 +513,25 @@
         </div>`;
       } else {
         const p = it.payload || {};
-        const thumb = p.previewHTML
-          ? `<div class="ob-thumb ${escHtml(p.previewBg || '')}">${p.previewHTML}</div>`
-          : `<div class="ob-thumb ob-thumb-empty"></div>`;
-        body += `<div class="ob-block" style="margin-left:${indent}px">
+        const refUrl = p.url || '#';
+        const cardTitle = escHtml(p.title || '未命名素材');
+        let domain = '';
+        try { if (p.url) domain = escHtml(new URL(p.url).hostname.replace(/^www\./, '')); } catch (e) {}
+        const coverInner = p.previewHTML
+          ? `<div class="share-gallery-cover-inner ${escHtml(p.previewBg || '')}">${p.previewHTML}</div>`
+          : '';
+        const cover = p.previewHTML
+          ? `<div class="share-gallery-cover">${coverInner}</div>`
+          : `<div class="share-gallery-cover share-gallery-cover-empty">暂无预览</div>`;
+        body += `<div class="ob-block ob-ref" style="margin-left:${indent}px">
           <div class="${bulletCls}">${marker}</div>
-          <div class="ob-ref-card">
-            ${thumb}
-            <div class="ob-ref-meta">
-              <a class="ob-ref-title" href="${escHtml(p.url || '#')}" target="_blank" rel="noopener">${escHtml(p.title || '未命名素材')}</a>
-              ${p.url ? `<a class="ob-ref-link" href="${escHtml(p.url)}" target="_blank" rel="noopener">${escHtml(p.url)}</a>` : ''}
+          <a class="share-gallery-card" href="${escHtml(refUrl)}" target="_blank" rel="noopener">
+            ${cover}
+            <div class="share-gallery-meta">
+              <div class="share-gallery-title">${cardTitle}</div>
+              ${domain ? `<div class="share-gallery-domain"><i data-lucide="link" class="w-3 h-3"></i><span>${domain}</span></div>` : ''}
             </div>
-          </div>
+          </a>
         </div>`;
       }
     });
@@ -552,7 +559,7 @@
           <div class="share-doc-meta">${metaLine}</div>
         </div>
         <div class="share-blocks">${body}</div>
-        <div class="share-footer">由 Foubow 产出物分享</div>
+        <a class="share-footer" href="https://foubow.fun" target="_blank" rel="noopener">来自 foubow.fun →</a>
       </div>
     </div>`;
     container.innerHTML = html;
