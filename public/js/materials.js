@@ -1905,14 +1905,17 @@ function openReminderModal(name) {
     reminderCurrentMode = cfg.mode || 'weekly';
     if (cfg.mode === 'weekly') {
       document.getElementById('reminder-weekly-count').value = cfg.weeklyTarget || 3;
+      document.getElementById('reminder-weekly-time').value = cfg.time || '09:00';
     } else {
       reminderWeekdays = (cfg.weekdays && cfg.weekdays.length) ? cfg.weekdays.slice() : [1];
       document.getElementById('reminder-time').value = cfg.time || '09:00';
     }
+    if (cfg.email) document.getElementById('reminder-email').value = cfg.email;
     document.getElementById('reminder-remove-btn').classList.remove('hidden');
   } else {
     reminderCurrentMode = 'weekly';
     document.getElementById('reminder-weekly-count').value = 3;
+    document.getElementById('reminder-weekly-time').value = '09:00';
     reminderWeekdays = [1];
     document.getElementById('reminder-time').value = '09:00';
     document.getElementById('reminder-remove-btn').classList.add('hidden');
@@ -1922,6 +1925,44 @@ function openReminderModal(name) {
   updateReminderHint();
   document.getElementById('reminder-modal-overlay').classList.add('open');
   lucide.createIcons();
+  refreshReminderFromServer(name);
+}
+
+// 打开弹窗后从服务端拉取已保存规则，回填并刷新本地缓存
+async function refreshReminderFromServer(name) {
+  try {
+    const resp = await fetch('/api/notify/rule?topic=' + encodeURIComponent(name), { headers: { 'Content-Type': 'application/json' } });
+    const j = await resp.json().catch(() => ({}));
+    if (j.code !== 1 || !j.data) return;
+    const r = j.data;
+    const store = loadReminders();
+    store[name] = {
+      enabled: true,
+      mode: r.mode === 'weekly' ? 'weekly' : 'schedule',
+      email: r.user_email,
+      time: r.notify_time,
+      weekdays: r.weekdays || [1],
+      weeklyTarget: r.threshold_count || 3,
+      createdAt: r.created_at,
+    };
+    saveRemindersStore(store);
+    // 仅当弹窗仍打开且仍是当前合集时才回填，避免覆盖用户正在输入
+    if (reminderModalName === name && document.getElementById('reminder-modal-overlay').classList.contains('open')) {
+      document.getElementById('reminder-email').value = r.user_email || '';
+      if (r.mode === 'weekly') {
+        document.getElementById('reminder-weekly-time').value = r.notify_time || '09:00';
+        document.getElementById('reminder-weekly-count').value = r.threshold_count || 3;
+      } else {
+        document.getElementById('reminder-time').value = r.notify_time || '09:00';
+        reminderWeekdays = (r.weekdays && r.weekdays.length) ? r.weekdays.slice() : [1];
+        renderWeekdayChips();
+      }
+      reminderCurrentMode = r.mode === 'weekly' ? 'weekly' : 'schedule';
+      setReminderMode(reminderCurrentMode);
+      updateReminderHint();
+    }
+    updateReminderButton(name);
+  } catch (e) { /* 离线时忽略，使用本地缓存 */ }
 }
 
 function closeReminderModal() {
@@ -2008,60 +2049,96 @@ function updateReminderButton(name) {
 async function saveReminder() {
   const name = reminderModalName;
   if (!name) return;
-  // 申请通知权限（用户未决策时）
-  if (!('Notification' in window) || Notification.permission === 'default') {
-    try { await Notification.requestPermission(); } catch (e) {}
+  const email = (document.getElementById('reminder-email').value || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showShareToast('请填写有效的接收邮箱');
+    return;
   }
   const store = loadReminders();
-  const count = getMaterialsByCollection(name).length;
   const prev = store[name] || {};
+  let payload;
   if (reminderCurrentMode === 'weekly') {
     const target = Math.max(1, parseInt(document.getElementById('reminder-weekly-count').value, 10) || 3);
-    store[name] = {
-      enabled: true, mode: 'weekly',
-      weeklyTarget: target,
-      weeklyBaseline: count,
-      weekKey: getMondayKey(new Date()),
-      createdAt: prev.createdAt || new Date().toISOString(),
-      lastFiredISO: null,
-    };
+    const time = document.getElementById('reminder-weekly-time').value || '09:00';
+    payload = { topic: name, email, mode: 'weekly', notifyTime: time, weekdays: [1], thresholdCount: target };
+    store[name] = { enabled: true, mode: 'weekly', weeklyTarget: target, time, email, createdAt: prev.createdAt || new Date().toISOString() };
   } else {
     const time = document.getElementById('reminder-time').value || '09:00';
-    store[name] = {
-      enabled: true, mode: 'schedule',
-      weekdays: reminderWeekdays.slice(),
-      time,
-      createdAt: prev.createdAt || new Date().toISOString(),
-      lastFiredISO: null,
-    };
+    payload = { topic: name, email, mode: 'schedule', notifyTime: time, weekdays: reminderWeekdays.slice() };
+    store[name] = { enabled: true, mode: 'schedule', weekdays: reminderWeekdays.slice(), time, email, createdAt: prev.createdAt || new Date().toISOString() };
   }
+  // 本地缓存仅作 UI 状态；真正发信由服务端定时任务完成
   saveRemindersStore(store);
-  closeReminderModal();
   updateReminderButton(name);
+  try {
+    const resp = await fetch('/api/notify/rule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const j = await resp.json().catch(() => ({}));
+    if (j.code !== 1) {
+      showShareToast('保存失败：' + (j.msg || '服务端异常'));
+    } else {
+      closeReminderModal();
+      showShareToast('已保存并开启邮件提醒：' + name);
+    }
+  } catch (e) {
+    showShareToast('已本地保存，但服务端同步失败：' + e.message);
+  }
   renderCollections();
-  showShareToast('已保存合集提醒：' + name);
 }
 
-function removeReminder() {
+async function removeReminder() {
   const name = reminderModalName;
   if (!name) return;
   const store = loadReminders();
+  const cfg = store[name] || {};
   delete store[name];
   saveRemindersStore(store);
-  closeReminderModal();
   updateReminderButton(name);
   renderCollections();
+  closeReminderModal();
   showShareToast('已删除合集提醒：' + name);
+  try {
+    await fetch('/api/notify/rule', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic: name, email: cfg.email || '' }),
+    });
+  } catch (e) { /* 本地已删除，服务端删除失败不影响 UI */ }
 }
 
-// 立即触发一次通知（用于本地预览验证）
-function testReminder() {
+// 发送测试邮件（立即发，不写 last_sent_date）
+async function testReminder() {
   const name = reminderModalName;
-  const cfg = name ? getReminderConfig(name) : null;
-  const modeText = cfg
-    ? (cfg.mode === 'weekly' ? `每周新增 ≥ ${cfg.weeklyTarget} 个素材` : `每${cfg.weekdays.map(i => WEEKDAY_LABELS[i]).join('、')} ${cfg.time}`)
-    : '示例提醒';
-  fireReminderNotification(name || '示例合集', `【合集提醒测试】${name || '示例合集'} · ${modeText}`);
+  const email = (document.getElementById('reminder-email').value || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showShareToast('请先填写有效的接收邮箱再测试');
+    return;
+  }
+  const mode = reminderCurrentMode;
+  const notifyTime = mode === 'weekly'
+    ? (document.getElementById('reminder-weekly-time').value || '09:00')
+    : (document.getElementById('reminder-time').value || '09:00');
+  const weekdays = mode === 'weekly' ? [1] : reminderWeekdays.slice();
+  try {
+    const resp = await fetch('/api/notify/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic: name || '示例合集', email, mode, notifyTime, weekdays }),
+    });
+    const j = await resp.json().catch(() => ({}));
+    if (j.dryRun) {
+      showShareToast('SMTP 未配置，已 dry-run（仅打印日志）。配置 SMTP_* 后即为真实发送');
+    } else if (j.code === 1) {
+      showShareToast('测试邮件已发送，请查收 ' + email);
+    } else {
+      showShareToast('测试失败：' + (j.msg || '未知错误'));
+    }
+  } catch (e) {
+    showShareToast('测试请求失败：' + e.message);
+  }
 }
 
 // 统一发送：优先浏览器通知，失败回退页内提示

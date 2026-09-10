@@ -727,11 +727,20 @@
         <button id="reminder-seg-schedule" class="reminder-seg-btn flex-1 px-3 py-2 text-xs rounded-lg" onclick="setReminderMode('schedule')">按时间点</button>
       </div>
 
+      <div class="mb-4">
+        <label class="block text-xs text-[#6B7280] mb-1.5">提醒接收邮箱</label>
+        <input id="reminder-email" type="email" placeholder="you@example.com" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:border-[#1A1A1A] transition-colors">
+      </div>
+
       <div id="reminder-pane-weekly">
         <label class="block text-xs text-[#6B7280] mb-1.5">当本合集素材数量较设置时新增 ≥ 以下数量时提醒</label>
         <div class="flex items-center gap-2">
           <input id="reminder-weekly-count" type="number" min="1" value="3" class="w-24 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:border-[#1A1A1A] transition-colors">
           <span class="text-sm text-[#6B7280]">个素材</span>
+        </div>
+        <div class="mt-3">
+          <label class="block text-xs text-[#6B7280] mb-1.5">每周提醒时间</label>
+          <input id="reminder-weekly-time" type="time" value="09:00" class="w-32 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:border-[#1A1A1A] transition-colors">
         </div>
         <p id="reminder-weekly-hint" class="text-[11px] text-[#9CA3AF] mt-2"></p>
       </div>
@@ -743,7 +752,7 @@
         <input id="reminder-time" type="time" value="09:00" class="w-32 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:border-[#1A1A1A] transition-colors">
       </div>
 
-      <p class="text-[11px] text-[#9CA3AF] mt-3 leading-relaxed">提醒以浏览器通知形式推送（需在弹窗中允许通知权限）；本地预览时可用「测试提醒」立即验证效果。</p>
+      <p class="text-[11px] text-[#9CA3AF] mt-3 leading-relaxed">提醒将通过邮件发送到上方邮箱（需服务端已配置 SMTP）；点击「测试提醒」可立即发一封测试邮件验证邮箱是否填写正确。</p>
 
       <div class="flex items-center gap-2 mt-4">
         <button id="reminder-remove-btn" onclick="removeReminder()" class="px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors hidden">删除提醒</button>
