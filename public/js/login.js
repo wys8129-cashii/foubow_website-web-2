@@ -38,6 +38,9 @@ async function login() {
     if (result.data) {
       localStorage.setItem('userNickname', result.data.nickname || '用户');
       localStorage.setItem('userAvatar', result.data.avatar || '');
+      if (result.data.api_key) {
+        localStorage.setItem('userApiKey', result.data.api_key);
+      }
     }
 
     alert("登录成功！");

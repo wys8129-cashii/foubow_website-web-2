@@ -1,0 +1,7 @@
+# 不纳入 veFaaS 上传的本地文件
+.env
+*.log
+.DS_Store
+*.zip
+
+# node_modules 保留上传（已 vendored，含纯 JS 依赖，跨平台可运行，避免远端 npm install 失败）

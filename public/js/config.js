@@ -10,4 +10,4 @@
 //
 // 部署到 IGA Pages 时，把 veFaaS 的网关地址填到下面这一行即可，
 // 其余前端代码无需任何改动（common.js 会自动为所有 /api/* 请求加上该前缀）。
-window.__API_BASE__ = '';
+window.__API_BASE__ = 'https://sm42ps27mabdnv01fac5a.apigateway-cn-shanghai.volceapi.com';

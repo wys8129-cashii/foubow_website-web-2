@@ -22,6 +22,10 @@ module.exports = {
   reorderCollectionWorkflowId:   process.env.COZE_REORDER_COLLECTION_WORKFLOW_ID   || '7674446127790145563',  // 修改合集排序（单个更新：email + topic_name + sort）
   reorderCollectionAppId:        process.env.COZE_REORDER_COLLECTION_APP_ID        || '7635532712145076243',  // 该工作流所属 Coze 应用
 
+  // ── 浏览器插件「截图上传」工作流 ──
+  screenshotWorkflowId:         process.env.COZE_SCREENSHOT_WORKFLOW_ID   || '7656458858995892264',  // 插件截图→AI分析工作流
+  screenshotAppId:             process.env.COZE_SCREENSHOT_APP_ID        || '7635532712145076243',  // 该工作流所属 Coze 应用
+
   // ── API 地址 ──
   baseUrl:       process.env.COZE_BASE_URL        || 'https://api.coze.cn/v1/workflow/run',
   streamBaseUrl: process.env.COZE_STREAM_BASE_URL || 'https://api.coze.cn/v1/workflow/stream_run'

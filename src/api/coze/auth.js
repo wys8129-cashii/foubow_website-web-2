@@ -712,6 +712,49 @@ async function cozeReorderCollections(params) {
   }
 }
 
+/**
+ * 调用 Coze「截图上传」流式工作流（供浏览器插件经后端代理使用）
+ * 以 responseType:'stream' 返回 axios 响应，便于后端把 SSE 流原样代理回插件。
+ * @param {Object} params
+ * @param {string} params.screenshot 截图 base64（不含 data: 前缀）
+ * @param {string} [params.user] 用户标识（邮箱），缺省时由后端用 req.userEmail 填充
+ * @param {string} [params.web_url] 当前网页地址
+ * @returns {Promise<import('axios').AxiosResponse>} response.data 为可读流
+ */
+async function cozeRunScreenshotWorkflow(params) {
+  const workflowId = cozeConfig.screenshotWorkflowId;
+  const appId = cozeConfig.screenshotAppId;
+  const baseUrl = cozeConfig.streamBaseUrl;
+
+  console.log('调用 Coze 截图工作流:', {
+    url: baseUrl,
+    workflow_id: workflowId,
+    app_id: appId,
+    user: params.user,
+  });
+
+  const requestData = {
+    workflow_id: workflowId,
+    app_id: appId,
+    parameters: {
+      screenshot: params.screenshot,
+      user: params.user,
+      web_url: params.web_url,
+    },
+  };
+
+  const response = await cozeAxios.post(baseUrl, requestData, {
+    headers: {
+      Authorization: `Bearer ${cozeConfig.token}`,
+      "Content-Type": "application/json",
+    },
+    responseType: "stream", // 关键：以流返回，后端透传给插件
+    timeout: 110000, // 截图工作流含 AI 分析+存库，首字节常 >20s；单独放宽超时，避免全局 cozeAxios 的 20s 误杀 SSE 首字节（略小于前端 120s 兜底）
+  });
+
+  return response; // 调用方负责 pipe response.data
+}
+
 // 导出方法
 module.exports = {
   cozeGetMaterials,
@@ -728,4 +771,5 @@ module.exports = {
   cozeSearchMaterials,
   cozeUpdateMaterialCover,
   cozeReorderCollections,
+  cozeRunScreenshotWorkflow,
 };

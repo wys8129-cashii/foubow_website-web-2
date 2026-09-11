@@ -26,29 +26,15 @@ function getAuthHeaders() {
 }
 
 // 产出物模拟数据
-const mockOutputs = {
-  '设计灵感': [
-    { emoji: '🎨', title: '色彩方案文档' },
-    { emoji: '📐', title: '设计规范指南' },
-    { emoji: '🖼️', title: '灵感板合集' },
-    { emoji: '✏️', title: '手绘草图' },
-    { emoji: '📱', title: '交互原型' },
-  ],
-  '穿着搭配': [
-    { emoji: '👗', title: '春季穿搭指南' },
-    { emoji: '👔', title: '职场穿搭方案' },
-    { emoji: '👜', title: '配饰搭配建议' },
-  ],
-  'default': [
-    { emoji: '📄', title: '分析报告' },
-    { emoji: '📊', title: '数据汇总' },
-    { emoji: '💡', title: '创意方案' },
-    { emoji: '📝', title: '会议纪要' },
-  ]
-};
-
+// 读取当前合集的真实产出物文档（与右侧产出物面板共享同一份 state）
+// 返回的是真实文档数组，调用方通常用 .length 取数
 function getOutputsByCollection(name) {
-  return mockOutputs[name] || mockOutputs['default'];
+  try {
+    if (window.OutputDocs && typeof window.OutputDocs.getDocs === 'function') {
+      return window.OutputDocs.getDocs(name) || [];
+    }
+  } catch (e) {}
+  return [];
 }
 
 // 备用数据（当 API 调用失败时使用）
@@ -91,6 +77,11 @@ const fallbackMaterials = [
   },
 ];
 
+// 判断用户是否登录（localStorage 不可用时视为未登录）
+function isUserLoggedIn() {
+  try { return localStorage.getItem('isLogin') === 'true'; } catch (e) { return false; }
+}
+
 // ===== API =====
 async function fetchMaterials() {
   let email = null;
@@ -111,12 +102,13 @@ async function fetchMaterials() {
       console.log('解析后的素材数据:', parsed);
       return parsed;
     } else {
-      console.warn('API 返回失败或无数据，使用备用数据:', result.msg);
-      return fallbackMaterials;
+      console.warn('API 返回失败或无数据:', result.msg);
+      // 登录态无数据 → 展示空白卡片列表；未登录 → 展示演示备用数据
+      return isUserLoggedIn() ? [] : fallbackMaterials;
     }
   } catch (error) {
-    console.error('获取素材列表错误，使用备用数据:', error.message);
-    return fallbackMaterials;
+    console.error('获取素材列表错误:', error.message);
+    return isUserLoggedIn() ? [] : fallbackMaterials;
   }
 }
 
@@ -161,11 +153,12 @@ function parseMaterialsData(data) {
       return parsedData.materials.map((item, index) => parseMaterialItem(item, index));
     }
     
-    console.warn('未找到有效素材数据，使用备用数据');
-    return fallbackMaterials;
+    console.warn('未找到有效素材数据');
+    // 登录态无数据 → 展示空白卡片列表；未登录 → 展示演示备用数据
+    return isUserLoggedIn() ? [] : fallbackMaterials;
   } catch (error) {
-    console.error('解析素材数据错误，使用备用数据:', error);
-    return fallbackMaterials;
+    console.error('解析素材数据错误:', error);
+    return isUserLoggedIn() ? [] : fallbackMaterials;
   }
 }
 
@@ -365,24 +358,24 @@ function parseMaterialItem(item, index) {
   function detectAspectRatio(coverUrl) {
     return new Promise((resolve) => {
       if (!coverUrl) {
-        resolve('3:4'); // 默认横图比例
+        resolve('4:3'); // 默认横图比例
         return;
       }
       const img = new Image();
+      let done = false;
+      const finish = (v) => { if (!done) { done = true; resolve(v); } };
       img.onload = () => {
         const ratio = img.width / img.height;
         // 横图宽 > 高（ratio > 1），竖图高 > 宽（ratio < 1）
         if (ratio >= 0.8) {
-          // 接近正方形或横图，使用 4:3
-          resolve('4:3');
+          finish('4:3'); // 接近正方形或横图
         } else {
-          // 竖图，使用 3:5
-          resolve('3:5');
+          finish('3:5'); // 竖图
         }
       };
-      img.onerror = () => {
-        resolve('4:3'); // 默认横图比例
-      };
+      img.onerror = () => finish('4:3'); // 加载失败兜底
+      // 安全超时：最多等 4s，避免跨域/网络抖动导致请求挂起、首屏卡死
+      setTimeout(() => finish('4:3'), 4000);
       img.src = coverUrl;
     });
   }
@@ -449,7 +442,7 @@ function renderOverview() {
     } else {
       html += '<div class="mini-cards">';
       showCards.forEach(item => {
-                html += `<div class="mini-card" onclick="selectCard('${item.id}')" title="${escHtml(item.title)}">
+                html += `<div class="mini-card" draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(item.collection)}" data-material-url="${escHtml(item.url || '')}" onclick="selectCard('${item.id}')" title="${escHtml(item.title)}">
           <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">
             ${item.getPreviewHTML().replace(/text-xs/g,'text-[7px]').replace(/text-\[10px\]/g,'text-[7px]').replace(/text-sm/g,'text-[8px]').replace(/text-lg/g,'text-[9px]').replace(/text-2xl/g,'text-xs').replace(/w-14 h-20/g,'w-9 h-12').replace(/w-10 h-14/g,'w-6 h-8').replace(/w-16 h-12/g,'w-10 h-8').replace(/w-8 h-6/g,'w-5 h-4').replace(/w-20 h-16/g,'w-12 h-10').replace(/w-12 h-12/g,'w-7 h-7').replace(/w-10 h-10/g,'w-6 h-6').replace(/gap-2/g,'gap-0.5').replace(/gap-1\.5/g,'gap-0.5').replace(/gap-3/g,'gap-1').replace(/p-4 text-center/g,'p-1.5 text-center').replace(/p-3/g,'p-1.5').replace(/max-w-\[200px\]/g,'max-w-[90px]').replace(/mb-3/g,'mb-1').replace(/mb-2/g,'mb-0.5').replace(/mb-1/g,'mb-0').replace(/mt-2/g,'mt-0.5').replace(/leading-relaxed/g,'leading-tight').replace(/rounded /g,'rounded-sm ').replace(/rounded-lg /g,'rounded-sm ')}
           </div>
@@ -480,15 +473,28 @@ function renderCollectionDetail(name) {
       <button onclick="navigateTo('overview')" class="p-1.5 rounded-md hover:bg-[#F3F4F6] transition-colors flex items-center gap-1 text-sm text-[#6B7280] hover:text-[#1A1A1A] shrink-0">
         <i data-lucide="arrow-left" class="w-4 h-4"></i> 返回
       </button>
-      <h1 class="text-base font-semibold text-[#1A1A1A] truncate">${escName} <span class="text-xs font-normal text-[#9CA3AF] ml-1">${items.length} 个素材</span><span class="text-xs font-normal text-[#9CA3AF] ml-1 cursor-pointer hover:text-[#1A1A1A] underline underline-offset-2" onclick="openCollectionOutputs('${escName}')">${outputs.length} 个产出物</span></h1>
+      <h1 class="text-base font-semibold text-[#1A1A1A] truncate">${escName} <span class="text-xs font-normal text-[#9CA3AF] ml-1">${items.length} 个素材</span></h1>
     </div>
     <div class="flex items-center gap-2 shrink-0">
-      <button id="btn-export-collection" onclick="exportCollectionAsMD('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-[#F3F4F6] text-[#4B5563] hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors flex items-center gap-1.5" title="导出当前合集为 Markdown">
-        <i data-lucide="download" class="w-3.5 h-3.5"></i>导出
+      <button id="btn-outputs-collection" onclick="openCollectionOutputs('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-[#F3F4F6] text-[#4B5563] hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors flex items-center gap-1.5" title="查看本合集的产出物">
+        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>产出物<span class="text-[10px] text-[#9CA3AF] ml-0.5">${outputs.length}</span>
       </button>
-      <button id="btn-open-all-urls" onclick="openAllCollectionUrls('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-white border border-[#E5E7EB] text-[#4B5563] hover:border-[#3B82F6] hover:text-[#3B82F6] transition-colors flex items-center gap-1.5" title="新窗口打开合集内全部链接页面（超过 30 个会弹窗确认）">
-        <i data-lucide="square-arrow-out-up-right" class="w-3.5 h-3.5"></i>打开全部页面
-      </button>
+      <div class="hdr-menu-wrap relative" data-menu="collection-more">
+        <button class="hdr-icon-btn tag" data-act="menu-toggle" data-menu="collection-more" title="更多" aria-label="更多" onclick="event.stopPropagation(); toggleCollectionMore(this)">
+          <i data-lucide="more-horizontal" class="w-4 h-4 text-[#4B5563]"></i>
+        </button>
+        <div class="hdr-menu" data-menu="collection-more" role="menu">
+          <button id="btn-export-collection" class="hdr-menu-item" onclick="exportCollectionAsMD('${escName}')" role="menuitem">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i><span>导出</span>
+          </button>
+          <button class="hdr-menu-item" onclick="openAllCollectionUrls('${escName}')" role="menuitem">
+            <i data-lucide="square-arrow-out-up-right" class="w-3.5 h-3.5"></i><span>打开全部页面</span>
+          </button>
+          <button id="btn-remind-collection" class="hdr-menu-item" onclick="openReminderModal('${escName}')" role="menuitem">
+            <i data-lucide="bell" class="w-3.5 h-3.5"></i><span>提醒</span>
+          </button>
+        </div>
+      </div>
       <button id="btn-share-collection" onclick="shareCollection('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors flex items-center gap-1.5" title="生成移动端阅览的分享页 HTML">
         <i data-lucide="share-2" class="w-3.5 h-3.5"></i>分享
       </button>
@@ -500,6 +506,7 @@ function renderCollectionDetail(name) {
     renderCardsInto('cards-container', items);
   }
   lucide.createIcons();
+  updateReminderButton(name);
 }
 
 function renderCardsInto(containerId, items, showCollection = false) {
@@ -510,7 +517,7 @@ function renderCardsInto(containerId, items, showCollection = false) {
         const collectionChip = showCollection && item.collection && item.collection !== '未分类'
           ? `<span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors shrink-0" onclick="event.stopPropagation(); selectCollection('${escHtml(item.collection).replace(/'/g, "\\'")}')" title="进入合集「${escHtml(item.collection)}」">${escHtml(item.collection)}</span>`
           : '';
-    return `<div><div onclick="selectCard('${item.id}')"
+    return `<div><div draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(item.collection || '')}" data-material-url="${escHtml(item.url || '')}" onclick="selectCard('${item.id}')"
       class="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md ${isActive ? 'border-[#1A1A1A] shadow-md' : 'border-[#E5E7EB]'}">
       <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>
       <div class="p-3">
@@ -554,7 +561,7 @@ function renderRightPanel() {
 }
 
 function renderPanelDetail(content) {
-  const item = materials.find(m => m.id === selectedId);
+  const item = getMaterialById(selectedId);
   if (!item) return;
   const imgHTML = item.coverUrl
     ? `<div class="w-full relative overflow-hidden" id="detail-cover-frame">
@@ -794,7 +801,7 @@ function renderPanelWaterfall(content) {
     html += '<div class="panel-grid">';
     items.forEach(item => {
       const isActive = item.id === selectedId;
-            html += `<div class="panel-card ${isActive ? 'ring-2 ring-[#1A1A1A]' : ''}" onclick="selectCard('${item.id}')">
+            html += `<div class="panel-card ${isActive ? 'ring-2 ring-[#1A1A1A]' : ''}" draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(panelCollection)}" data-material-url="${escHtml(item.url || '')}" onclick="selectCard('${item.id}')">
         <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML().replace(/text-xs/g,'text-[7px]').replace(/text-\[10px\]/g,'text-[7px]').replace(/text-sm/g,'text-[8px]').replace(/text-lg/g,'text-[9px]').replace(/text-2xl/g,'text-xs').replace(/w-14 h-20/g,'w-8 h-11').replace(/w-10 h-14/g,'w-5 h-7').replace(/w-16 h-12/g,'w-9 h-7').replace(/w-8 h-6/g,'w-4 h-3').replace(/w-20 h-16/g,'w-10 h-8').replace(/w-12 h-12/g,'w-6 h-6').replace(/w-10 h-10/g,'w-5 h-5').replace(/gap-2/g,'gap-0.5').replace(/gap-1\.5/g,'gap-0.5').replace(/gap-3/g,'gap-1').replace(/p-4 text-center/g,'p-1 text-center').replace(/p-3/g,'p-1').replace(/max-w-\[200px\]/g,'max-w-[80px]').replace(/mb-3/g,'mb-0.5').replace(/mb-2/g,'mb-0').replace(/mb-1/g,'mb-0').replace(/mt-2/g,'mt-0.5').replace(/leading-relaxed/g,'leading-tight')}</div>
         <div class="p-2"><div class="text-[10px] font-medium text-[#1A1A1A] leading-snug line-clamp-2">${escHtml(item.title)}</div></div>
       </div>`;
@@ -806,59 +813,15 @@ function renderPanelWaterfall(content) {
   lucide.createIcons();
 }
 
+// 产出物分栏渲染：委托给 output-docs.js（支持新增/无序/有序/拖入卡片）
 function renderCollectionOutputPanel(content) {
-  const outputs = getOutputsByCollection(panelCollection);
-  const escCol = escHtml(panelCollection);
-  let html = `<div class="flex flex-col h-full">
-    <div class="panel-header">
-      <span class="text-sm font-medium text-[#1A1A1A]">产出物</span>
-      <div class="flex items-center gap-2">
-        <button class="px-2 py-1 text-xs rounded-md bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors" onclick="alert('AI 总结功能即将上线')">AI 总结</button>
-        <button class="p-1 rounded-md hover:bg-[#F3F4F6] transition-colors" onclick="closeRightPanel()"><i data-lucide="x" class="w-4 h-4 text-[#6B7280]"></i></button>
-      </div>
-    </div>
-    <div class="flex-1 overflow-y-auto scrollbar-thin">`;
-  if (outputs.length === 0) {
-    html += '<div class="text-sm text-[#9CA3AF] text-center py-12">暂无产出物</div>';
-  } else {
-    html += '<div class="p-3 space-y-2">';
-    outputs.forEach(o => {
-      html += `<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#F8F9FA] border border-[#EAECF0] hover:bg-[#F0F1F3] transition-colors cursor-pointer">
-        <span class="text-lg">${o.emoji}</span>
-        <span class="text-sm text-[#1A1A1A] font-medium">${escHtml(o.title)}</span>
-      </div>`;
-    });
-    html += '</div>';
-  }
-  html += '</div></div>';
-  content.innerHTML = html;
-  lucide.createIcons();
-}
-
-function renderCollectionOutputPanel(content) {
-  const outputs = getOutputsByCollection(panelCollection);
-  const escCol = escHtml(panelCollection);
-  let html = `<div class="flex flex-col h-full">
-    <div class="panel-header">
-      <span class="text-sm font-medium text-[#1A1A1A]">产出物</span>
-      <div class="flex items-center gap-2">
-        <button class="px-2 py-1 text-xs rounded-md bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors" onclick="alert('AI 总结功能即将上线')">AI 总结</button>
-        <button class="p-1 rounded-md hover:bg-[#F3F4F6] transition-colors" onclick="closeRightPanel()"><i data-lucide="x" class="w-4 h-4 text-[#6B7280]"></i></button>
-      </div>
-    </div>
-    <div class="flex-1 overflow-y-auto scrollbar-thin">`;
-  if (outputs.length === 0) {
-    html += '<div class="text-sm text-[#9CA3AF] text-center py-12">暂无产出物</div>';
-  } else {
-    html += '<div class="p-3 space-y-2">';
-    outputs.forEach(o => {
-      html += `<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#F8F9FA] border border-[#EAECF0] hover:bg-[#F0F1F3] transition-colors cursor-pointer"><span class="text-lg">${o.emoji}</span><span class="text-sm text-[#1A1A1A] font-medium">${escHtml(o.title)}</span></div>`;
-    });
-    html += '</div>';
-  }
-  html += '</div></div>';
-  content.innerHTML = html;
-  lucide.createIcons();
+  if (!window.OutputDocs) return;
+  OutputDocs.renderPanel({
+    container: content,
+    collection: panelCollection,
+    onClose: () => { try { closeRightPanel && closeRightPanel(); } catch (e) {} try { closeMobilePanel && closeMobilePanel(); } catch (e) {} },
+    onAi: () => alert('AI 总结功能即将上线'),
+  });
 }
 
 // ===== Collection Export & Share =====
@@ -1005,14 +968,24 @@ function generateShareHTML(name, items) {
 
 let sharePreviewState = null;
 // 打开分享预览弹窗：iframe 渲染生成的 HTML，可下载 / 复制
+// 关闭后会保留 sharePreviewState 一段时间（30s），再次点击同合集"分享"按钮可直接复用
 function shareCollection(name) {
-  const items = getMaterialsByCollection(name);
-  if (!items.length) { alert('该合集暂无素材，无法生成'); return; }
   if (document.getElementById('share-preview-overlay')) return;
-  const html = generateShareHTML(name, items);
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const blobUrl = URL.createObjectURL(blob);
-  sharePreviewState = { name, html, blobUrl };
+  // 复用已生成的 HTML（避免重复 generate）
+  let html, blobUrl;
+  if (sharePreviewState && sharePreviewState.name === name && sharePreviewState.html) {
+    html = sharePreviewState.html;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    blobUrl = URL.createObjectURL(blob);
+    sharePreviewState.blobUrl = blobUrl;
+  } else {
+    const items = getMaterialsByCollection(name);
+    if (!items.length) { alert('该合集暂无素材，无法生成'); return; }
+    html = generateShareHTML(name, items);
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    blobUrl = URL.createObjectURL(blob);
+    sharePreviewState = { name, html, blobUrl };
+  }
 
   const overlay = document.createElement('div');
   overlay.id = 'share-preview-overlay';
@@ -1054,10 +1027,49 @@ function shareCollection(name) {
 function closeSharePreview() {
   const overlay = document.getElementById('share-preview-overlay');
   if (overlay) overlay.remove();
-  if (sharePreviewState?.blobUrl) {
-    setTimeout(() => URL.revokeObjectURL(sharePreviewState.blobUrl), 500);
+  // 保留 sharePreviewState 30s（让用户能在短时间内重新点"分享"按钮直接复用预览）
+  // 到期或切换合集时再彻底清理
+  if (sharePreviewState?.revokeTimer) clearTimeout(sharePreviewState.revokeTimer);
+  if (sharePreviewState) {
+    const st = sharePreviewState;
+    st.revokeTimer = setTimeout(() => {
+      if (st.blobUrl) URL.revokeObjectURL(st.blobUrl);
+      sharePreviewState = null;
+    }, 30000);
   }
-  sharePreviewState = null;
+  // 关闭提示：告诉用户预览已关闭，并给一个"再次打开"按钮（一键复用 HTML）
+  showShareClosedToast();
+}
+
+// 关闭预览后的轻量提示：底部居中浮层，3s 后自动消失；带"再次预览"按钮一键复用
+function showShareClosedToast() {
+  let el = document.getElementById('share-closed-toast');
+  if (el) el.remove();
+  el = document.createElement('div');
+  el.id = 'share-closed-toast';
+  el.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 rounded-full bg-[#1A1A1A] text-white text-xs shadow-2xl';
+  el.innerHTML = `
+    <i data-lucide="eye-off" class="w-3.5 h-3.5 text-[#9CA3AF]"></i>
+    <span>预览已关闭</span>
+    <span class="text-[#6B7280]">·</span>
+    <button id="share-closed-reopen" class="flex items-center gap-1 px-2 py-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors" title="再次打开预览（30s 内复用刚才生成的 HTML）">
+      <i data-lucide="refresh-cw" class="w-3 h-3"></i><span>再次预览</span>
+    </button>
+  `;
+  document.body.appendChild(el);
+  lucide.createIcons();
+  document.getElementById('share-closed-reopen').addEventListener('click', () => {
+    el.remove();
+    if (sharePreviewState && sharePreviewState.name) shareCollection(sharePreviewState.name);
+  });
+  setTimeout(() => {
+    if (el && el.parentNode) {
+      el.style.transition = 'opacity 0.2s, transform 0.2s';
+      el.style.opacity = '0';
+      el.style.transform = 'translate(-50%, 8px)';
+      setTimeout(() => el.remove(), 220);
+    }
+  }, 3000);
 }
 
 function downloadShareHTML() {
@@ -1135,13 +1147,26 @@ function showShareToast(text) {
 }
 
 // ===== Mobile Panel =====
+// 跨 materials / searchResults 查找素材（搜索结果项的 id 由搜索接口下标生成，
+// 与 materials 列表的下标体系不同，单纯在 materials 里按 id 查找会找不到）
+function getMaterialById(id) {
+  if (id == null) return null;
+  const sid = String(id);
+  for (const list of [materials, searchResults]) {
+    if (!Array.isArray(list)) continue;
+    const found = list.find(m => String(m.id) === sid);
+    if (found) return found;
+  }
+  return null;
+}
+
 function renderMobilePanel() {
   const overlay = document.getElementById('detail-overlay');
   const panel = document.getElementById('detail-mobile');
   if (!panelMode) return;
 
   if (panelMode === 'detail' && selectedId) {
-    const item = materials.find(m => m.id === selectedId);
+    const item = getMaterialById(selectedId);
     if (!item) return;
     const imgHTML = item.coverUrl
       ? `<img src="${item.coverUrl}" alt="${escHtml(item.title)}" class="w-full h-auto cursor-zoom-in" onclick="openLightbox('${item.coverUrl}')" />`
@@ -1191,7 +1216,7 @@ function renderMobilePanel() {
       html += '<div class="collection-grid">';
       items.forEach(item => {
         const isActive = item.id === selectedId;
-                html += `<div><div onclick="selectCard('${item.id}')" class="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isActive ? 'border-[#1A1A1A] shadow-md' : 'border-[#E5E7EB]'}">
+                html += `<div><div draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(item.collection)}" data-material-url="${escHtml(item.url || '')}" onclick="selectCard('${item.id}')" class="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isActive ? 'border-[#1A1A1A] shadow-md' : 'border-[#E5E7EB]'}">
           <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>
           <div class="p-3"><div class="text-sm font-medium text-[#1A1A1A] leading-snug line-clamp-2 mb-1">${item.title}</div></div>
         </div></div>`;
@@ -1201,23 +1226,15 @@ function renderMobilePanel() {
     html += '</div></div>';
     panel.innerHTML = html;
   } else if (panelMode === 'collection-output' && panelCollection) {
-    const outputs = getOutputsByCollection(panelCollection);
-    let html = `<div class="flex flex-col h-full">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-[#E5E7EB] shrink-0 bg-white sticky top-0 z-10">
-        <span class="text-sm font-medium text-[#1A1A1A]">产出物</span>
-        <div class="flex items-center gap-2"><button class="px-2 py-1 text-xs rounded-md bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors" onclick="alert('AI 总结功能即将上线')">AI 总结</button><button class="p-1 rounded-md hover:bg-[#F3F4F6]" onclick="closeMobilePanel()"><i data-lucide="x" class="w-4 h-4 text-[#6B7280]"></i></button></div>
-      </div>
-      <div class="flex-1 overflow-y-auto scrollbar-thin">`;
-    if (outputs.length === 0) { html += '<div class="text-sm text-[#9CA3AF] text-center py-12">暂无产出物</div>'; }
-    else {
-      html += '<div class="p-3 space-y-2">';
-      outputs.forEach(o => {
-        html += `<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#F8F9FA] border border-[#EAECF0] hover:bg-[#F0F1F3] transition-colors cursor-pointer"><span class="text-lg">${o.emoji}</span><span class="text-sm text-[#1A1A1A] font-medium">${escHtml(o.title)}</span></div>`;
+    if (window.OutputDocs) {
+      OutputDocs.renderPanel({
+        container: panel,
+        collection: panelCollection,
+        onClose: () => closeMobilePanel(),
+        onAi: () => alert('AI 总结功能即将上线'),
+        isMobile: true,
       });
-      html += '</div>';
     }
-    html += '</div></div>';
-    panel.innerHTML = html;
   }
   panel.classList.add('open');
   overlay.classList.add('open');
@@ -1229,7 +1246,7 @@ async function selectCard(id) {
   selectedId = id;
   
   // 调用 API 获取详情
-  const currentItem = materials.find(m => String(m.id) === String(id));
+  const currentItem = getMaterialById(id);
   if (currentItem) {
     showLoading('正在加载详情...');
     const detail = await fetchMaterialDetail(currentItem.title);
@@ -1348,7 +1365,7 @@ document.addEventListener('click', function (e) {
 
 // ===== Delete Material =====
 async function deleteMaterial(id) {
-  const item = materials.find(m => m.id === id);
+  const item = getMaterialById(id);
   if (!item) return;
   if (!confirm(`确定要删除素材「${item.title}」吗？\n此操作不可撤销。`)) return;
 
@@ -1357,7 +1374,7 @@ async function deleteMaterial(id) {
     const response = await fetchWithTimeout('/api/coze/materials/delete', {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ input: item.title }),
+      body: JSON.stringify({ input: item.title, image_url: item.cover_url || item.coverUrl || '' }),
     });
     const result = await response.json();
     if (result.code !== 1) { hideLoading(); alert('删除素材失败：' + (result.msg || '未知错误')); return; }
@@ -1407,17 +1424,15 @@ async function searchMaterials(keyword) {
         m.url.toLowerCase().includes(searchKeyword.toLowerCase())
       );
     }
-    // 异步检测封面图比例
-    const ratioPromises = searchResults.map(async (m) => {
-      if (m.coverUrl && m.detectAspectRatio) {
-        m.aspectRatio = await m.detectAspectRatio();
-      }
-    });
-    await Promise.all(ratioPromises);
-
     panelMode = null; selectedId = null;
     document.getElementById('detail-desktop').style.display = 'none';
     renderMainContent();
+    // 后台异步检测封面图比例（不阻塞搜索结果渲染；单张失败/超时不影响整体）
+    searchResults.forEach((m) => {
+      if (m.coverUrl && m.detectAspectRatio) {
+        m.detectAspectRatio().then((r) => { m.aspectRatio = r; }).catch(() => {});
+      }
+    });
   } catch (error) {
     console.error('搜索素材错误:', error);
     hideLoading();
@@ -1458,13 +1473,14 @@ function renderCollections() {
     const escName = escHtml(name);
     const count = getMaterialsByCollection(name).length;
     const displayCount = count >= 100 ? '99+' : count;
+    const hasReminder = !!getReminderConfig(name);
     html += `<div class="collection-item relative group" draggable="true" data-collection-index="${idx}" title="长按拖动可排序">
       <button onclick="selectCollection('${escName}')"
         class="w-full pl-3 pr-9 py-2 rounded-lg text-sm text-left transition-colors duration-150 flex items-center gap-2 ${
           isActive ? 'bg-white text-[#1A1A1A] font-medium shadow-sm'
                    : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-white/60 hover:text-[#1A1A1A]'
         }">
-        <span class="flex-1 truncate">${escName}</span>
+        <span class="flex-1 truncate flex items-center gap-1.5">${hasReminder ? '<i data-lucide="bell" class="w-3.5 h-3.5 collection-has-reminder shrink-0"></i>' : ''}${escName}</span>
       </button>
       <span class="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 text-[11px] leading-none rounded-full ${
         isActive ? 'bg-[#1A1A1A] text-white' : 'bg-white text-[#6B7280]'
@@ -1519,6 +1535,21 @@ function renderCollections() {
       }
     });
   });
+
+  // 给合集卡片追加产出物拖入 payload（不覆盖排序用的 text/plain）
+  if (window.OutputDocs) {
+    container.querySelectorAll('.collection-item').forEach((el) => {
+      const nameSpan = el.querySelector('button .truncate');
+      const name = nameSpan ? nameSpan.textContent.trim() : '';
+      const badge = el.querySelector('span[class*="min-w-"]');
+      const count = badge ? (parseInt((badge.textContent || '0').replace(/[^\d]/g, ''), 10) || 0) : 0;
+      el.addEventListener('dragstart', (e) => {
+        try {
+          e.dataTransfer.setData(OutputDocs.CARD_MIME, JSON.stringify({ kind: 'collection', name, count }));
+        } catch (err) { /* 忽略 */ }
+      });
+    });
+  }
 }
 
 // 按持久化顺序重排合集：重算 sort 并持久化到服务端（localStorage 兜底）
@@ -1676,7 +1707,7 @@ let changingItemId = null;
 function showChangeCollectionModal(itemId) {
   changingItemId = itemId;
   const select = document.getElementById('collection-select');
-  const item = materials.find(m => m.id === itemId);
+  const item = getMaterialById(itemId);
   select.innerHTML = getAllCollections().map(c => `<option value="${escHtml(c)}" ${c === item.collection ? 'selected' : ''}>${escHtml(c)}</option>`).join('');
   document.getElementById('collection-select-overlay').classList.add('open');
 }
@@ -1686,7 +1717,7 @@ function closeCollectionSelect() {
 }
 async function changeCollection() {
   const newCollection = document.getElementById('collection-select').value;
-  const item = materials.find(m => m.id === changingItemId);
+  const item = getMaterialById(changingItemId);
   if (!item) return;
   const userEmail = localStorage.getItem('userEmail') || 'guest@foubow.fun';
   try {
@@ -1826,13 +1857,335 @@ function closeLightbox() {
   document.getElementById('image-lightbox').classList.remove('show');
 }
 
+// ===== 合集提醒（Collection Reminder）=====
+// 纯前端原型：配置存于 localStorage，浏览器通知 + 页内兜底。
+const REMINDER_STORE_KEY = 'foubow-collection-reminders';
+const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
+let reminderModalName = null;
+let reminderCurrentMode = 'weekly';
+let reminderWeekdays = [1]; // 默认周一
+
+function loadReminders() {
+  try { return JSON.parse(localStorage.getItem(REMINDER_STORE_KEY) || '{}'); } catch (e) { return {}; }
+}
+function saveRemindersStore(obj) {
+  try { localStorage.setItem(REMINDER_STORE_KEY, JSON.stringify(obj)); } catch (e) {}
+}
+function getReminderConfig(name) {
+  return loadReminders()[name] || null;
+}
+
+// 返回当前周的「周一日期」作为周键，用于每周重置基线
+function getMondayKey(d) {
+  const dt = new Date(d);
+  const day = (dt.getDay() + 6) % 7; // 0=周一
+  dt.setDate(dt.getDate() - day);
+  return dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + dt.getDate();
+}
+
+function openReminderModal(name) {
+  reminderModalName = name;
+  const cfg = getReminderConfig(name);
+  document.getElementById('reminder-modal-name').textContent = '· ' + name;
+  if (cfg) {
+    reminderCurrentMode = cfg.mode || 'weekly';
+    if (cfg.mode === 'weekly') {
+      document.getElementById('reminder-weekly-count').value = cfg.weeklyTarget || 3;
+      document.getElementById('reminder-weekly-time').value = cfg.time || '09:00';
+    } else {
+      reminderWeekdays = (cfg.weekdays && cfg.weekdays.length) ? cfg.weekdays.slice() : [1];
+      document.getElementById('reminder-time').value = cfg.time || '09:00';
+    }
+    if (cfg.email) document.getElementById('reminder-email').value = cfg.email;
+    document.getElementById('reminder-remove-btn').classList.remove('hidden');
+  } else {
+    reminderCurrentMode = 'weekly';
+    document.getElementById('reminder-weekly-count').value = 3;
+    document.getElementById('reminder-weekly-time').value = '09:00';
+    reminderWeekdays = [1];
+    document.getElementById('reminder-time').value = '09:00';
+    document.getElementById('reminder-remove-btn').classList.add('hidden');
+  }
+  renderWeekdayChips();
+  setReminderMode(reminderCurrentMode);
+  updateReminderHint();
+  document.getElementById('reminder-modal-overlay').classList.add('open');
+  lucide.createIcons();
+  refreshReminderFromServer(name);
+}
+
+// 打开弹窗后从服务端拉取已保存规则，回填并刷新本地缓存
+async function refreshReminderFromServer(name) {
+  try {
+    const resp = await fetch('/api/notify/rule?topic=' + encodeURIComponent(name), { headers: { 'Content-Type': 'application/json' } });
+    const j = await resp.json().catch(() => ({}));
+    if (j.code !== 1 || !j.data) return;
+    const r = j.data;
+    const store = loadReminders();
+    store[name] = {
+      enabled: true,
+      mode: r.mode === 'weekly' ? 'weekly' : 'schedule',
+      email: r.user_email,
+      time: r.notify_time,
+      weekdays: r.weekdays || [1],
+      weeklyTarget: r.threshold_count || 3,
+      createdAt: r.created_at,
+    };
+    saveRemindersStore(store);
+    // 仅当弹窗仍打开且仍是当前合集时才回填，避免覆盖用户正在输入
+    if (reminderModalName === name && document.getElementById('reminder-modal-overlay').classList.contains('open')) {
+      document.getElementById('reminder-email').value = r.user_email || '';
+      if (r.mode === 'weekly') {
+        document.getElementById('reminder-weekly-time').value = r.notify_time || '09:00';
+        document.getElementById('reminder-weekly-count').value = r.threshold_count || 3;
+      } else {
+        document.getElementById('reminder-time').value = r.notify_time || '09:00';
+        reminderWeekdays = (r.weekdays && r.weekdays.length) ? r.weekdays.slice() : [1];
+        renderWeekdayChips();
+      }
+      reminderCurrentMode = r.mode === 'weekly' ? 'weekly' : 'schedule';
+      setReminderMode(reminderCurrentMode);
+      updateReminderHint();
+    }
+    updateReminderButton(name);
+  } catch (e) { /* 离线时忽略，使用本地缓存 */ }
+}
+
+function closeReminderModal() {
+  const o = document.getElementById('reminder-modal-overlay');
+  if (o) o.classList.remove('open');
+  reminderModalName = null;
+}
+
+function setReminderMode(mode) {
+  reminderCurrentMode = mode;
+  document.getElementById('reminder-seg-weekly').classList.toggle('active', mode === 'weekly');
+  document.getElementById('reminder-seg-schedule').classList.toggle('active', mode === 'schedule');
+  document.getElementById('reminder-pane-weekly').style.display = mode === 'weekly' ? '' : 'none';
+  document.getElementById('reminder-pane-schedule').style.display = mode === 'schedule' ? '' : 'none';
+}
+
+function renderWeekdayChips() {
+  const row = document.getElementById('reminder-weekday-row');
+  if (!row) return;
+  row.innerHTML = WEEKDAY_LABELS.map((lab, i) =>
+    `<button type="button" class="weekday-chip${reminderWeekdays.includes(i) ? ' active' : ''}" data-wd="${i}" onclick="toggleWeekday(${i})">${lab}</button>`
+  ).join('');
+}
+
+function toggleWeekday(i) {
+  if (reminderWeekdays.includes(i)) reminderWeekdays = reminderWeekdays.filter(x => x !== i);
+  else reminderWeekdays.push(i);
+  renderWeekdayChips();
+}
+
+function updateReminderHint() {
+  const name = reminderModalName;
+  const el = document.getElementById('reminder-weekly-hint');
+  if (!name || !el) return;
+  const cfg = getReminderConfig(name);
+  const count = getMaterialsByCollection(name).length;
+  if (cfg && cfg.mode === 'weekly') {
+    const added = Math.max(0, count - (cfg.weeklyBaseline || 0));
+    el.textContent = `当前合集 ${count} 个素材，自设置以来已新增 ${added} 个 / 目标 ${cfg.weeklyTarget} 个`;
+  } else {
+    el.textContent = `当前合集 ${count} 个素材`;
+  }
+}
+
+// 合集页头部 ⋯ 菜单切换（点击 / 点击外部关闭 / ESC 关闭 / 选中项后自动关闭）
+function toggleCollectionMore(btn) {
+  const wrap = btn.closest('.hdr-menu-wrap');
+  if (!wrap) return;
+  const menu = wrap.querySelector('.hdr-menu');
+  const willOpen = !menu.classList.contains('open');
+  // 关闭其它已开的菜单
+  document.querySelectorAll('.hdr-menu.open').forEach(m => {
+    if (m !== menu) m.classList.remove('open');
+  });
+  menu.classList.toggle('open', willOpen);
+}
+function closeAllCollectionMore() {
+  document.querySelectorAll('.hdr-menu.open').forEach(m => m.classList.remove('open'));
+}
+// 任何 hdr-menu-item 点击后，关闭所在气泡（视觉上「已选择」立刻消解）
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.hdr-menu-item')) closeAllCollectionMore();
+  else if (!e.target.closest('.hdr-menu-wrap')) closeAllCollectionMore();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeAllCollectionMore();
+});
+function updateReminderButton(name) {
+  const btn = document.getElementById('btn-remind-collection');
+  if (!btn) return;
+  const cfg = getReminderConfig(name);
+  if (cfg && cfg.enabled) {
+    btn.classList.add('reminder-active');
+    const desc = cfg.mode === 'weekly'
+      ? `每周新增≥${cfg.weeklyTarget}个`
+      : `每${cfg.weekdays.map(i => WEEKDAY_LABELS[i]).join('、')} ${cfg.time}`;
+    btn.title = '合集提醒已开启：' + desc;
+  } else {
+    btn.classList.remove('reminder-active');
+    btn.title = '设置合集提醒';
+  }
+}
+
+async function saveReminder() {
+  const name = reminderModalName;
+  if (!name) return;
+  const email = (document.getElementById('reminder-email').value || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showShareToast('请填写有效的接收邮箱');
+    return;
+  }
+  const store = loadReminders();
+  const prev = store[name] || {};
+  let payload;
+  if (reminderCurrentMode === 'weekly') {
+    const target = Math.max(1, parseInt(document.getElementById('reminder-weekly-count').value, 10) || 3);
+    const time = document.getElementById('reminder-weekly-time').value || '09:00';
+    payload = { topic: name, email, mode: 'weekly', notifyTime: time, weekdays: [1], thresholdCount: target };
+    store[name] = { enabled: true, mode: 'weekly', weeklyTarget: target, time, email, createdAt: prev.createdAt || new Date().toISOString() };
+  } else {
+    const time = document.getElementById('reminder-time').value || '09:00';
+    payload = { topic: name, email, mode: 'schedule', notifyTime: time, weekdays: reminderWeekdays.slice() };
+    store[name] = { enabled: true, mode: 'schedule', weekdays: reminderWeekdays.slice(), time, email, createdAt: prev.createdAt || new Date().toISOString() };
+  }
+  // 本地缓存仅作 UI 状态；真正发信由服务端定时任务完成
+  saveRemindersStore(store);
+  updateReminderButton(name);
+  try {
+    const resp = await fetch('/api/notify/rule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const j = await resp.json().catch(() => ({}));
+    if (j.code !== 1) {
+      showShareToast('保存失败：' + (j.msg || '服务端异常'));
+    } else {
+      closeReminderModal();
+      showShareToast('已保存并开启邮件提醒：' + name);
+    }
+  } catch (e) {
+    showShareToast('已本地保存，但服务端同步失败：' + e.message);
+  }
+  renderCollections();
+}
+
+async function removeReminder() {
+  const name = reminderModalName;
+  if (!name) return;
+  const store = loadReminders();
+  const cfg = store[name] || {};
+  delete store[name];
+  saveRemindersStore(store);
+  updateReminderButton(name);
+  renderCollections();
+  closeReminderModal();
+  showShareToast('已删除合集提醒：' + name);
+  try {
+    await fetch('/api/notify/rule', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic: name, email: cfg.email || '' }),
+    });
+  } catch (e) { /* 本地已删除，服务端删除失败不影响 UI */ }
+}
+
+// 发送测试邮件（立即发，不写 last_sent_date）
+async function testReminder() {
+  const name = reminderModalName;
+  const email = (document.getElementById('reminder-email').value || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showShareToast('请先填写有效的接收邮箱再测试');
+    return;
+  }
+  const mode = reminderCurrentMode;
+  const notifyTime = mode === 'weekly'
+    ? (document.getElementById('reminder-weekly-time').value || '09:00')
+    : (document.getElementById('reminder-time').value || '09:00');
+  const weekdays = mode === 'weekly' ? [1] : reminderWeekdays.slice();
+  try {
+    const resp = await fetch('/api/notify/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic: name || '示例合集', email, mode, notifyTime, weekdays }),
+    });
+    const j = await resp.json().catch(() => ({}));
+    if (j.dryRun) {
+      showShareToast('SMTP 未配置，已 dry-run（仅打印日志）。配置 SMTP_* 后即为真实发送');
+    } else if (j.code === 1) {
+      showShareToast('测试邮件已发送，请查收 ' + email);
+    } else {
+      showShareToast('测试失败：' + (j.msg || '未知错误'));
+    }
+  } catch (e) {
+    showShareToast('测试请求失败：' + e.message);
+  }
+}
+
+// 统一发送：优先浏览器通知，失败回退页内提示
+function fireReminderNotification(name, body) {
+  const title = 'Foubow 合集提醒' + (name ? '：' + name : '');
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try { new Notification(title, { body }); return; } catch (e) {}
+  }
+  showShareToast('🔔 ' + title + ' — ' + body);
+}
+
+// 定时检查（每分钟），在 init 中启动
+function checkReminders() {
+  const store = loadReminders();
+  const names = Object.keys(store);
+  if (!names.length) return;
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const hhmm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  names.forEach(name => {
+    const cfg = store[name];
+    if (!cfg || !cfg.enabled) return;
+    if (cfg.mode === 'schedule') {
+      const wd = now.getDay();
+      if ((cfg.weekdays || []).includes(wd) && hhmm === (cfg.time || '09:00')) {
+        if ((cfg.lastFiredISO || '').slice(0, 10) !== todayStr) {
+          fireReminderNotification(name, `又到了合集「${name}」的提醒时间（${cfg.time}）`);
+          cfg.lastFiredISO = now.toISOString();
+          saveRemindersStore(store);
+        }
+      }
+    } else if (cfg.mode === 'weekly') {
+      const wk = getMondayKey(now);
+      if (cfg.weekKey !== wk) { // 跨周重置基线
+        cfg.weeklyBaseline = getMaterialsByCollection(name).length;
+        cfg.weekKey = wk;
+      }
+      const count = getMaterialsByCollection(name).length;
+      const added = count - (cfg.weeklyBaseline || 0);
+      if (added >= (cfg.weeklyTarget || 999)) {
+        fireReminderNotification(name, `合集「${name}」本周已新增 ${added} 个素材（目标 ${cfg.weeklyTarget}）`);
+        cfg.weeklyBaseline = count;
+        cfg.lastFiredISO = now.toISOString();
+        saveRemindersStore(store);
+      }
+    }
+  });
+}
+
+function startReminderEngine() {
+  checkReminders();
+  if (window.__reminderTimer) clearInterval(window.__reminderTimer);
+  window.__reminderTimer = setInterval(checkReminders, 60000);
+}
+
 // ===== Init =====
 async function init() {
-  // 登录守卫：未登录直接跳转，避免加载弹窗卡住
+  // 未登录：不再强制跳转，展示演示数据（备用页面放在未登录情况）
   const isLogin = localStorage.getItem('isLogin') === 'true';
   if (!isLogin) {
-    window.location.replace('/login.html');
-    return;
+    console.log('未登录访问素材页，展示演示数据');
   }
 
   showLoading('正在加载素材...');
@@ -1864,20 +2217,34 @@ async function init() {
   // 3. 加载素材数据
   materials = await fetchMaterials();
 
-  // 4. 异步检测封面图比例
-  const ratioPromises = materials.map(async (m) => {
-    if (m.coverUrl && m.detectAspectRatio) {
-      m.aspectRatio = await m.detectAspectRatio();
-    }
-  });
-  await Promise.all(ratioPromises);
+  // 本地预览/演示数据：无 API 合集时，从素材推导合集名，便于进入合集详情体验提醒功能
+  if (!isUserLoggedIn()) {
+    const derived = [...new Set(materials.map(m => m.collection).filter(Boolean))];
+    const known = new Set(collections);
+    const extras = derived.filter(n => !known.has(n));
+    if (extras.length) collections = [...extras, ...collections];
+    collections = [...new Set(collections)];
+  }
 
   if (!collections.includes('未分类')) collections.push('未分类');
 
+  // 4. 先渲染首屏（绝不要把首屏渲染阻塞在封面图比例检测上）
   renderMainContent();
   renderCollections();
-  lucide.createIcons();
+  if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
   hideLoading();
+
+  // 5. 启动合集提醒引擎（浏览器通知 + 每分钟检查）
+  startReminderEngine();
+
+  // 5. 后台异步检测封面图比例（不阻塞首屏；单张失败/超时不影响整体）
+  materials.forEach((m) => {
+    if (m.coverUrl && m.detectAspectRatio) {
+      m.detectAspectRatio()
+        .then((r) => { m.aspectRatio = r; })
+        .catch(() => {});
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', init);

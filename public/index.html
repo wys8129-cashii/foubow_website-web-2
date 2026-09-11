@@ -13,8 +13,11 @@
 <div class="hidden md:flex gap-6">
 <a class="font-title-md text-title-md text-primary border-b-2 border-primary pb-1" href="/">首页</a>
 <a class="font-title-md text-title-md text-on-surface-variant hover:text-primary transition-colors" href="/material.html">我的素材</a>
-<a class="font-title-md text-title-md text-on-surface-variant hover:text-primary transition-colors" href="#">Wiki</a>
 </div>
+<!-- 移动端汉堡包按钮 -->
+<button id="mobile-nav-toggle" class="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl text-primary hover:bg-primary/10 active:scale-95 transition-all" aria-label="打开导航菜单" onclick="toggleMobileNav()">
+<span class="material-symbols-outlined text-[26px] leading-none">menu</span>
+</button>
 </div>
 <div class="flex items-center gap-4" id="auth-buttons">
 <a href="/login.html" id="login-btn" class="hidden md:block px-6 py-2 text-primary font-medium hover:bg-primary/5 rounded-full transition-all cursor-pointer">登录</a>
@@ -40,7 +43,7 @@
 <span class="material-symbols-outlined">rocket_launch</span>
                             立即开始
                         </button>
-<button class="flex items-center gap-2 px-8 py-4 bg-surface-container-highest/50 border border-outline-variant/30 rounded-xl font-title-md hover:bg-surface-container-highest transition-all">
+<button id="explore-wiki-btn" class="flex items-center gap-2 px-8 py-4 bg-surface-container-highest/50 border border-outline-variant/30 rounded-xl font-title-md hover:bg-surface-container-highest transition-all">
 <span class="material-symbols-outlined text-primary">explore</span>
                             探索 Wiki
                         </button>
@@ -103,7 +106,7 @@
 </div>
 </section>
 <!-- 知识共享 Wiki Bento Grid -->
-<section class="py-24 bg-surface">
+<section class="py-24 bg-surface" id="wiki-grid">
 <div class="max-w-container-max mx-auto px-6 md:px-16">
 <div class="text-center mb-16 space-y-4">
 <h2 class="font-headline-lg text-headline-lg">知识共享</h2>
@@ -227,9 +230,13 @@
 </div>
 </div>
 </footer>
-<!-- 移动端导航按钮 + 导航抽屉 -->
-<button id="mobile-nav-fab" class="fixed bottom-8 right-8 w-14 h-14 primary-gradient-bg text-on-primary rounded-full shadow-2xl flex items-center justify-center active:scale-95 transition-transform z-50 md:hidden" aria-label="打开导航菜单">
-<span class="material-symbols-outlined text-2xl">menu</span>
+
+<!-- 轻提示 toast -->
+<div id="toast" class="fixed top-24 left-1/2 -translate-x-1/2 z-[60] hidden max-w-[90vw] px-5 py-3 rounded-xl bg-on-surface text-surface text-body-md shadow-xl"></div>
+
+<!-- 回到顶部悬浮按钮 -->
+<button id="back-to-top" class="fixed bottom-8 right-8 z-50 hidden w-12 h-12 rounded-full bg-primary text-on-primary shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center" aria-label="回到顶部" onclick="window.scrollToTop()">
+<span class="material-symbols-outlined">arrow_upward</span>
 </button>
 
 <!-- 导航遮罩 -->
@@ -249,16 +256,13 @@
 <span class="material-symbols-outlined text-primary">collections</span>
 <span class="font-title-md text-title-md">我的素材</span>
 </a>
-<a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface hover:bg-surface-container-highest transition-colors">
-<span class="material-symbols-outlined text-primary">menu_book</span>
-<span class="font-title-md text-title-md">Wiki</span>
-</a>
 </nav>
 <div id="mobile-nav-auth" class="mt-4 pt-4 border-t border-outline-variant/20 flex flex-col gap-2"></div>
 </div>
 </div>
 <script src="/js/config.js"></script>
 <script src="/js/common.js"></script>
+<script src="/js/user-token.js"></script>
 <script src="/js/home.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const { cozeGetMaterials, cozeGetCollections, cozeGetMaterialDetail, cozeFilterByCollection, cozeUploadMaterial, cozeCreateCollection, cozeUpdateCollection, cozeDeleteCollection, cozeUploadFile, cozeMoveMaterial, cozeDeleteMaterial, cozeSearchMaterials, cozeUpdateMaterialCover, cozeReorderCollections } = require("./auth");
+const { cozeGetMaterials, cozeGetCollections, cozeGetMaterialDetail, cozeFilterByCollection, cozeUploadMaterial, cozeCreateCollection, cozeUpdateCollection, cozeDeleteCollection, cozeUploadFile, cozeMoveMaterial, cozeDeleteMaterial, cozeSearchMaterials, cozeUpdateMaterialCover, cozeReorderCollections, cozeRunScreenshotWorkflow } = require("./auth");
 
 module.exports = {
   cozeGetMaterials,
@@ -15,4 +15,5 @@ module.exports = {
   cozeSearchMaterials,
   cozeUpdateMaterialCover,
   cozeReorderCollections,
+  cozeRunScreenshotWorkflow,
 };

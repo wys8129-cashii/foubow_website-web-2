@@ -4,7 +4,9 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>隐私政策 | Foubow 知识实验室</title>
-<link rel="stylesheet" href="/css/tailwind.css">
+<meta content="Foubow 知识实验室隐私政策：我们如何收集、使用、存储与共享您的信息，以及您可行使的数据权利。" name="description"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/css/tailwind.css"/>
 
 <style>
         body { background-color: #f7f9fb; }
@@ -15,22 +17,23 @@
         .wiki-card:hover { transform: translateY(-4px); }
         .nav-link-active { position: relative; }
         .nav-link-active::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 100%; height: 2px; background-color: #00687a; }
+        .policy-section { scroll-margin-top: 6rem; }
     </style></head>
 <body class="font-body-md text-on-surface selection:bg-primary-container selection:text-white" data-mode="connect">
 <!-- TopNavBar -->
 <nav class="fixed top-0 w-full z-50 glass-header bg-surface/80 border-b border-outline-variant/30 h-20 shadow-sm">
 <div class="flex justify-between items-center px-margin-desktop h-full w-full max-w-container-max mx-auto">
 <div class="flex items-center gap-12">
-<a class="font-headline-lg text-headline-lg font-bold text-primary tracking-tight" href="#">Foubow</a>
+<a class="font-headline-lg text-headline-lg font-bold text-primary tracking-tight" href="index.html">Foubow</a>
 <div class="hidden md:flex items-center gap-8">
-<a class="font-title-md text-title-md text-on-surface-variant hover:text-primary transition-colors" href="#">工具</a>
-<a class="font-title-md text-title-md text-on-surface-variant hover:text-primary transition-colors" href="#">百科</a>
-<a class="font-title-md text-title-md text-on-surface-variant hover:text-primary transition-colors" href="#">关于</a>
+<a class="font-title-md text-title-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#features">工具</a>
+<a class="font-title-md text-title-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#wiki-grid">百科</a>
+<a class="font-title-md text-title-md text-on-surface-variant hover:text-primary transition-colors" href="index.html#footer">关于</a>
 </div>
 </div>
 <div class="flex items-center gap-4">
-<button class="font-title-md text-title-md text-on-surface-variant hover:text-primary px-4 py-2 transition-all">登录</button>
-<button class="font-title-md text-title-md bg-primary-container text-white px-6 py-2 rounded-full hover:brightness-110 active:scale-95 transition-all glow-cyan">注册</button>
+<a class="font-title-md text-title-md text-on-surface-variant hover:text-primary px-4 py-2 transition-all" href="login.html">登录</a>
+<a class="font-title-md text-title-md bg-primary-container text-white px-6 py-2 rounded-full hover:brightness-110 active:scale-95 transition-all glow-cyan" href="register.html">注册</a>
 </div>
 </div>
 </nav>
@@ -42,17 +45,23 @@
 <span class="font-label-sm text-label-sm text-primary-container uppercase tracking-widest mb-4 block">隐私框架</span>
 <h1 class="font-display-lg text-display-lg text-on-background mb-6">隐私政策</h1>
 <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">
-                    在 Foubow 知识实验室，您的智力流转是神圣的。我们将数据系统设计得像现代实验室一样透明且安全。
+                    在 Foubow 知识实验室，您的知识资产与个人信息受本政策保护。我们以透明、最小必要、可追溯的原则处理数据，让您清楚地知道：我们收集什么、为什么收集、以及您如何掌控它。
                 </p>
-<div class="mt-8 flex justify-center items-center gap-2 text-outline">
+<div class="mt-8 flex flex-wrap justify-center items-center gap-x-6 gap-y-2 text-outline">
+<span class="flex items-center gap-2">
 <span class="material-symbols-outlined text-sm">history</span>
-<span class="font-label-sm text-label-sm uppercase">最后更新：2024年6月15日</span>
+<span class="font-label-sm text-label-sm uppercase">最后更新：2026年9月8日</span>
+</span>
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">event_available</span>
+<span class="font-label-sm text-label-sm uppercase">生效日期：2026年9月8日</span>
+</span>
 </div>
 </header>
 <!-- Policy Sections -->
 <div class="space-y-12">
-<!-- 1. Introduction -->
-<section class="wiki-card bg-surface-container-lowest p-8 md:p-12 rounded-3xl border border-black/5 shadow-sm">
+<!-- 1. 简介 -->
+<section class="policy-section wiki-card bg-surface-container-lowest p-8 md:p-12 rounded-3xl border border-black/5 shadow-sm" id="intro">
 <div class="flex items-start gap-6">
 <div class="hidden md:flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
 <span class="material-symbols-outlined" data-icon="info" style="transform: scale(1) rotate(0deg);">info</span>
@@ -60,120 +69,274 @@
 <div class="">
 <h2 class="font-headline-lg text-headline-lg text-primary mb-4">1. 简介</h2>
 <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-                                欢迎来到 Foubow 知识实验室。我们致力于保护您的个人信息和隐私权。本隐私政策描述了当您使用我们的百科分享工具和 AI 处理平台时，我们如何收集、使用和保护您的信息。访问 Foubow 即表示您同意本文件中所述的做法。
+                                欢迎使用 Foubow 知识实验室（以下简称"本平台"）。本隐私政策说明在您使用我们的素材采集、知识整理、AI 处理与百科分享功能时，我们如何收集、使用、存储、共享和保护您的个人信息，以及您可行使的权利。
+                            </p>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mt-4">
+                                本政策适用于本平台所有页面、客户端及相关服务，<strong>不适用于第三方通过本平台链接提供的服务</strong>。请您在使用前仔细阅读；一旦开始使用，即表示您理解并同意本政策所述做法。若您不同意，请停止使用并注销账户。
                             </p>
 </div>
 </div>
 </section>
-<!-- 2. Information Collection -->
-<section class="wiki-card bg-surface-container-lowest p-8 md:p-12 rounded-3xl border border-black/5 shadow-sm">
+<!-- 2. 信息收集 -->
+<section class="policy-section wiki-card bg-surface-container-lowest p-8 md:p-12 rounded-3xl border border-black/5 shadow-sm" id="collection">
 <div class="flex items-start gap-6">
 <div class="hidden md:flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
 <span class="material-symbols-outlined" data-icon="data_usage" style="transform: scale(1) rotate(0deg);">data_usage</span>
 </div>
 <div class="w-full">
-<h2 class="font-headline-lg text-headline-lg text-primary mb-4">2. 信息收集</h2>
+<h2 class="font-headline-lg text-headline-lg text-primary mb-4">2. 我们收集的信息</h2>
 <p class="font-body-md text-body-md text-on-surface-variant mb-6 leading-relaxed">
-                                我们收集您直接提供给我们的信息，以增强您的知识共享体验：
+                                我们遵循最小必要原则，仅在实现服务功能所必需的范围内收集信息：
                             </p>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/20">
 <p class="font-title-md text-title-md text-on-background mb-1">账户数据</p>
-<p class="font-body-md text-body-md text-on-surface-variant">用于个人资料识别的电子邮件地址和自定义昵称。</p>
+<p class="font-body-md text-body-md text-on-surface-variant">注册时提供的邮箱地址、昵称与经加密存储的登录凭证。</p>
 </div>
 <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/20">
 <p class="font-title-md text-title-md text-on-background mb-1">内容资产</p>
-<p class="font-body-md text-body-md text-on-surface-variant">上传的屏幕截图、百科文档和基于文本的笔记。</p>
+<p class="font-body-md text-body-md text-on-surface-variant">您主动上传的截图、文档、笔记及为其设置的标题、标签等元数据。</p>
+</div>
+<div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/20">
+<p class="font-title-md text-title-md text-on-background mb-1">设备与日志信息</p>
+<p class="font-body-md text-body-md text-on-surface-variant">IP 地址、浏览器类型与版本、操作系统、访问时间、页面停留与报错日志。</p>
+</div>
+<div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/20">
+<p class="font-title-md text-title-md text-on-background mb-1">Cookie 及同类标识</p>
+<p class="font-body-md text-body-md text-on-surface-variant">用于维持登录状态、记忆界面偏好与统计功能使用的标识符，详见第 4 节。</p>
 </div>
 </div>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mt-6">
+                                我们<strong>不会收集</strong>您的通讯录、精确地理位置、通话记录、生物识别特征等与服务无关的敏感个人信息。如因新增功能确需收集敏感信息，我们将单独取得您的明示同意。
+                            </p>
 </div>
 </div>
 </section>
-<!-- 3. Data Usage -->
-<section class="wiki-card bg-surface-container-lowest p-8 md:p-12 rounded-3xl border border-black/5 shadow-sm">
+<!-- 3. 数据使用 -->
+<section class="policy-section wiki-card bg-surface-container-lowest p-8 md:p-12 rounded-3xl border border-black/5 shadow-sm" id="usage">
 <div class="flex items-start gap-6">
 <div class="hidden md:flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
 <span class="material-symbols-outlined" data-icon="psychology" style="transform: scale(1) rotate(0deg);">psychology</span>
 </div>
 <div>
-<h2 class="font-headline-lg text-headline-lg text-primary mb-4">3. 数据使用</h2>
-<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed space-y-4">
-                                您的数据仅用于提供我们的服务。我们利用先进的 <strong>AI 处理</strong> 技术对您上传的截图和文本进行索引，使它们可以在您的个人知识实验室中被搜索。
-                                <br/><br/>
-                                我们使用匿名化的行为数据来改进我们的服务算法，确保我们承诺的“轻松组织”保持高科技和准确性。我们绝不会将您的个人数据集出售给第三方广告商。
-                            </p>
-</div>
-</div>
-</section>
-<!-- 4. Data Storage and Security -->
-<section class="wiki-card bg-surface-container-lowest p-8 md:p-12 rounded-3xl border border-black/5 shadow-sm">
-<div class="flex items-start gap-6">
-<div class="hidden md:flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
-<span class="material-symbols-outlined" data-icon="encrypted">encrypted</span>
-</div>
-<div>
-<h2 class="font-headline-lg text-headline-lg text-primary mb-4">4. 数据存储与安全</h2>
+<h2 class="font-headline-lg text-headline-lg text-primary mb-4">3. 我们如何使用信息</h2>
 <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-                                我们对所有存储和传输中的数据实施行业标准加密。为了在优先考虑安全性的同时保持会话完整性，我们使用 <strong>30 天会话令牌</strong>，这些令牌会自动过期，需要重新身份验证以确保您的实验室保持私密。
-                                <br/><br/>
-                                我们的服务器基础设施采用多层防火墙保护和定期安全审计，为您在知识产权方面模拟“零信任”环境。
+                                您的数据仅用于向您提供并持续改进服务，具体用途包括：
+                            </p>
+<ul class="mt-4 space-y-3 font-body-md text-body-md text-on-surface-variant">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary-container mt-1" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<span><strong>核心功能：</strong>利用 AI 技术对您上传的截图与文本进行识别、提取、归类与索引，使其可在您的个人知识库中检索；维护您的登录会话与账户安全。</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary-container mt-1" style="font-variation-settings: 'FILL' 1;">insights</span>
+<span><strong>服务优化：</strong>对行为数据进行<strong>去标识化或匿名化</strong>处理后用于统计分析，改进算法准确性、界面布局与使用体验。</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary-container mt-1" style="font-variation-settings: 'FILL' 1;">campaign</span>
+<span><strong>沟通通知：</strong>就服务变更、安全提醒、政策更新及您主动订阅的内容与您联系，您可随时退订非必要通知。</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary-container mt-1" style="font-variation-settings: 'FILL' 1;">policy</span>
+<span><strong>合规与安全：</strong>防范欺诈、滥用与网络攻击，履行法律法规规定的义务。</span>
+</li>
+</ul>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mt-6">
+                                <strong>我们绝不会将您的个人信息出售给第三方广告商，也不会将其用于与您无关的自动化营销决策。</strong>若超出上述范围使用，我们将重新征得您的同意。
                             </p>
 </div>
 </div>
 </section>
-<!-- 5. User Rights -->
-<section class="wiki-card bg-surface-container-lowest p-8 md:p-12 rounded-3xl border border-black/5 shadow-sm">
+<!-- 4. Cookie 与追踪 -->
+<section class="policy-section wiki-card bg-surface-container-lowest p-8 md:p-12 rounded-3xl border border-black/5 shadow-sm" id="cookies">
 <div class="flex items-start gap-6">
 <div class="hidden md:flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
-<span class="material-symbols-outlined" data-icon="fingerprint">fingerprint</span>
+<span class="material-symbols-outlined" data-icon="cookie">cookie</span>
+</div>
+<div class="w-full">
+<h2 class="font-headline-lg text-headline-lg text-primary mb-4">4. Cookie 与追踪技术</h2>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                                我们使用 Cookie 及同类技术（如 localStorage）以保障服务正常运行并优化体验，按用途分为三类：
+                            </p>
+<div class="mt-4 space-y-3">
+<div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/20">
+<p class="font-title-md text-title-md text-on-background mb-1">必要型（不可关闭）</p>
+<p class="font-body-md text-body-md text-on-surface-variant">用于维持登录会话、保障账户与交易安全、防御攻击。缺少该类 Cookie 服务将无法正常运行。</p>
+</div>
+<div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/20">
+<p class="font-title-md text-title-md text-on-background mb-1">偏好型</p>
+<p class="font-body-md text-body-md text-on-surface-variant">记录您的界面布局、主题、排序方式与最近访问，避免重复设置。</p>
+</div>
+<div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/20">
+<p class="font-title-md text-title-md text-on-background mb-1">分析型</p>
+<p class="font-body-md text-body-md text-on-surface-variant">统计页面访问量、功能使用频次与错误率，帮助我们改进产品。该数据以聚合形式处理，不用于识别特定个人。</p>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mt-6">
+                                您可以通过浏览器设置管理或删除 Cookie；也可通过下方按钮清除本平台存储的非必要偏好数据。<strong>禁用必要型 Cookie 可能导致登录状态无法保持或部分功能不可用。</strong>
+                            </p>
+<div class="mt-6 flex flex-wrap gap-3">
+<button class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary-container text-white font-title-md text-title-md hover:brightness-110 active:scale-95 transition-all" id="clear-prefs-btn" type="button">
+<span class="material-symbols-outlined text-[18px]">delete_sweep</span>
+                                    清除偏好型数据
+                                </button>
+<span class="inline-flex items-center text-on-surface-variant font-body-md text-body-md" id="clear-prefs-tip"></span>
+</div>
+</div>
+</div>
+</section>
+<!-- 5. 共享与披露 -->
+<section class="policy-section wiki-card bg-surface-container-lowest p-8 md:p-12 rounded-3xl border border-black/5 shadow-sm" id="sharing">
+<div class="flex items-start gap-6">
+<div class="hidden md:flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+<span class="material-symbols-outlined" data-icon="share">share</span>
 </div>
 <div>
-<h2 class="font-headline-lg text-headline-lg text-primary mb-4">5. 用户权利</h2>
-<p class="font-body-md text-body-md text-on-surface-variant mb-6">您对自己的数字足迹拥有绝对的控制权：</p>
-<ul class="space-y-4 font-body-md text-body-md text-on-surface-variant">
-<li class="flex items-center gap-3">
-<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-<span><strong>访问权：</strong> 随时导出您的完整百科历史记录。</span>
+<h2 class="font-headline-lg text-headline-lg text-primary mb-4">5. 信息的共享、转让与公开披露</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4 leading-relaxed">
+                                我们不会向任何第三方共享您的个人信息，但以下情形除外：
+                            </p>
+<ul class="space-y-3 font-body-md text-body-md text-on-surface-variant">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary-container mt-1" style="font-variation-settings: 'FILL' 1;">handshake</span>
+<span><strong>服务提供商：</strong>为实现云存储、身份认证、AI 推理、消息推送与数据统计，我们会在<strong>最小必要范围</strong>内向合作方提供数据，并通过协议约束其仅按我方指示处理、不得转委托或挪作他用。</span>
 </li>
-<li class="flex items-center gap-3">
-<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-<span><strong>删除权：</strong> 立即删除您的账户及所有相关的 AI 索引数据。</span>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary-container mt-1" style="font-variation-settings: 'FILL' 1;">public</span>
+<span><strong>您主动公开：</strong>您自行设为"公开"的内容，将对平台其他用户可见并可被互动。</span>
 </li>
-<li class="flex items-center gap-3">
-<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-<span><span>隐私设置：</span> 切换共享文件夹与私有实验台的可见性。</span>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary-container mt-1" style="font-variation-settings: 'FILL' 1;">gavel</span>
+<span><strong>法定要求：</strong>依据法律法规、司法或行政机关的强制性要求，或为保护您及其他用户的人身、财产安全所必需时。</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary-container mt-1" style="font-variation-settings: 'FILL' 1;">swap_horiz</span>
+<span><strong>主体变更：</strong>如发生合并、分立、重组或资产转让，我们将告知接收方的名称与联系方式，并要求其继续受本政策约束；变更原有处理目的的，将重新取得您的同意。</span>
 </li>
 </ul>
 </div>
 </div>
 </section>
-<!-- 6. Cookies and Tracking -->
-<section class="wiki-card bg-surface-container-lowest p-8 md:p-12 rounded-3xl border border-black/5 shadow-sm">
+<!-- 6. 存储与安全 -->
+<section class="policy-section wiki-card bg-surface-container-lowest p-8 md:p-12 rounded-3xl border border-black/5 shadow-sm" id="storage">
 <div class="flex items-start gap-6">
 <div class="hidden md:flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
-<span class="material-symbols-outlined" data-icon="cookie">cookie</span>
+<span class="material-symbols-outlined" data-icon="encrypted">encrypted</span>
 </div>
 <div>
-<h2 class="font-headline-lg text-headline-lg text-primary mb-4">6. Cookie 与追踪</h2>
+<h2 class="font-headline-lg text-headline-lg text-primary mb-4">6. 存储、安全与保留期限</h2>
 <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-                                我们使用必要的 Cookie 来管理您的登录会话并记住您的布局偏好。我们也可能使用分析型 Cookie 来了解用户如何与我们的百科分类卡片互动，以优化我们的 UI 渐变和布局间距，从而获得更好的阅读体验。您可以在页脚设置中管理您的 Cookie 偏好。
+                                我们对传输中的数据采用 HTTPS/TLS 加密，对存储的敏感信息与内容资产实施行业标准的加密与访问控制。基础设施部署多层防护与定期安全审计，并遵循最小权限原则管理人员访问。
+                            </p>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mt-4">
+                                为在安全性与便捷性之间取得平衡，我们使用 <strong>30 天有效期的会话令牌</strong>，到期后需重新验证身份。您可在"账户设置"中查看登录设备并主动退出其他会话。
+                            </p>
+<div class="mt-6 p-4 rounded-xl bg-surface-container-low border border-outline-variant/20">
+<p class="font-title-md text-title-md text-on-background mb-1">保留期限</p>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                                    我们仅在实现本政策所述目的所需的最短时间内保留您的信息：账户数据在您使用服务期间持续保留；您删除或注销后，我们将在 <strong>15 个工作日内</strong>删除或匿名化处理；日志类数据默认保留不超过 <strong>6 个月</strong>。法律法规要求更长留存的，依其规定执行。
+                                </p>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mt-4">
+                                若不幸发生个人信息泄露等安全事件，我们将按法规要求及时启动应急预案，并通过站内信、邮件或公告向您告知事件概况、影响、已采取措施及防范建议，同时向主管部门报告。
                             </p>
 </div>
 </div>
 </section>
-<!-- 7. Contact Information -->
-<section class="relative overflow-hidden wiki-card bg-primary text-white p-8 md:p-12 rounded-3xl shadow-lg glow-cyan">
+<!-- 7. 用户权利 -->
+<section class="policy-section wiki-card bg-surface-container-lowest p-8 md:p-12 rounded-3xl border border-black/5 shadow-sm" id="rights">
+<div class="flex items-start gap-6">
+<div class="hidden md:flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+<span class="material-symbols-outlined" data-icon="fingerprint">fingerprint</span>
+</div>
+<div>
+<h2 class="font-headline-lg text-headline-lg text-primary mb-4">7. 您的权利</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6">您对自己的数据与数字足迹拥有控制权，可随时行使下列权利：</p>
+<ul class="space-y-4 font-body-md text-body-md text-on-surface-variant">
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span><strong>访问与查阅权：</strong>在"账户设置—数据管理"中查看我们持有的您的个人信息，或导出完整的素材与百科记录。</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span><strong>更正权：</strong>发现信息有误或不完整时，您可自行修改或申请我们更正。</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span><strong>删除权：</strong>可删除单条素材、整个合集，或注销账户及全部 AI 索引数据。</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span><strong>撤回同意与关闭个性化：</strong>可随时关闭分析型 Cookie、撤回对特定处理的授权，不影响此前基于同意已进行的处理。</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span><strong>隐私设置：</strong>自由切换内容的公开与私有可见性，并查看生效范围。</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span><strong>获取副本与转移：</strong>可申请以结构化、通用格式导出个人数据副本。</span>
+</li>
+</ul>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mt-6">
+                                行使上述权利请通过下方邮箱或"账户设置"提交申请。为保障安全，我们需先行核验您的身份，并承诺在 <strong>15 个工作日内</strong>予以响应与处理。若您对我们的处理结果不满意，可通过第 10 节的联系方式投诉，或依法向监管部门举报、提起诉讼。
+                            </p>
+</div>
+</div>
+</section>
+<!-- 8. 未成年人保护 -->
+<section class="policy-section wiki-card bg-surface-container-lowest p-8 md:p-12 rounded-3xl border border-black/5 shadow-sm" id="minors">
+<div class="flex items-start gap-6">
+<div class="hidden md:flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+<span class="material-symbols-outlined" data-icon="child_care">child_care</span>
+</div>
+<div>
+<h2 class="font-headline-lg text-headline-lg text-primary mb-4">8. 未成年人信息保护</h2>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                                本平台主要面向成年人。我们<strong>不会在知情的情况下收集未满 14 周岁儿童的个人信息</strong>；若您未满 18 周岁，请在监护人陪同下阅读本政策并取得其同意后再行使用。
+                            </p>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mt-4">
+                                若您是未成年人的监护人，发现被监护人向我们提供了个人信息，请通过下方联系方式告知，我们将在核验后<strong>尽快删除</strong>相关数据并停止相应处理。
+                            </p>
+</div>
+</div>
+</section>
+<!-- 9. 政策更新 -->
+<section class="policy-section wiki-card bg-surface-container-lowest p-8 md:p-12 rounded-3xl border border-black/5 shadow-sm" id="updates">
+<div class="flex items-start gap-6">
+<div class="hidden md:flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary">
+<span class="material-symbols-outlined" data-icon="history_edu">history_edu</span>
+</div>
+<div>
+<h2 class="font-headline-lg text-headline-lg text-primary mb-4">9. 政策更新</h2>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                                我们可能根据法律法规变化、技术迭代或业务调整修订本政策，并更新顶部的"最后更新"日期。
+                            </p>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mt-4">
+                                <strong>若涉及收集目的、方式、范围或权利行使方式等重大变更，我们将通过站内公告、弹窗或邮件进行显著提示，并视情重新征得您的同意。</strong>建议您定期查阅本页面以了解最新内容。
+                            </p>
+</div>
+</div>
+</section>
+<!-- 10. 联系我们 -->
+<section class="relative overflow-hidden wiki-card bg-primary text-white p-8 md:p-12 rounded-3xl shadow-lg glow-cyan" id="contact">
 <div class="absolute top-0 right-0 w-64 h-64 bg-primary-container/20 rounded-full -mr-20 -mt-20 blur-3xl"></div>
 <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
 <div>
-<h2 class="font-headline-lg text-headline-lg mb-4">7. 联系信息</h2>
+<h2 class="font-headline-lg text-headline-lg mb-4">10. 联系我们</h2>
 <p class="font-body-md text-body-md text-primary-fixed leading-relaxed max-w-lg">
-                                对我们处理您数据的方式有疑问？我们的知识伦理团队随时准备协助您澄清我们的实验室协议。
+                                对数据处理方式有疑问、投诉或需要行使您的权利？我们的隐私与合规团队将在 15 个工作日内答复。
                             </p>
 </div>
-<a class="inline-flex items-center justify-center bg-white text-primary px-8 py-4 rounded-2xl font-title-md text-title-md hover:bg-surface-container-low transition-colors shadow-sm" href="mailto:privacy@foubow.lab">
-                            联系支持
-                        </a>
+<div class="flex flex-col gap-3">
+<a class="inline-flex items-center justify-center gap-2 bg-white text-primary px-8 py-4 rounded-2xl font-title-md text-title-md hover:bg-surface-container-low transition-colors shadow-sm" href="mailto:privacy@foubow.lab">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+                                    联系隐私团队
+                                </a>
+<a class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-title-md text-title-md text-white border border-white/40 hover:bg-white/10 transition-colors" href="terms.html">
+                                    查看服务条款
+                                </a>
+</div>
 </div>
 </section>
 </div>
@@ -187,17 +350,18 @@
 </div>
 </main>
 <!-- Footer -->
-<footer class="w-full py-12 bg-surface-container-low border-t border-outline-variant/20">
+<footer class="w-full py-12 bg-surface-container-low border-t border-outline-variant/20" id="footer">
 <div class="flex flex-col md:flex-row justify-between items-center px-margin-desktop w-full max-w-container-max mx-auto gap-base">
 <div class="mb-6 md:mb-0">
 <p class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary">Foubow</p>
-<p class="font-body-md text-body-md text-on-surface-variant mt-2">© 2024 Foubow 知识实验室。版权所有。</p>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2">© 2026 Foubow 知识实验室。版权所有。</p>
 </div>
 <div class="flex flex-wrap justify-center gap-6">
-<a class="font-body-md text-body-md text-primary font-medium hover:underline decoration-primary/30 transition-all" href="#">隐私政策</a>
-<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary hover:underline decoration-primary/30 transition-all" href="#">服务条款</a>
-<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary hover:underline decoration-primary/30 transition-all" href="#">Cookie 设置</a>
-<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary hover:underline decoration-primary/30 transition-all" href="#">联系支持</a>
+<a class="font-body-md text-body-md text-primary font-medium hover:underline decoration-primary/30 transition-all" href="privacy.html">隐私政策</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary hover:underline decoration-primary/30 transition-all" href="terms.html">服务条款</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary hover:underline decoration-primary/30 transition-all" href="privacy.html#cookies">Cookie 设置</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary hover:underline decoration-primary/30 transition-all" href="privacy.html#rights">行使数据权利</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary hover:underline decoration-primary/30 transition-all" href="mailto:privacy@foubow.lab">联系支持</a>
 </div>
 </div>
 </footer>
@@ -213,6 +377,26 @@
                 if(icon) icon.style.transform = 'scale(1) rotate(0deg)';
             });
         });
+
+        // 清除偏好型本地数据（保留登录态等必要数据）
+        (function () {
+            var btn = document.getElementById('clear-prefs-btn');
+            var tip = document.getElementById('clear-prefs-tip');
+            if (!btn) return;
+            btn.addEventListener('click', function () {
+                var keep = ['foubow_token', 'foubow_user', 'token', 'user'];
+                var removed = 0;
+                try {
+                    Object.keys(localStorage).forEach(function (key) {
+                        if (keep.indexOf(key) === -1) { localStorage.removeItem(key); removed++; }
+                    });
+                    tip.textContent = '已清除 ' + removed + ' 项偏好数据，登录状态已保留。';
+                } catch (e) {
+                    tip.textContent = '清除失败，请检查浏览器隐私设置。';
+                }
+                setTimeout(function () { tip.textContent = ''; }, 4000);
+            });
+        })();
     </script>
 
 <script src="/js/config.js"></script>
