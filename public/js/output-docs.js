@@ -80,6 +80,7 @@
     const key = await ensureWorkspaceKey();
     if (!key) return; // 无密钥则仅本地
     _pushSyncing = true;
+    let pushed = 0;
     try {
       const cloud = await apiCall('/api/output-docs');
       const cloudMap = (cloud && cloud.code === 1 && cloud.data) ? cloud.data : {};
@@ -99,10 +100,14 @@
               method: 'POST',
               body: JSON.stringify({ id: d.id, collection: c, title: d.title, type: d.type, items: d.items || [] }),
             });
+            pushed++;
           } catch (e) {}
         }
       }
-    } catch (e) { /* 静默，下次保存重试 */ }
+      if (pushed > 0) console.log('[产出物] 已同步到云端：' + pushed + ' 个文档');
+    } catch (e) {
+      console.warn('[产出物] 云端同步失败：', e && e.message);
+    }
     finally {
       _pushSyncing = false;
       if (_dirty) { _dirty = false; pushCloudAll().catch(() => {}); } // 补推未决更新
@@ -114,7 +119,10 @@
     _syncTimer = setTimeout(() => { pushCloudAll().catch(() => {}); }, 1200);
   }
 
-  // 启动拉取：仅当本地为空且云端有数据时，用云端初始化本地（避免覆盖丢失本地新增）
+  // 启动拉取：云端为权威副本，本地仅作离线缓存与「待推送新增」
+  //  - 云端有数据：以云端重建本地；并保留本地独有（尚未推云）的文档，避免丢新增
+  //  - 云端空且本地空：首次用户，本地种子演示（仅本地，不污染云端）
+  //  - 云端空但本地有：保留本地，后续编辑自然推云
   // 使用独立 _loadSyncing 锁，不阻塞 pushCloudAll
   async function syncLoadFromCloud() {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
@@ -125,12 +133,68 @@
     try {
       const cloud = await apiCall('/api/output-docs');
       const cloudMap = (cloud && cloud.code === 1 && cloud.data) ? cloud.data : {};
-      const hasData = Object.keys(cloudMap).some((c) => (cloudMap[c] || []).length > 0);
-      // 重新校验本地是否为空（GET 期间可能有本地写入），避免覆盖丢失
+      const cloudHasData = Object.keys(cloudMap).some((c) => (cloudMap[c] || []).length > 0);
+      // 重新校验本地（GET 期间可能有本地写入）
       const localEmpty = Object.keys(state).every((c) => !(state[c] && state[c].length));
-      if (hasData && localEmpty) { state = cloudMap; saveStateRaw(); }
+
+      if (cloudHasData) {
+        if (localEmpty) {
+          state = cloudMap; // 本地空：直接以云端恢复（清缓存/换设备也能找回真实数据）
+        } else {
+          // 云端为准 + 保留本地独有文档（id 不在云端），防止未推云新增丢失
+          const merged = {};
+          Object.keys(cloudMap).forEach((c) => { merged[c] = (cloudMap[c] || []).slice(); });
+          Object.keys(state).forEach((c) => {
+            (state[c] || []).forEach((d) => {
+              const exists = (merged[c] || []).some((x) => x.id === d.id);
+              if (!exists) (merged[c] = merged[c] || []).push(d);
+            });
+          });
+          state = merged;
+        }
+        saveStateRaw();
+        console.log('[产出物] 已从云端恢复数据（' + Object.keys(state).length + ' 个合集）');
+      } else if (localEmpty) {
+        // 首次进入：本地种子演示文档（仅本地缓存，不推送云端占位）
+        seedDemoDocs();
+        saveStateRaw();
+        console.log('[产出物] 首次使用，已加载示例文档（仅本地，未污染云端）');
+      }
+      // 其余（云端空、本地有）：保留本地，无需覆盖
     } catch (e) { /* 静默降级 */ }
     finally { _loadSyncing = false; }
+  }
+
+  // 首次用户本地种子（演示文档，仅写入本地缓存，避免污染云端）
+  function seedDemoDocs() {
+    if (localStorage.getItem('foubow-output-docs-v2-seeded') === '1') return;
+    const names = ['Agent搭建', '设计灵感', '穿着搭配'];
+    let sample = null;
+    try { if (typeof materials !== 'undefined' && materials.length) sample = materials[0]; } catch (_) {}
+    const refPayload = sample
+      ? { kind: 'material', id: sample.id, title: sample.title, collection: sample.collection, url: sample.url || '', previewBg: sample.previewBg || '', previewHTML: sample.getPreviewHTML ? sample.getPreviewHTML() : '' }
+      : { kind: 'material', title: '示例素材', collection: '设计灵感', url: '' };
+    names.forEach((name) => {
+      if (getDocs(name).length === 0) {
+        getDocs(name).push({
+          id: uid(), title: '分析报告', type: 'ul', createdAt: Date.now(),
+          items: [
+            { kind: 'text', value: '本页素材的核心要点摘要', level: 0 },
+            { kind: 'text', value: '典型使用场景与适用人群', level: 1 },
+            { kind: 'ref', payload: refPayload, level: 0 },
+          ],
+        });
+        getDocs(name).push({
+          id: uid(), title: '执行步骤', type: 'ol', createdAt: Date.now(),
+          items: [
+            { kind: 'text', value: '第一步：归类当前合集素材', level: 0 },
+            { kind: 'text', value: '第二步：按主题或时间排序', level: 0 },
+            { kind: 'text', value: '第三步：输出可复用模板', level: 0 },
+          ],
+        });
+      }
+    });
+    try { localStorage.setItem('foubow-output-docs-v2-seeded', '1'); } catch (_) {}
   }
 
   // -------- CRUD --------
@@ -149,12 +213,13 @@
     };
     getDocs(name).push(doc);
     saveState();
+    console.log('[产出物] 已新建文档：' + (init.title || '未命名文档'));
     return doc;
   }
   function deleteDoc(name, id) {
     const list = getDocs(name);
     const idx = list.findIndex(d => d.id === id);
-    if (idx >= 0) { list.splice(idx, 1); saveState(); return true; }
+    if (idx >= 0) { list.splice(idx, 1); saveState(); console.log('[产出物] 已删除文档'); return true; }
     return false;
   }
   function updateDoc(name, id, patch) {
@@ -168,11 +233,15 @@
   function setType(name, id, type) { return updateDoc(name, id, { type: type === 'ol' ? 'ol' : 'ul' }); }
   function addItem(name, id, item) {
     const d = getDocs(name).find(x => x.id === id);
-    if (!d) return null; d.items.push(item); saveState(); return d;
+    if (!d) return null; d.items.push(item); saveState();
+    console.log('[产出物] 已添加' + (item.kind === 'ref' ? '卡片引用' : '文字块') + '（当前 ' + d.items.length + ' 项）');
+    return d;
   }
   function addItemAt(name, id, idx, item) {
     const d = getDocs(name).find(x => x.id === id);
-    if (!d) return null; d.items.splice(idx, 0, item); saveState(); return d;
+    if (!d) return null; d.items.splice(idx, 0, item); saveState();
+    console.log('[产出物] 已插入' + (item.kind === 'ref' ? '卡片引用' : '文字块'));
+    return d;
   }
   function removeItem(name, id, idx) {
     const d = getDocs(name).find(x => x.id === id);
@@ -1013,33 +1082,16 @@
     renderPanel,
   };
 
-  // 首次访问：seed 演示文档
-  try {
-    if (localStorage.getItem('foubow-output-docs-v2-seeded') !== '1') {
-      const names = ['Agent搭建', '设计灵感', '穿着搭配'];
-      let sample = null;
-      try { if (typeof materials !== 'undefined' && materials.length) sample = materials[0]; } catch (_) {}
-      const refPayload = sample
-        ? { kind: 'material', id: sample.id, title: sample.title, collection: sample.collection, url: sample.url || '', previewBg: sample.previewBg || '', previewHTML: sample.getPreviewHTML ? sample.getPreviewHTML() : '' }
-        : { kind: 'material', title: '示例素材', collection: '设计灵感', url: '' };
-      names.forEach(name => {
-        if (getDocs(name).length === 0) {
-          addDoc(name, { title: '分析报告', type: 'ul', items: [
-            { kind: 'text', value: '本页素材的核心要点摘要', level: 0 },
-            { kind: 'text', value: '典型使用场景与适用人群', level: 1 },
-            { kind: 'ref', payload: refPayload, level: 0 },
-          ]});
-          addDoc(name, { title: '执行步骤', type: 'ol', items: [
-            { kind: 'text', value: '第一步：归类当前合集素材', level: 0 },
-            { kind: 'text', value: '第二步：按主题或时间排序', level: 0 },
-            { kind: 'text', value: '第三步：输出可复用模板', level: 0 },
-          ]});
-        }
-      });
-      localStorage.setItem('foubow-output-docs-v2-seeded', '1');
-    }
-  } catch (e) {}
+  // 离开页面/标签隐藏时，尽力把待同步内容立即推云（防止 1.2s 防抖内刷新丢编辑）
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden' && _syncTimer) {
+        clearTimeout(_syncTimer); _syncTimer = null;
+        pushCloudAll().catch(() => {});
+      }
+    });
+  }
 
-  // 启动后从云端拉取（有数据才覆盖本地）；失败 / 离线静默降级
+  // 启动后从云端拉取：云端为权威，本地仅作缓存；首次空用户本地种子演示
   syncLoadFromCloud();
 })();

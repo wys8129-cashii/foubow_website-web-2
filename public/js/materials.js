@@ -26,29 +26,15 @@ function getAuthHeaders() {
 }
 
 // 产出物模拟数据
-const mockOutputs = {
-  '设计灵感': [
-    { emoji: '🎨', title: '色彩方案文档' },
-    { emoji: '📐', title: '设计规范指南' },
-    { emoji: '🖼️', title: '灵感板合集' },
-    { emoji: '✏️', title: '手绘草图' },
-    { emoji: '📱', title: '交互原型' },
-  ],
-  '穿着搭配': [
-    { emoji: '👗', title: '春季穿搭指南' },
-    { emoji: '👔', title: '职场穿搭方案' },
-    { emoji: '👜', title: '配饰搭配建议' },
-  ],
-  'default': [
-    { emoji: '📄', title: '分析报告' },
-    { emoji: '📊', title: '数据汇总' },
-    { emoji: '💡', title: '创意方案' },
-    { emoji: '📝', title: '会议纪要' },
-  ]
-};
-
+// 读取当前合集的真实产出物文档（与右侧产出物面板共享同一份 state）
+// 返回的是真实文档数组，调用方通常用 .length 取数
 function getOutputsByCollection(name) {
-  return mockOutputs[name] || mockOutputs['default'];
+  try {
+    if (window.OutputDocs && typeof window.OutputDocs.getDocs === 'function') {
+      return window.OutputDocs.getDocs(name) || [];
+    }
+  } catch (e) {}
+  return [];
 }
 
 // 备用数据（当 API 调用失败时使用）
@@ -1388,7 +1374,7 @@ async function deleteMaterial(id) {
     const response = await fetchWithTimeout('/api/coze/materials/delete', {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ input: item.title }),
+      body: JSON.stringify({ input: item.title, image_url: item.cover_url || item.coverUrl || '' }),
     });
     const result = await response.json();
     if (result.code !== 1) { hideLoading(); alert('删除素材失败：' + (result.msg || '未知错误')); return; }
