@@ -1,0 +1,40 @@
+<view class="page">
+  <view class="header">
+    <text class="title">支持 Foubow</text>
+    <text class="subtitle">你的打赏是我们持续打磨产品的动力</text>
+  </view>
+
+  <!-- 档位选择 -->
+  <view class="tiers" wx:if="{{!paid}}">
+    <view
+      wx:for="{{tiers}}"
+      wx:key="amount"
+      class="tier {{selected.amount === item.amount ? 'tier-active' : ''}}"
+      data-idx="{{index}}"
+      bindtap="selectTier">
+      <text class="tier-amount">¥{{item.amount}}</text>
+      <text class="tier-name">{{item.name}}</text>
+    </view>
+  </view>
+
+  <!-- 打赏按钮 -->
+  <button wx:if="{{!paid}}" class="pay-btn" bindtap="pay">
+    <text>打赏 ¥{{selected.amount}}</text>
+  </button>
+
+  <!-- 支付成功提示 -->
+  <view wx:if="{{paid}}" class="success">
+    <view class="success-icon">✓</view>
+    <text class="success-title">打赏成功，感谢支持！</text>
+    <view class="order-box">
+      <text class="order-label">订单号</text>
+      <text class="order-no" user-select="true">{{orderId}}</text>
+    </view>
+    <view class="admin-tip">
+      <text>请加管理员微信</text>
+      <text class="admin-wechat" bindtap="copyWechat">{{adminWechat}}</text>
+      <text>（点击复制）</text>
+    </view>
+    <text class="admin-desc">发送「打赏截图 + 订单号」，管理员核对后为你开通白名单权限。</text>
+  </view>
+</view>

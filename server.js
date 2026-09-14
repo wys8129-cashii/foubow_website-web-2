@@ -16,6 +16,8 @@ const {
   getFullState, getCollection, getDoc, createDoc, updateDocFull, patchDoc, deleteDoc,
   addItem, insertItem, removeItem, reorderItems,
 } = require('./src/api/outputdocs');
+const { createRewardOrder, markRewardPaid, getMyRewardStatus, REWARD_TIERS } = require('./src/api/reward');
+const { adminMiddleware, listPending, addWhitelist, removeWhitelist } = require('./src/api/admin');
 
 // 身份验证中间件（双认证）
 //   方式一：Supabase JWT（前端登录态）→ 通过 supabase.auth.getUser 校验
@@ -962,6 +964,112 @@ app.put('/api/output-docs/:docId/items/reorder', authMiddleware, async (req, res
     res.json({ code: 1, msg: 'ok', data: out });
   } catch (e) {
     res.status(500).json({ code: 0, msg: e.message });
+  }
+});
+
+// ===== 打赏（虚拟支付：个人）+ 白名单 =====
+// 公开：打赏档位列表
+app.get('/api/pay/tiers', (req, res) => {
+  res.json({ code: 1, msg: 'ok', data: REWARD_TIERS });
+});
+
+// 创建打赏订单（小程序调用；可选带 JWT 关联已登录用户，不强制）
+app.post('/api/pay/order', async (req, res) => {
+  try {
+    const { code, amount, item_id } = req.body || {};
+    let userId = null;
+    const header = req.headers.authorization || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+    if (token && !token.startsWith('fob_')) {
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (user) userId = user.id;
+    }
+    const result = await createRewardOrder({ code, amount, item_id, user_id: userId });
+    res.json({ code: 1, msg: 'ok', data: result });
+  } catch (e) {
+    console.error('[pay] 下单失败:', e.message);
+    res.json({ code: 0, msg: e.message });
+  }
+});
+
+// 微信虚拟支付异步通知（验签占位，联调时按官方文档补齐；此处直接标记 paid）
+app.post('/api/pay/notify', async (req, res) => {
+  try {
+    const { order_id } = req.body || {};
+    await markRewardPaid(order_id);
+    res.json({ code: 1, msg: 'ok' });
+  } catch (e) {
+    console.error('[pay] notify 失败:', e.message);
+    res.json({ code: 0, msg: e.message });
+  }
+});
+
+// 小程序/前端支付成功兜底上报（防 notify 丢失）
+app.post('/api/pay/report', async (req, res) => {
+  try {
+    const { order_id, screenshot_note } = req.body || {};
+    await markRewardPaid(order_id, { screenshot_note });
+    res.json({ code: 1, msg: 'ok' });
+  } catch (e) {
+    console.error('[pay] report 失败:', e.message);
+    res.json({ code: 0, msg: e.message });
+  }
+});
+
+// 当前用户打赏状态（需登录）
+app.get('/api/pay/status', authMiddleware, async (req, res) => {
+  try {
+    const status = await getMyRewardStatus(req.userId);
+    res.json({ code: 1, msg: 'ok', data: status });
+  } catch (e) {
+    console.error('[pay] 状态查询失败:', e.message);
+    res.json({ code: 0, msg: e.message });
+  }
+});
+
+// ===== 管理员：白名单审核（方案 A：Supabase profiles.is_admin）=====
+app.get('/api/admin/whitelist/pending', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const list = await listPending();
+    res.json({ code: 1, msg: 'ok', data: list });
+  } catch (e) {
+    console.error('[admin] 待审核列表失败:', e.message);
+    res.json({ code: 0, msg: e.message });
+  }
+});
+
+app.post('/api/admin/whitelist', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { order_id, user_id, email, note } = req.body || {};
+    let targetUserId = user_id;
+    let targetEmail = email;
+    if (order_id && !targetUserId && !targetEmail) {
+      const { data: rw } = await supabaseAdmin.from('rewards').select('user_id, openid').eq('order_id', order_id).single();
+      if (rw && rw.user_id) targetUserId = rw.user_id;
+      else return res.json({ code: 0, msg: '该订单未关联 Foubow 账号，请手动填写用户邮箱' });
+    }
+    const result = await addWhitelist({ user_id: targetUserId, email: targetEmail, note, adminUid: req.userId });
+    res.json({ code: 1, msg: '已添加白名单', data: result });
+  } catch (e) {
+    console.error('[admin] 添加白名单失败:', e.message);
+    res.json({ code: 0, msg: e.message });
+  }
+});
+
+app.post('/api/admin/whitelist/remove', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { order_id, user_id, email } = req.body || {};
+    let targetUserId = user_id;
+    let targetEmail = email;
+    if (order_id && !targetUserId && !targetEmail) {
+      const { data: rw } = await supabaseAdmin.from('rewards').select('user_id').eq('order_id', order_id).single();
+      if (rw && rw.user_id) targetUserId = rw.user_id;
+    }
+    const result = await removeWhitelist({ user_id: targetUserId, email: targetEmail });
+    res.json({ code: 1, msg: '已移除', data: result });
+  } catch (e) {
+    console.error('[admin] 移除白名单失败:', e.message);
+    res.json({ code: 0, msg: e.message });
   }
 });
 
