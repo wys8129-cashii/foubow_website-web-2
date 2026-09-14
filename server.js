@@ -249,6 +249,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
         nickname: profile?.nickname || '用户',
         email: data.user.email,
         avatar: profile?.avatar || '',
+        is_admin: profile?.is_admin || false,
         token: data.session.access_token,
         refresh_token: data.session.refresh_token,
         api_key: apiKey
@@ -287,6 +288,30 @@ app.post('/api/auth/refresh', async (req, res) => {
   } catch (error) {
     console.error('刷新 token 错误:', error.message);
     res.json({ code: 0, msg: error.message });
+  }
+});
+
+// 获取当前登录用户信息（含是否管理员），供前端判断显示管理后台入口
+app.get('/api/auth/me', authMiddleware, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('nickname, avatar, is_admin')
+      .eq('id', req.userId)
+      .single();
+    if (error) return res.json({ code: 0, msg: '查询用户信息失败' });
+    res.json({
+      code: 1,
+      msg: 'ok',
+      data: {
+        email: req.userEmail,
+        nickname: data?.nickname || '用户',
+        avatar: data?.avatar || '',
+        is_admin: !!(data && data.is_admin),
+      },
+    });
+  } catch (e) {
+    res.json({ code: 0, msg: e.message });
   }
 });
 

@@ -174,6 +174,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // ======================
     if (isLogin) {
       // 登录态下的「退出登录」与头像入口交由 user-token.js 处理（头像弹窗内含退出按钮）
+
+      // 管理后台入口：仅管理员可见（以 /api/auth/me 的 is_admin 为准）
+      fetchWithTimeout('/api/auth/me')
+        .then(r => r.json())
+        .then(rst => {
+          const links = document.querySelectorAll('.js-admin-link');
+          if (rst && rst.code === 1 && rst.data && rst.data.is_admin) {
+            links.forEach(el => el.classList.remove('hidden'));
+          } else {
+            links.forEach(el => el.classList.add('hidden'));
+          }
+        })
+        .catch(() => {});
     }
 
     // ======================

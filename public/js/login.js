@@ -38,6 +38,7 @@ async function login() {
     if (result.data) {
       localStorage.setItem('userNickname', result.data.nickname || '用户');
       localStorage.setItem('userAvatar', result.data.avatar || '');
+      localStorage.setItem('isAdmin', result.data.is_admin ? 'true' : 'false');
       if (result.data.api_key) {
         localStorage.setItem('userApiKey', result.data.api_key);
       }
