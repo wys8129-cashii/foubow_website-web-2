@@ -142,7 +142,6 @@ document.addEventListener('DOMContentLoaded', function() {
   function makeCardHTML(t) {
     var ac = activeToolId === t.id ? ' active' : '';
     return '<div class="tool-card' + ac + '" draggable="true" data-id="' + t.id + '" data-cat="' + t.category + '">' +
-      '<div class="tool-drag-handle"><span></span><span></span><span></span></div>' +
       '<div class="tool-icon" style="background:' + t.color + '">' + (iconSvgs[t.icon] || iconSvgs.default) + '</div>' +
       '<div class="tool-info">' +
         '<div class="tool-title">' + escapeHtml(t.title) + '</div>' +
@@ -542,8 +541,26 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() { copyToast.classList.remove('show'); }, 1800);
   }
 
+  // ===== 收藏状态持久化 =====
+  var FAV_KEY = 'foubow-workbench-favs';
+  function loadFavSet() { try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')); } catch (e) { return new Set(); } }
+  var favSet = loadFavSet();
+  function saveFavSet() { try { localStorage.setItem(FAV_KEY, JSON.stringify([].slice.call(favSet))); } catch (e) {} }
+  function favKeyOf(p) { return p ? (p.url || p.title || '') : ''; }
+  function isFavTool(p) { var k = favKeyOf(p); return k ? favSet.has(k) : false; }
+
   function addToolFromRef(payload) {
     if (!payload) return;
+    var key = favKeyOf(payload);
+    if (!key) return;
+    // 已收藏 -> 取消收藏：从常用网站移除并清状态
+    if (favSet.has(key)) {
+      tools = tools.filter(function(t) { return !(t.url === payload.url && t.title === payload.title); });
+      favSet.delete(key);
+      saveFavSet(); saveData(); renderTools();
+      showToast('已取消收藏');
+      return;
+    }
     var title = payload.title || '收藏卡片';
     var url = payload.url || '';
     var color = '#333333';
@@ -563,7 +580,8 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (e) {}
     var id = nextToolId++;
     tools.push({ id: id, title: title, url: url, icon: icon, color: color, category: '效率工具' });
-    saveData();
+    favSet.add(key);
+    saveFavSet(); saveData();
     renderTools();
     showToast('已收藏到常用网站');
   }
@@ -574,6 +592,7 @@ document.addEventListener('DOMContentLoaded', function() {
     OutputDocs.openDoc(outputContainer, name, docId, {
       readOnly: true,
       onFav: addToolFromRef,
+      isFav: isFavTool,
       onClose: function() { showPanel('default'); outputContainer.innerHTML = ''; }
     });
     showPanel('output');

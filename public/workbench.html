@@ -101,10 +101,6 @@
   .tool-card.drop-before { border-top-color: var(--accent); border-top-width: 2px; }
   .tool-card.drop-after { border-bottom-color: var(--accent); border-bottom-width: 2px; }
 
-  .tool-drag-handle { width: 10px; height: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; flex-shrink: 0; opacity: 0; transition: opacity 0.15s ease; color: var(--text-muted); }
-  .tool-card:hover .tool-drag-handle { opacity: 0.5; }
-  .tool-drag-handle span { width: 8px; height: 2px; background: currentColor; border-radius: 1px; }
-
   .tool-icon { width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff; font-weight: 700; font-family: 'JetBrains Mono', 'SF Mono', monospace; }
   .tool-icon svg { width: 20px; height: 20px; }
   .tool-info { flex: 1; min-width: 0; }
@@ -247,9 +243,6 @@
   #output-doc-container { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .ob-doc-title-static { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; color: #1A1A1A; padding: 4px 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ob-edit-readonly { flex: 1; min-width: 0; font-size: 13px; color: #1A1A1A; line-height: 22px; min-height: 22px; word-break: break-word; }
-  .ob-ref-fav { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; background: transparent; border-radius: 8px; color: #9CA3AF; cursor: pointer; transition: all 0.15s; flex: 0 0 auto; }
-  .ob-ref-fav:hover { background: #FEF3C7; color: #F59E0B; }
-  .ob-ref-fav:active { transform: scale(0.94); }
   .ob-ref-card { position: relative; }
 
   /* ===== 产出物文档（OutputDocs，来自 material.html，浅色，用于右侧面板） ===== */

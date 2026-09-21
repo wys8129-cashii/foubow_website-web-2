@@ -329,10 +329,10 @@
 
   // -------- 渲染：总入口 --------
   function renderPanel(opts) {
-    const { container, collection, onClose, onAi, onFav, readOnly } = opts || {};
+    const { container, collection, onClose, onAi, onFav, readOnly, isFav } = opts || {};
     if (!container) return;
     container.__obName = collection;
-    container.__obOpts = { onClose, onAi, onFav, readOnly };
+    container.__obOpts = { onClose, onAi, onFav, readOnly, isFav };
     if (!container.dataset.obBound) bindPanel(container);
     container.dataset.obBound = '1';
     renderAll(container);
@@ -340,10 +340,10 @@
 
   // 直接打开某篇文档（用于工作台右侧详情，跳过列表视图）
   function openDoc(container, name, docId, opts) {
-    const { onClose, onAi, onFav, readOnly } = opts || {};
+    const { onClose, onAi, onFav, readOnly, isFav } = opts || {};
     if (!container || !docId) return;
     container.__obName = name;
-    container.__obOpts = { onClose, onAi, onFav, readOnly };
+    container.__obOpts = { onClose, onAi, onFav, readOnly, isFav };
     if (!container.dataset.obBound) bindPanel(container);
     container.dataset.obBound = '1';
     _view = { mode: 'doc', docId, collectionName: name };
@@ -550,7 +550,7 @@
       const level = b.it.level || 0;
       if (isOl) { if (level === 0) { curNum++; numList[i] = curNum; } else numList[i] = numList[i - 1] != null ? numList[i - 1] : 0; }
       html += b.it.kind === 'ref'
-        ? renderRefBlock(b.it, b.i, doc.id, isOl, isOl ? numList[i] : null, readOnly)
+        ? renderRefBlock(b.it, b.i, doc.id, isOl, isOl ? numList[i] : null, readOnly, opts)
         : renderTextBlock(b.it, b.i, isOl, isOl ? numList[i] : null, readOnly);
     });
 
@@ -583,28 +583,31 @@
       <div class="ob-edit" contenteditable="true" data-idx="${idx}" spellcheck="false">${escHtml(it.value || '')}</div>
     </div>`;
   }
-  function renderRefBlock(it, idx, docId, isOl, num, readOnly) {
+  function renderRefBlock(it, idx, docId, isOl, num, readOnly, opts) {
     const p = it.payload || {};
     const level = it.level || 0;
-    const thumb = p.previewHTML
-      ? `<div class="ob-thumb ${escHtml(p.previewBg || '')}">${p.previewHTML}</div>`
-      : `<div class="ob-thumb ${escHtml(p.previewBg || 'ob-thumb-empty')}"></div>`;
     const link = p.url || (p.collection ? '合集 · ' + p.collection : (p.kind === 'collection' ? '合集 · ' + (p.name || '') : ''));
     const bulletCls = isOl ? 'ob-bullet ob-bullet-num' : 'ob-bullet';
     const marker = isOl ? `<span class="ob-num">${num}.</span>` : '';
+    const bg = escHtml(p.previewBg || '');
     if (readOnly) {
+      const faved = (opts && typeof opts.isFav === 'function') ? opts.isFav(p) : false;
+      const thumb = `<div class="ob-thumb ${bg}" data-act="ref-cover" data-idx="${idx}" role="button" title="查看大图" style="cursor:zoom-in">${p.previewHTML || ''}</div>`;
       return `<div class="ob-block ob-ref" data-idx="${idx}" style="margin-left:${level * 22}px">
         <div class="${bulletCls}">${marker}</div>
-        <div class="ob-ref-card">
+        <div class="ob-ref-card" data-act="ref-open" data-idx="${idx}">
           ${thumb}
           <div class="ob-ref-meta">
             <a class="ob-ref-title" href="${escHtml(p.url || '#')}" target="_blank" rel="noopener">${escHtml(p.title || '未命名素材')}</a>
             ${link ? `<a class="ob-ref-link" href="${escHtml(p.url || '#')}" target="_blank" rel="noopener">${escHtml(link)}</a>` : ''}
           </div>
-          <button class="ob-ref-fav" data-act="ref-fav" data-idx="${idx}" title="收藏到常用网站">${icon('star')}</button>
+          <button class="ob-ref-fav${faved ? ' faved' : ''}" data-act="ref-fav" data-idx="${idx}" title="${faved ? '取消收藏' : '收藏到常用网站'}">${icon('star')}</button>
         </div>
       </div>`;
     }
+    const thumb = p.previewHTML
+      ? `<div class="ob-thumb ${bg}">${p.previewHTML}</div>`
+      : `<div class="ob-thumb ${bg || 'ob-thumb-empty'}"></div>`;
     return `<div class="ob-block ob-ref" data-idx="${idx}" style="margin-left:${level * 22}px">
       <button class="${bulletCls} ob-drag-handle" draggable="true" data-act="ob-fold" data-idx="${idx}" title="拖动可排序 · 点击折叠/展开">${marker}</button>
       <div class="ob-ref-card">
@@ -773,7 +776,79 @@
   }
 
   // ============ 事件 ============
+  function ensureObLightbox() {
+    let el = document.getElementById('ob-lightbox');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'ob-lightbox';
+      el.innerHTML = '<div class="ob-lightbox-backdrop"></div><div class="ob-lightbox-box"><button class="ob-lightbox-close" aria-label="关闭">&times;</button><div class="ob-lightbox-content"></div></div>';
+      document.body.appendChild(el);
+      el.addEventListener('click', (ev) => {
+        if (ev.target === el || ev.target.classList.contains('ob-lightbox-backdrop') || ev.target.classList.contains('ob-lightbox-close')) el.classList.remove('show');
+      });
+    }
+    return el;
+  }
+  function showObLightbox(html) {
+    const el = ensureObLightbox();
+    el.querySelector('.ob-lightbox-content').innerHTML = html;
+    el.classList.add('show');
+  }
+  function currentDocPayload(t, container) {
+    const name = _view.collectionName || container.__obName;
+    const d = getDocs(name).find(x => x.id === _view.docId);
+    if (!d) return null;
+    const it = d.items[+t.dataset.idx];
+    return it ? (it.payload || {}) : null;
+  }
+  function showRefCover(t, container) {
+    const p = currentDocPayload(t, container); if (!p) return;
+    const cover = p.previewHTML ? `<div class="ob-lb-cover ${escHtml(p.previewBg || '')}">${p.previewHTML}</div>` : '<div class="ob-lb-empty">无封面图</div>';
+    showObLightbox(cover);
+  }
+  function showRefDetail(t, container) {
+    const p = currentDocPayload(t, container); if (!p) return;
+    const src = p.collection ? ('合集 · ' + p.collection) : (p.kind === 'collection' ? ('合集 · ' + (p.name || '')) : (p.url || ''));
+    const cover = p.previewHTML ? `<div class="ob-lb-cover-mini ${escHtml(p.previewBg || '')}">${p.previewHTML}</div>` : '';
+    const html = `<div class="ob-lb-detail">
+      ${cover}
+      <h3 class="ob-lb-title">${escHtml(p.title || '未命名素材')}</h3>
+      ${src ? `<div class="ob-lb-src">${escHtml(src)}</div>` : ''}
+      ${(p.url && p.url !== '#') ? `<a class="ob-lb-link" href="${escHtml(p.url)}" target="_blank" rel="noopener">打开链接 ↗</a>` : ''}
+      ${p.desc ? `<p class="ob-lb-desc">${escHtml(p.desc)}</p>` : ''}
+    </div>`;
+    showObLightbox(html);
+  }
+  function injectObCss() {
+    if (window.__obCssInjected) return; window.__obCssInjected = true;
+    const s = document.createElement('style');
+    s.textContent = `
+    .ob-ref-card{cursor:default}
+    .ob-ref-fav{position:absolute;top:8px;right:8px;width:26px;height:26px;border:none;background:rgba(0,0,0,.04);border-radius:8px;color:#f5a623;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:.15s}
+    .ob-ref-card:hover .ob-ref-fav{opacity:1}
+    .ob-ref-fav.faved{opacity:1;color:#f5a623;background:rgba(245,166,35,.12)}
+    .ob-lightbox{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center}
+    .ob-lightbox.show{display:flex}
+    .ob-lightbox-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
+    .ob-lightbox-box{position:relative;max-width:92vw;max-height:92vh;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.45);display:flex;flex-direction:column}
+    .ob-lightbox-close{position:absolute;top:10px;right:12px;z-index:3;width:34px;height:34px;border:none;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;font-size:20px;line-height:1;cursor:pointer}
+    .ob-lightbox-content{overflow:auto;max-height:92vh}
+    .ob-lightbox-content img{max-width:92vw;display:block}
+    .ob-lb-cover{padding:16px;display:flex;align-items:center;justify-content:center;background:#f7f8fa}
+    .ob-lb-cover > *{transform:none!important;max-width:90vw}
+    .ob-lb-cover-mini{border-radius:12px;overflow:hidden;margin-bottom:12px}
+    .ob-lb-empty{padding:48px;color:#999;text-align:center}
+    .ob-lb-detail{padding:24px;min-width:320px;max-width:560px}
+    .ob-lb-title{font-size:16px;margin:0 0 8px;color:#111}
+    .ob-lb-src{font-size:12px;color:#888;margin-bottom:10px}
+    .ob-lb-link{display:inline-block;color:#2f7d4f;font-size:14px;text-decoration:none;margin-bottom:10px}
+    .ob-lb-desc{font-size:13px;color:#555;line-height:1.7;margin:0}
+    `;
+    document.head.appendChild(s);
+  }
+
   function bindPanel(container) {
+    injectObCss();
     function close() { if (typeof (container.__obOpts || {}).onClose === 'function') (container.__obOpts).onClose(); }
 
     container.addEventListener('click', (e) => {
@@ -782,6 +857,13 @@
       const act = t.dataset.act;
       const docId = t.dataset.doc;
       const opts = container.__obOpts || {};
+
+      // ---- 产出物卡片交互（只读详情）----
+      if (act === 'ref-cover' && _view.mode === 'doc') { showRefCover(t, container); return; }
+      if (act === 'ref-open' && _view.mode === 'doc') {
+        if (e.target.closest('a')) return; // 链接交给浏览器跳转
+        showRefDetail(t, container); return;
+      }
 
       // ---- 顶栏主操作 ----
       if (act === 'add-output') {
@@ -905,6 +987,7 @@
         const d = getDocs(name).find(x => x.id === _view.docId); if (!d) return;
         const it = d.items[idx];
         if (it && typeof opts.onFav === 'function') opts.onFav(it.payload || {});
+        renderAll(container); // 刷新收藏按钮状态（faved / 取消）
         return;
       }
       if (t.dataset.type) {
