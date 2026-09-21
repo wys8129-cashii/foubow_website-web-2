@@ -4,13 +4,9 @@
 <link rel="stylesheet" href="/css/tailwind.css">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <style>
-  /* 右上角「联系开发者」：衬线斜体，明显区别于导航黑体；桌面端显示，移动端隐藏 */
+  /* 右上角「联系开发者」：与导航同字体（黑体），桌面端显示，移动端隐藏 */
   .header-contact-btn {
     display: none;
-    font-family: "Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", Georgia, "Times New Roman", serif !important;
-    font-style: italic;
-    font-weight: 400;
-    letter-spacing: 0.03em;
     text-decoration: none !important;
   }
   .header-contact-btn:hover { text-decoration: none !important; }
@@ -36,7 +32,7 @@
 </button>
 </div>
 <div class="flex items-center gap-4" id="auth-buttons">
-<button type="button" id="header-contact-dev-btn" class="header-contact-btn items-center text-body-md text-primary hover:text-primary/80 transition-colors cursor-pointer">联系开发者</button>
+<button type="button" id="header-contact-dev-btn" class="header-contact-btn items-center font-title-md text-title-md text-primary hover:text-primary/80 transition-colors cursor-pointer">联系开发者</button>
 <a href="/login.html" id="login-btn" class="hidden md:block px-6 py-2 text-primary font-medium hover:bg-primary/5 rounded-full transition-all cursor-pointer">登录</a>
 <a href="/register.html" id="register-btn" class="px-6 py-2 bg-primary text-on-primary font-medium rounded-full shadow-lg hover:shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer">注册</a>
 <a href="#" id="logout-btn" class="hidden px-6 py-2 bg-primary text-on-primary font-medium rounded-full shadow-lg hover:shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer">退出登录</a>
@@ -277,16 +273,16 @@
 <div id="contact-modal" class="fixed inset-0 hidden" style="z-index:9999;" aria-hidden="true">
   <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" data-modal-close></div>
   <div class="relative flex items-center justify-center min-h-screen p-4" style="z-index:1;">
-    <div class="bg-surface rounded-2xl shadow-2xl w-full p-4 text-center border border-outline-variant/20" style="max-width: 240px;">
-      <div class="flex items-center justify-between mb-3">
+    <div class="bg-surface rounded-2xl shadow-2xl w-full p-5 text-center border border-outline-variant/20 contact-card" style="max-width: 360px;">
+      <div class="flex items-center justify-between mb-4">
         <h3 class="font-title-md text-title-md text-on-surface font-semibold">联系我们</h3>
         <button type="button" data-modal-close class="w-8 h-8 rounded-full hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant transition-colors" aria-label="关闭">
           <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
       </div>
-      <p class="text-on-surface-variant text-sm mb-4">扫码添加微信，随时沟通产品与合作</p>
-      <div class="mb-4">
-        <img src="/images/wechat-qr.png" alt="微信二维码" class="w-36 h-36 mx-auto rounded-xl border border-outline-variant/20 object-contain bg-white">
+      <p class="text-on-surface-variant text-sm mb-5">扫码添加微信，随时沟通产品与合作</p>
+      <div class="mb-5">
+        <img src="/images/wechat-qr.png" alt="微信二维码" class="w-40 h-40 mx-auto rounded-xl border border-outline-variant/20 object-contain bg-white">
       </div>
       <div class="bg-surface-container-lowest rounded-xl p-3 flex items-center justify-between gap-3">
         <div class="text-left">
@@ -367,7 +363,8 @@
   if (headerBtn) headerBtn.addEventListener('click', showModal);
   if (modal) {
     modal.addEventListener('click', function(e) {
-      if (e.target.closest('[data-modal-close]')) hideModal();
+      if (e.target.closest('[data-modal-close]')) { hideModal(); return; }
+      if (!e.target.closest('.contact-card')) { hideModal(); }
     });
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape' && !modal.classList.contains('hidden')) hideModal();
