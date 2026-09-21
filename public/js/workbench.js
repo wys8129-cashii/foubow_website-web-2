@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var taskEmpty = document.getElementById('task-empty');
   var taskBlockTitle = document.getElementById('task-block-title');
   var addTaskInput = document.getElementById('add-task-input');
+  var sideDefault = document.getElementById('side-default');
   var sideDetail = document.getElementById('side-detail');
   var detailIcon = document.getElementById('detail-icon');
   var detailTitle = document.getElementById('detail-title');
@@ -99,7 +100,6 @@ document.addEventListener('DOMContentLoaded', function() {
   var outputContainer = document.getElementById('output-doc-container');
   var outputListEl = document.getElementById('output-list');
   var outputCountEl = document.getElementById('output-count');
-  var outputBackBtn = document.getElementById('output-back');
 
   function updateClock() {
     headerTime.textContent = new Date().toLocaleString('zh-CN', { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
@@ -321,6 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // ── Detail ──
   function showDetail(tool) {
     activeToolId = tool.id;
+    sideDefault.style.display = 'none';
     sideDetail.classList.add('visible');
     sideOutput.classList.remove('visible'); // 确保产出物面板隐藏
     detailIcon.innerHTML = iconSvgs[tool.icon] || iconSvgs.default;
@@ -381,6 +382,7 @@ document.addEventListener('DOMContentLoaded', function() {
     saveCurrentNotes();
     activeToolId = null;
     sideDetail.classList.remove('visible');
+    sideDefault.style.display = '';
     renderTools();
   }
   function hideDetailQuick() { hideDetail(); }
@@ -519,12 +521,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function showPanel(which) {
     if (which === 'tool') {
+      sideDefault.style.display = 'none';
       sideDetail.classList.add('visible');
       sideOutput.classList.remove('visible');
     } else if (which === 'output') {
+      sideDefault.style.display = 'none';
       sideDetail.classList.remove('visible');
       sideOutput.classList.add('visible');
     } else {
+      sideDefault.style.display = '';
       sideDetail.classList.remove('visible');
       sideOutput.classList.remove('visible');
     }
@@ -588,7 +593,6 @@ document.addEventListener('DOMContentLoaded', function() {
       if (col && doc) wb_openOutputDoc(col, doc);
     });
   }
-  if (outputBackBtn) outputBackBtn.addEventListener('click', hideOutputPanel);
 
   // Init
   renderTools();

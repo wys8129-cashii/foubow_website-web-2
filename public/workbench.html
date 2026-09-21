@@ -114,18 +114,10 @@
   .tool-detail-btn:hover { background: var(--accent-soft); color: #fff; border-color: transparent; }
 
   /* Side Panel */
-  .side-scroll { display: none; }
+  .side-scroll { overflow-y: auto; padding: 28px 24px 24px; display: flex; flex-direction: column; gap: 24px; background: var(--sidebar-bg); min-height: 0; }
   .side-block { background: var(--glass-bg); border-radius: var(--radius-lg); padding: 20px; border: 1px solid var(--border-subtle); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
   .side-block-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
   .side-block-header h3 { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-family: 'JetBrains Mono', 'SF Mono', monospace; }
-
-  /* Main widgets (calendar + tasks, below tools) */
-  .main-widgets { flex-shrink: 0; padding: 0 28px 28px; border-top: 1px solid var(--border-subtle); overflow-y: auto; }
-  .widget-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding-top: 22px; }
-  .widget-block { background: var(--surface-1); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 18px; }
-  .widget-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .widget-header h3 { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-family: 'JetBrains Mono', 'SF Mono', monospace; }
-  .widget-header .count { font-family: 'JetBrains Mono', 'SF Mono', monospace; font-size: 0.72rem; color: var(--text-muted); background: var(--surface-2); padding: 2px 8px; border-radius: 10px; }
 
   /* Calendar */
   .calendar-mini { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 0.75rem; }
@@ -205,8 +197,6 @@
     body { overflow: auto; }
     .app-wrapper { grid-template-columns: 1fr; grid-template-rows: auto auto; height: auto; min-height: 100vh; gap: 0; }
     .main-panel { max-height: none; overflow: visible; }
-    .main-widgets { padding: 0 16px 20px; }
-    .widget-row { grid-template-columns: 1fr; gap: 16px; }
     .side-scroll { overflow: visible; padding: 0 16px 20px; gap: 16px; }
     .detail-panel { overflow: visible; padding: 20px 16px; gap: 16px; }
     .output-panel { display: none; }
@@ -255,7 +245,6 @@
   .output-panel.visible { display: flex; flex-direction: column; }
   .wb-output-frame { background: #fff; border-radius: var(--radius-lg); margin: 16px; flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
   #output-doc-container { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  .wb-output-back { margin: 16px 16px 0; align-self: flex-start; }
   .ob-doc-title-static { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; color: #1A1A1A; padding: 4px 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ob-edit-readonly { flex: 1; min-width: 0; font-size: 13px; color: #1A1A1A; line-height: 22px; min-height: 22px; word-break: break-word; }
   .ob-ref-fav { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; background: transparent; border-radius: 8px; color: #9CA3AF; cursor: pointer; transition: all 0.15s; flex: 0 0 auto; }
@@ -392,36 +381,35 @@
       </section>
     </div>
 
-    <!-- 日历与任务（主区下方） -->
-    <div class="main-widgets" id="main-widgets">
-      <div class="widget-row">
-        <div class="widget-block">
-          <div class="widget-header"><h3>日历</h3></div>
-          <div class="month-nav">
-            <button id="cal-prev" aria-label="上月">&larr;</button>
-            <span id="cal-month-label"></span>
-            <button id="cal-next" aria-label="下月">&rarr;</button>
-          </div>
-          <div class="calendar-mini" id="calendar-grid"></div>
-        </div>
-        <div class="widget-block">
-          <div class="widget-header">
-            <h3 id="task-block-title">任务</h3>
-            <span class="count" id="task-count">0</span>
-          </div>
-          <div class="task-list" id="task-list"></div>
-          <div class="add-task-row" id="add-task-row">
-            <span class="add-task-plus">+</span>
-            <input class="add-task-input" id="add-task-input" type="text" placeholder="添加任务，回车确认..." autocomplete="off">
-          </div>
-          <div class="empty-state" id="task-empty" style="display:none">暂无任务</div>
-        </div>
+  </div>
+
+  <!-- 右侧分栏：日历/任务（默认） -->
+  <div class="side-scroll" id="side-default">
+    <div class="side-block">
+      <div class="side-block-header"><h3>日历</h3></div>
+      <div class="month-nav">
+        <button id="cal-prev" aria-label="上月">&larr;</button>
+        <span id="cal-month-label"></span>
+        <button id="cal-next" aria-label="下月">&rarr;</button>
       </div>
+      <div class="calendar-mini" id="calendar-grid"></div>
+    </div>
+    <div class="side-block">
+      <div class="side-block-header">
+        <h3 id="task-block-title">任务</h3>
+        <span class="count" id="task-count">0</span>
+      </div>
+      <div class="task-list" id="task-list"></div>
+      <div class="add-task-row" id="add-task-row">
+        <span class="add-task-plus">+</span>
+        <input class="add-task-input" id="add-task-input" type="text" placeholder="添加任务，回车确认..." autocomplete="off">
+      </div>
+      <div class="empty-state" id="task-empty" style="display:none">暂无任务</div>
     </div>
   </div>
 
   <div class="detail-panel" id="side-detail">
-    <button class="detail-back" id="detail-back">&larr; 返回产出物</button>
+    <button class="detail-back" id="detail-back">&larr; 返回任务列表</button>
     <div class="detail-icon" id="detail-icon"></div>
     <div class="detail-title" id="detail-title"></div>
     <div class="detail-url" id="detail-url"></div>
@@ -442,7 +430,6 @@
 
   <!-- 产出物详情面板（右侧分栏） -->
   <div class="output-panel" id="side-output">
-    <button class="detail-back wb-output-back" id="output-back">&larr; 返回工作台</button>
     <div class="wb-output-frame">
       <div id="output-doc-container"></div>
     </div>
