@@ -6,11 +6,12 @@
 <title>Foubow 工作台</title>
 <script>
 (function(){
-  var theme = 'dark';
+  var theme = 'light';
   try { var raw = localStorage.getItem('workspace_data'); if (raw) { var d = JSON.parse(raw); if (d.theme) theme = d.theme; } } catch(e) {}
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
+<link rel="stylesheet" href="/css/tailwind.css">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
@@ -58,12 +59,13 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html { font-size: 16px; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--surface-0); color: var(--text-primary); transition: background 0.3s ease, color 0.3s ease; overflow: hidden; }
-  .app-wrapper { display: grid; grid-template-columns: 1fr 400px; height: 100vh; gap: 1px; background: var(--border-subtle); }
+  .app-wrapper { display: grid; grid-template-columns: 1fr 340px; height: 100vh; gap: 1px; background: var(--border-subtle); }
   .main-panel { background: var(--surface-0); display: flex; flex-direction: column; overflow: hidden; }
 
   /* Header */
   .header { padding: 24px 36px 16px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
-  .logo { font-family: 'JetBrains Mono', 'SF Mono', monospace; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.03em; color: var(--text-primary); white-space: nowrap; user-select: none; }
+  .logo { font-family: 'JetBrains Mono', 'SF Mono', monospace; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.03em; color: var(--text-primary); white-space: nowrap; user-select: none; text-decoration: none; transition: opacity 0.15s; }
+  .logo:hover { opacity: 0.8; }
   .logo span { color: var(--accent); }
   .header-search { position: relative; flex: 1; max-width: 280px; }
   .header-search .search-input { width: 100%; background: var(--surface-2); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 8px 14px 8px 36px; font-size: 0.8rem; color: var(--text-primary); outline: none; transition: 0.15s ease; }
@@ -112,10 +114,18 @@
   .tool-detail-btn:hover { background: var(--accent-soft); color: #fff; border-color: transparent; }
 
   /* Side Panel */
-  .side-scroll { overflow-y: auto; padding: 28px 24px 24px; display: flex; flex-direction: column; gap: 24px; background: var(--sidebar-bg); min-height: 0; }
+  .side-scroll { display: none; }
   .side-block { background: var(--glass-bg); border-radius: var(--radius-lg); padding: 20px; border: 1px solid var(--border-subtle); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
   .side-block-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
   .side-block-header h3 { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-family: 'JetBrains Mono', 'SF Mono', monospace; }
+
+  /* Main widgets (calendar + tasks, below tools) */
+  .main-widgets { flex-shrink: 0; padding: 0 28px 28px; border-top: 1px solid var(--border-subtle); overflow-y: auto; }
+  .widget-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding-top: 22px; }
+  .widget-block { background: var(--surface-1); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 18px; }
+  .widget-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .widget-header h3 { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-family: 'JetBrains Mono', 'SF Mono', monospace; }
+  .widget-header .count { font-family: 'JetBrains Mono', 'SF Mono', monospace; font-size: 0.72rem; color: var(--text-muted); background: var(--surface-2); padding: 2px 8px; border-radius: 10px; }
 
   /* Calendar */
   .calendar-mini { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 0.75rem; }
@@ -195,8 +205,12 @@
     body { overflow: auto; }
     .app-wrapper { grid-template-columns: 1fr; grid-template-rows: auto auto; height: auto; min-height: 100vh; gap: 0; }
     .main-panel { max-height: none; overflow: visible; }
+    .main-widgets { padding: 0 16px 20px; }
+    .widget-row { grid-template-columns: 1fr; gap: 16px; }
     .side-scroll { overflow: visible; padding: 0 16px 20px; gap: 16px; }
     .detail-panel { overflow: visible; padding: 20px 16px; gap: 16px; }
+    .output-panel { display: none; }
+    .output-panel.visible { display: flex; }
     .header { padding: 14px 16px 10px; gap: 10px; }
     .logo { font-size: 1.05rem; }
     .header-search { max-width: 160px; flex: 0 1 auto; }
@@ -344,13 +358,13 @@
 <div class="app-wrapper">
   <div class="main-panel">
     <div class="header">
-      <div class="logo">Fou<span>bow</span></div>
+      <a href="/" class="logo" title="返回首页">Fou<span>bow</span></a>
       <div class="header-search">
         <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input class="search-input" id="tool-search" type="text" placeholder="搜索工具..." autocomplete="off">
       </div>
       <div class="header-right">
-        <button class="theme-toggle" id="theme-btn" aria-label="切换主题" title="切换深浅色主题">☀️</button>
+        <button class="theme-toggle" id="theme-btn" aria-label="切换主题" title="切换深浅色主题">🌙</button>
         <span class="header-time" id="header-time"></span>
       </div>
     </div>
@@ -359,44 +373,38 @@
 
     <div class="tools-scroll" id="tools-scroll">
       <div id="tools-container"></div>
+    </div>
 
-      <!-- 产出物（常用网站下方） -->
-      <section class="wb-output-section">
-        <div class="wb-section-head">
-          <h2 class="wb-section-title">产出物</h2>
-          <span class="wb-section-sub" id="output-count"></span>
+    <!-- 日历与任务（主区下方） -->
+    <div class="main-widgets" id="main-widgets">
+      <div class="widget-row">
+        <div class="widget-block">
+          <div class="widget-header"><h3>日历</h3></div>
+          <div class="month-nav">
+            <button id="cal-prev" aria-label="上月">&larr;</button>
+            <span id="cal-month-label"></span>
+            <button id="cal-next" aria-label="下月">&rarr;</button>
+          </div>
+          <div class="calendar-mini" id="calendar-grid"></div>
         </div>
-        <div id="output-list"></div>
-      </section>
-    </div>
-  </div>
-
-  <div class="side-scroll" id="side-default">
-    <div class="side-block">
-      <div class="side-block-header"><h3>日历</h3></div>
-      <div class="month-nav">
-        <button id="cal-prev" aria-label="上月">&larr;</button>
-        <span id="cal-month-label"></span>
-        <button id="cal-next" aria-label="下月">&rarr;</button>
+        <div class="widget-block">
+          <div class="widget-header">
+            <h3 id="task-block-title">任务</h3>
+            <span class="count" id="task-count">0</span>
+          </div>
+          <div class="task-list" id="task-list"></div>
+          <div class="add-task-row" id="add-task-row">
+            <span class="add-task-plus">+</span>
+            <input class="add-task-input" id="add-task-input" type="text" placeholder="添加任务，回车确认..." autocomplete="off">
+          </div>
+          <div class="empty-state" id="task-empty" style="display:none">暂无任务</div>
+        </div>
       </div>
-      <div class="calendar-mini" id="calendar-grid"></div>
-    </div>
-    <div class="side-block">
-      <div class="side-block-header">
-        <h3 id="task-block-title">任务</h3>
-        <span class="count" id="task-count">0</span>
-      </div>
-      <div class="task-list" id="task-list"></div>
-      <div class="add-task-row" id="add-task-row">
-        <span class="add-task-plus">+</span>
-        <input class="add-task-input" id="add-task-input" type="text" placeholder="添加任务，回车确认..." autocomplete="off">
-      </div>
-      <div class="empty-state" id="task-empty" style="display:none">暂无任务</div>
     </div>
   </div>
 
   <div class="detail-panel" id="side-detail">
-    <button class="detail-back" id="detail-back">&larr; 返回任务列表</button>
+    <button class="detail-back" id="detail-back">&larr; 返回产出物</button>
     <div class="detail-icon" id="detail-icon"></div>
     <div class="detail-title" id="detail-title"></div>
     <div class="detail-url" id="detail-url"></div>
@@ -415,9 +423,8 @@
     </div>
   </div>
 
-  <!-- 产出物详情面板（右侧分栏） -->
-  <div class="output-panel" id="side-output">
-    <button class="detail-back wb-output-back" id="output-back">&larr; 返回工作台</button>
+  <!-- 产出物详情面板（右侧分栏，默认展示全部产出物列表） -->
+  <div class="output-panel visible" id="side-output">
     <div class="wb-output-frame">
       <div id="output-doc-container"></div>
     </div>
