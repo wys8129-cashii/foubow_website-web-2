@@ -258,21 +258,21 @@
 </footer>
 
 <!-- 联系我们弹窗 -->
-<div id="contact-modal" class="fixed inset-0 z-[70] hidden" aria-hidden="true">
+<div id="contact-modal" class="fixed inset-0 hidden" style="z-index:9999;" aria-hidden="true">
   <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" data-modal-close></div>
-  <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
-    <div class="bg-surface rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center border border-outline-variant/20">
-      <div class="flex items-center justify-between mb-4">
+  <div class="relative flex items-center justify-center min-h-screen p-4" style="z-index:1;">
+    <div class="bg-surface rounded-2xl shadow-2xl w-full max-w-[300px] p-5 text-center border border-outline-variant/20">
+      <div class="flex items-center justify-between mb-3">
         <h3 class="font-title-md text-title-md text-on-surface font-semibold">联系我们</h3>
         <button type="button" data-modal-close class="w-8 h-8 rounded-full hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant transition-colors" aria-label="关闭">
           <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
       </div>
-      <p class="text-on-surface-variant text-sm mb-5">扫码添加微信，随时沟通产品与合作</p>
-      <div class="mb-5">
-        <img src="/images/wechat-qr.png" alt="微信二维码" class="w-48 h-48 mx-auto rounded-xl border border-outline-variant/20 object-contain bg-white">
+      <p class="text-on-surface-variant text-sm mb-4">扫码添加微信，随时沟通产品与合作</p>
+      <div class="mb-4">
+        <img src="/images/wechat-qr.png" alt="微信二维码" class="w-40 h-40 mx-auto rounded-xl border border-outline-variant/20 object-contain bg-white">
       </div>
-      <div class="bg-surface-container-lowest rounded-xl p-4 flex items-center justify-between gap-3">
+      <div class="bg-surface-container-lowest rounded-xl p-3 flex items-center justify-between gap-3">
         <div class="text-left">
           <p class="text-xs text-on-surface-variant mb-0.5">微信号</p>
           <p id="wechat-id" class="font-title-md text-title-md text-primary font-semibold">KK5320fun</p>
@@ -287,7 +287,7 @@
 </div>
 
 <!-- 轻提示 toast -->
-<div id="toast" class="fixed top-24 left-1/2 -translate-x-1/2 z-[60] hidden max-w-[90vw] px-5 py-3 rounded-xl bg-on-surface text-surface text-body-md shadow-xl"></div>
+<div id="toast" class="fixed top-24 left-1/2 -translate-x-1/2 hidden max-w-[90vw] px-5 py-3 rounded-xl bg-on-surface text-surface text-body-md shadow-xl" style="z-index:9998;"></div>
 
 <!-- 回到顶部悬浮按钮 -->
 <button id="back-to-top" class="fixed bottom-8 right-8 z-50 hidden w-12 h-12 rounded-full bg-primary text-on-primary shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center" aria-label="回到顶部" onclick="window.scrollToTop()">
