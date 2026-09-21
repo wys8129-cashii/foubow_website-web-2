@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
     { id: 8, title: 'Slack', url: 'https://slack.com', icon: 'slack', color: '#4a154b', category: '协作工具' }
   ];
 
-  function saveData() { try { localStorage.setItem('workspace_data', JSON.stringify({ tools: tools, tasks: tasks, nextId: nextId, nextToolId: nextToolId, theme: document.documentElement.getAttribute('data-theme') })); } catch(e) {} }
+  function saveData() { try { localStorage.setItem('workspace_data', JSON.stringify({ tools: tools, tasks: tasks, nextId: nextId, nextToolId: nextToolId, categories: CATEGORIES, theme: document.documentElement.getAttribute('data-theme') })); } catch(e) {} }
   function deepCloneDefaults() { return defaultTools.map(function(t) { return Object.assign({}, t); }); }
   function loadData() {
     try {
@@ -39,8 +39,11 @@ document.addEventListener('DOMContentLoaded', function() {
       if (raw) {
         var data = JSON.parse(raw);
         var t = data.tools;
+        if (Array.isArray(data.categories) && data.categories.length > 0) {
+          CATEGORIES = data.categories.slice();
+        }
         if (Array.isArray(t) && t.length > 0 && typeof t[0].id === 'number') {
-          t.forEach(function(x) { if (!x.category) x.category = CATEGORIES[CATEGORIES.length - 1]; });
+          t.forEach(function(x) { if (!x.category || CATEGORIES.indexOf(x.category) === -1) x.category = CATEGORIES[CATEGORIES.length - 1]; });
           return { tools: t, tasks: data.tasks || [], nextId: data.nextId || 1, nextToolId: data.nextToolId || defaultTools.length + 1 };
         }
       }
@@ -122,18 +125,144 @@ document.addEventListener('DOMContentLoaded', function() {
     var h = '<button class="cat-tab' + (activeCat === '__all__' ? ' active' : '') + '" data-cat="__all__">全部<span class="count">' + total + '</span></button>';
     CATEGORIES.forEach(function(c) {
       var n = counts[c] || 0;
-      if (n > 0) h += '<button class="cat-tab' + (activeCat === c ? ' active' : '') + '" data-cat="' + c + '">' + c + '<span class="count">' + n + '</span></button>';
+      if (n > 0) h += '<button class="cat-tab' + (activeCat === c ? ' active' : '') + '" data-cat="' + escapeHtml(c) + '">' + escapeHtml(c) + '<span class="count">' + n + '</span></button>';
     });
+    h += '<button class="cat-manage" id="cat-manage-btn" title="管理分类">＋ 分类</button>';
     document.getElementById('cat-tabs').innerHTML = h;
   }
 
   document.getElementById('cat-tabs').addEventListener('click', function(e) {
+    if (e.target.closest('#cat-manage-btn')) { openCatModal(); return; }
     var btn = e.target.closest('.cat-tab');
     if (!btn) return;
     activeCat = btn.getAttribute('data-cat');
     renderCatTabs();
     renderTools();
   });
+
+  // ── Category management (新增 / 编辑 / 删除) ──
+  var catModal = document.getElementById('cat-modal');
+  var catModalList = document.getElementById('cat-modal-list');
+  var catNewInput = document.getElementById('cat-new-input');
+  var catAddBtn = document.getElementById('cat-add-btn');
+
+  function getCatToolCount(cat) { var n = 0; tools.forEach(function(t){ if (t.category === cat) n++; }); return n; }
+
+  function refreshOpenDetail() {
+    if (sideDetail.classList.contains('visible') && activeToolId != null) {
+      var tool = null;
+      for (var i = 0; i < tools.length; i++) { if (tools[i].id === activeToolId) { tool = tools[i]; break; } }
+      if (tool) showDetail(tool);
+    }
+  }
+
+  function openCatModal() { renderCatModal(); catModal.classList.add('open'); }
+  function closeCatModal() { catModal.classList.remove('open'); }
+
+  function renderCatModal() {
+    var h = '';
+    CATEGORIES.forEach(function(c) {
+      var n = getCatToolCount(c);
+      h += '<div class="cat-row" data-cat="' + escapeHtml(c) + '">' +
+             '<div class="cat-row-main">' +
+               '<span class="cat-row-name">' + escapeHtml(c) + '</span>' +
+               '<span class="cat-row-count">' + n + ' 个工具</span>' +
+             '</div>' +
+             '<div class="cat-row-actions">' +
+               '<button class="cat-act" data-act="rename">重命名</button>' +
+               '<button class="cat-act danger" data-act="delete"' + (CATEGORIES.length <= 1 ? ' disabled' : '') + '>删除</button>' +
+             '</div>' +
+           '</div>';
+    });
+    catModalList.innerHTML = h;
+  }
+
+  function addCategory(name) {
+    name = (name || '').trim();
+    if (!name) { showToast('请输入分类名称'); return; }
+    if (CATEGORIES.indexOf(name) !== -1) { showToast('分类已存在'); return; }
+    CATEGORIES.push(name);
+    saveData(); renderCatTabs(); openCatModal();
+  }
+
+  function commitRename(oldName, newName) {
+    newName = (newName || '').trim();
+    if (!newName) { showToast('名称不能为空'); return; }
+    if (newName === oldName) { renderCatModal(); return; }
+    if (CATEGORIES.indexOf(newName) !== -1) { showToast('分类已存在'); return; }
+    var idx = CATEGORIES.indexOf(oldName);
+    if (idx === -1) return;
+    CATEGORIES[idx] = newName;
+    tools.forEach(function(t){ if (t.category === oldName) t.category = newName; });
+    saveData(); renderCatTabs(); renderTools(); refreshOpenDetail(); openCatModal();
+  }
+
+  function deleteCategory(name, moveTo) {
+    if (CATEGORIES.length <= 1) { showToast('至少保留一个分类'); return; }
+    var others = CATEGORIES.filter(function(c){ return c !== name; });
+    if (!moveTo || others.indexOf(moveTo) === -1) moveTo = others[0];
+    tools.forEach(function(t){ if (t.category === name) t.category = moveTo; });
+    if (activeCat === name) activeCat = '__all__';
+    var idx = CATEGORIES.indexOf(name);
+    if (idx !== -1) CATEGORIES.splice(idx, 1);
+    saveData(); renderCatTabs(); renderTools(); refreshOpenDetail(); openCatModal();
+  }
+
+  function startRename(row, cat) {
+    if (row.querySelector('.cat-rename-input')) return;
+    var nameEl = row.querySelector('.cat-row-name');
+    var input = document.createElement('input');
+    input.className = 'cat-rename-input';
+    input.value = cat;
+    nameEl.replaceWith(input);
+    input.focus(); input.select();
+    var actions = row.querySelector('.cat-row-actions');
+    actions.innerHTML = '<button class="cat-act" data-act="rename-save">保存</button><button class="cat-act" data-act="rename-cancel">取消</button>';
+    input.addEventListener('keydown', function(ev){
+      if (ev.key === 'Enter') commitRename(cat, input.value);
+      else if (ev.key === 'Escape') renderCatModal();
+    });
+  }
+
+  function startDelete(row, cat) {
+    if (CATEGORIES.length <= 1) { showToast('至少保留一个分类'); return; }
+    var others = CATEGORIES.filter(function(c){ return c !== cat; });
+    var sel = document.createElement('select');
+    sel.className = 'cat-move-select';
+    others.forEach(function(c){ var o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+    var confirmBtn = document.createElement('button');
+    confirmBtn.className = 'cat-act danger'; confirmBtn.textContent = '确认删除'; confirmBtn.setAttribute('data-act', 'delete-confirm');
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'cat-act'; cancelBtn.textContent = '取消'; cancelBtn.setAttribute('data-act', 'delete-cancel');
+    var info = document.createElement('div');
+    info.className = 'cat-row-move';
+    info.innerHTML = '<span class="cat-move-label">将 ' + getCatToolCount(cat) + ' 个工具移动到</span>';
+    info.appendChild(sel); info.appendChild(confirmBtn); info.appendChild(cancelBtn);
+    row.querySelector('.cat-row-main').style.display = 'none';
+    row.querySelector('.cat-row-actions').style.display = 'none';
+    row.appendChild(info);
+  }
+
+  catModalList.addEventListener('click', function(e) {
+    var row = e.target.closest('.cat-row');
+    if (!row) return;
+    var cat = row.getAttribute('data-cat');
+    var btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    var act = btn.getAttribute('data-act');
+    if (act === 'rename') startRename(row, cat);
+    else if (act === 'rename-save') commitRename(cat, row.querySelector('.cat-rename-input').value);
+    else if (act === 'rename-cancel') renderCatModal();
+    else if (act === 'delete') startDelete(row, cat);
+    else if (act === 'delete-confirm') { var sel = row.querySelector('.cat-move-select'); deleteCategory(cat, sel ? sel.value : null); }
+    else if (act === 'delete-cancel') renderCatModal();
+  });
+
+  document.getElementById('cat-modal-close').addEventListener('click', closeCatModal);
+  catModal.addEventListener('click', function(e){ if (e.target === catModal) closeCatModal(); });
+  if (catAddBtn) catAddBtn.addEventListener('click', function(){ addCategory(catNewInput.value); catNewInput.value = ''; });
+  if (catNewInput) catNewInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') { addCategory(catNewInput.value); catNewInput.value = ''; } });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && catModal.classList.contains('open')) closeCatModal(); });
 
   // ── Drag & Drop state ──
   var dragData = null;
@@ -579,7 +708,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     } catch (e) {}
     var id = nextToolId++;
-    tools.push({ id: id, title: title, url: url, icon: icon, color: color, category: '效率工具' });
+    tools.push({ id: id, title: title, url: url, icon: icon, color: color, category: CATEGORIES[0] });
     favSet.add(key);
     saveFavSet(); saveData();
     renderTools();
