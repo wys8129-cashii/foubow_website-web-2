@@ -4,8 +4,16 @@
 <link rel="stylesheet" href="/css/tailwind.css">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <style>
-  /* 右上角「联系开发者」在桌面端显示，移动端隐藏（tailwind.css 未生成 md:inline-flex） */
-  .header-contact-btn { display: none; }
+  /* 右上角「联系开发者」：衬线斜体，明显区别于导航黑体；桌面端显示，移动端隐藏 */
+  .header-contact-btn {
+    display: none;
+    font-family: "Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", Georgia, "Times New Roman", serif !important;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: 0.03em;
+    text-decoration: none !important;
+  }
+  .header-contact-btn:hover { text-decoration: none !important; }
   @media (min-width: 768px) {
     .header-contact-btn { display: inline-flex !important; }
   }
@@ -28,7 +36,7 @@
 </button>
 </div>
 <div class="flex items-center gap-4" id="auth-buttons">
-<button type="button" id="header-contact-dev-btn" class="header-contact-btn items-center text-body-md text-primary hover:text-primary/80 hover:underline decoration-dotted underline-offset-4 transition-colors cursor-pointer" style="font-family: Georgia, 'Times New Roman', 'Songti SC', 'STSong', 'SimSun', serif; font-style: italic; letter-spacing: 0.02em;">联系开发者</button>
+<button type="button" id="header-contact-dev-btn" class="header-contact-btn items-center text-body-md text-primary hover:text-primary/80 transition-colors cursor-pointer">联系开发者</button>
 <a href="/login.html" id="login-btn" class="hidden md:block px-6 py-2 text-primary font-medium hover:bg-primary/5 rounded-full transition-all cursor-pointer">登录</a>
 <a href="/register.html" id="register-btn" class="px-6 py-2 bg-primary text-on-primary font-medium rounded-full shadow-lg hover:shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer">注册</a>
 <a href="#" id="logout-btn" class="hidden px-6 py-2 bg-primary text-on-primary font-medium rounded-full shadow-lg hover:shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer">退出登录</a>
