@@ -97,6 +97,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // 产出物面板相关元素
   var sideOutput = document.getElementById('side-output');
   var outputContainer = document.getElementById('output-doc-container');
+  var outputListEl = document.getElementById('output-list');
+  var outputCountEl = document.getElementById('output-count');
+  var outputBackBtn = document.getElementById('output-back');
 
   function updateClock() {
     headerTime.textContent = new Date().toLocaleString('zh-CN', { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
@@ -378,7 +381,6 @@ document.addEventListener('DOMContentLoaded', function() {
     saveCurrentNotes();
     activeToolId = null;
     sideDetail.classList.remove('visible');
-    sideOutput.classList.add('visible'); // 返回产出物面板
     renderTools();
   }
   function hideDetailQuick() { hideDetail(); }
@@ -481,37 +483,117 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('cal-next').addEventListener('click', function() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); });
   toolSearch.addEventListener('input', function() { renderTools(); });
 
-  // ===== 产出物模块（复用 OutputDocs，与「我的素材」一致） =====
-  function renderOutputAll() {
-    if (!outputContainer || !window.OutputDocs) return;
-    if (OutputDocs.resetView) OutputDocs.resetView();
-    OutputDocs.openAll(outputContainer, {
-      onClose: function() {
-        // 关闭按钮保持当前面板，重新渲染全部视图即可
-        renderOutputAll();
-      }
+  // ===== 产出物模块（主区三列分类 + 右侧只读详情） =====
+  function escOut(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+  function renderOutputList() {
+    if (!outputListEl) return;
+    var groups = (window.OutputDocs && OutputDocs.allGroups) ? OutputDocs.allGroups() : [];
+    var total = 0;
+    groups.forEach(function(g) { total += (g.docs || []).length; });
+    outputCountEl.textContent = total ? (total + ' 个文档') : '';
+    if (!groups.length) {
+      outputListEl.innerHTML = '<div class="wb-output-empty">暂无产出物</div>';
+      return;
+    }
+    var h = '';
+    groups.forEach(function(g) {
+      h += '<div class="wb-output-col" data-col="' + escOut(g.name) + '">';
+      h += '<div class="wb-output-col-head">';
+      h += '<span class="wb-output-col-name">' + escOut(g.name) + '</span>';
+      h += '<span class="wb-output-col-count">' + (g.docs ? g.docs.length : 0) + '</span>';
+      h += '</div>';
+      h += '<div class="wb-output-docs">';
+      (g.docs || []).forEach(function(d) {
+        var n = (d.items || []).length;
+        h += '<div class="wb-output-doc" data-col="' + escOut(g.name) + '" data-doc="' + escOut(d.id) + '">' +
+             '<i data-lucide="file-text" class="ic"></i>' +
+             '<span class="t">' + escOut(d.title || '未命名文档') + '</span>' +
+             '<span class="m">' + n + ' 项</span></div>';
+      });
+      h += '</div></div>';
     });
+    outputListEl.innerHTML = h;
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function showPanel(which) {
+    if (which === 'tool') {
+      sideDetail.classList.add('visible');
+      sideOutput.classList.remove('visible');
+    } else if (which === 'output') {
+      sideDetail.classList.remove('visible');
+      sideOutput.classList.add('visible');
+    } else {
+      sideDetail.classList.remove('visible');
+      sideOutput.classList.remove('visible');
+    }
+  }
+
+  function showToast(msg) {
+    if (!copyToast) return;
+    copyToast.textContent = msg;
+    copyToast.classList.add('show');
+    setTimeout(function() { copyToast.classList.remove('show'); }, 1800);
+  }
+
+  function addToolFromRef(payload) {
+    if (!payload) return;
+    var title = payload.title || '收藏卡片';
+    var url = payload.url || '';
+    var color = '#333333';
+    var icon = 'default';
+    try {
+      if (url) {
+        var host = new URL(url).hostname.toLowerCase();
+        if (host.indexOf('github') !== -1) icon = 'github';
+        else if (host.indexOf('figma') !== -1) icon = 'figma';
+        else if (host.indexOf('notion') !== -1) icon = 'notion';
+        else if (host.indexOf('linear') !== -1) icon = 'linear';
+        else if (host.indexOf('vercel') !== -1) icon = 'vercel';
+        else if (host.indexOf('chat') !== -1 && host.indexOf('openai') !== -1) icon = 'chatgpt';
+        else if (host.indexOf('drive.google') !== -1) icon = 'gdrive';
+        else if (host.indexOf('slack') !== -1) icon = 'slack';
+      }
+    } catch (e) {}
+    var id = nextToolId++;
+    tools.push({ id: id, title: title, url: url, icon: icon, color: color, category: '效率工具' });
+    saveData();
+    renderTools();
+    showToast('已收藏到常用网站');
   }
 
   function wb_openOutputDoc(name, docId) {
-    if (!outputContainer || !window.OutputDocs) return;
+    if (!outputContainer || !window.OutputDocs || !OutputDocs.openDoc) return;
     if (OutputDocs.resetView) OutputDocs.resetView();
-    OutputDocs.renderPanel({
-      container: outputContainer,
-      collection: name,
-      onClose: function() { renderOutputAll(); }
+    OutputDocs.openDoc(outputContainer, name, docId, {
+      readOnly: true,
+      onFav: addToolFromRef,
+      onClose: function() { showPanel('default'); outputContainer.innerHTML = ''; }
     });
-    // 直接进入该文档详情视图（与「我的素材」一致）
-    setTimeout(function() {
-      var row = outputContainer.querySelector('[data-act="open-doc"][data-doc="' + docId + '"]');
-      if (row) row.click();
-    }, 0);
+    showPanel('output');
   }
+
+  function hideOutputPanel() {
+    showPanel('default');
+    if (outputContainer) outputContainer.innerHTML = '';
+  }
+
+  if (outputListEl) {
+    outputListEl.addEventListener('click', function(e) {
+      var row = e.target.closest('.wb-output-doc');
+      if (!row) return;
+      var col = row.getAttribute('data-col');
+      var doc = row.getAttribute('data-doc');
+      if (col && doc) wb_openOutputDoc(col, doc);
+    });
+  }
+  if (outputBackBtn) outputBackBtn.addEventListener('click', hideOutputPanel);
 
   // Init
   renderTools();
   renderTasks();
-  renderOutputAll();
+  renderOutputList();
   // 产出物数据可能由云端异步同步，延时重渲染一次以捕获最新数据
-  setTimeout(renderOutputAll, 1200);
+  setTimeout(renderOutputList, 1200);
 });

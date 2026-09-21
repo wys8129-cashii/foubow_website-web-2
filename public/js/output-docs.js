@@ -329,12 +329,24 @@
 
   // -------- 渲染：总入口 --------
   function renderPanel(opts) {
-    const { container, collection, onClose, onAi } = opts || {};
+    const { container, collection, onClose, onAi, onFav, readOnly } = opts || {};
     if (!container) return;
     container.__obName = collection;
-    container.__obOpts = { onClose, onAi };
+    container.__obOpts = { onClose, onAi, onFav, readOnly };
     if (!container.dataset.obBound) bindPanel(container);
     container.dataset.obBound = '1';
+    renderAll(container);
+  }
+
+  // 直接打开某篇文档（用于工作台右侧详情，跳过列表视图）
+  function openDoc(container, name, docId, opts) {
+    const { onClose, onAi, onFav, readOnly } = opts || {};
+    if (!container || !docId) return;
+    container.__obName = name;
+    container.__obOpts = { onClose, onAi, onFav, readOnly };
+    if (!container.dataset.obBound) bindPanel(container);
+    container.dataset.obBound = '1';
+    _view = { mode: 'doc', docId, collectionName: name };
     renderAll(container);
   }
 
@@ -493,6 +505,7 @@
 
   // ============ 视图 B：在线文档 ============
   function renderDocView(container, name, docId, opts) {
+    const readOnly = opts && opts.readOnly;
     const doc = getDocs(name).find(d => d.id === docId);
     if (!doc) { _view = { mode: 'list', docId: null, collectionName: null }; return renderListView(container, name, opts); }
     const isOl = doc.type === 'ol';
@@ -503,19 +516,21 @@
       <div class="panel-header">
         <div class="flex items-center gap-1 min-w-0 flex-1">
           <button class="hdr-icon-btn" data-act="back-list" title="返回" aria-label="返回">${icon('arrow-left')}</button>
-          <input class="ob-doc-title" data-doc="${escId}" value="${escTitle}" placeholder="文档标题…" />
+          ${readOnly
+            ? `<div class="ob-doc-title-static">${escTitle}</div>`
+            : `<input class="ob-doc-title" data-doc="${escId}" value="${escTitle}" placeholder="文档标题…" />`}
         </div>
         <div class="flex items-center gap-1 shrink-0">
-          <div class="output-type-toggle" data-doc="${escId}" title="切换列表类型">
+          ${!readOnly ? `<div class="output-type-toggle" data-doc="${escId}" title="切换列表类型">
             <button class="${!isOl ? 'active' : ''}" data-type="ul" data-doc="${escId}" title="无序列表">${icon('list')}</button>
             <button class="${isOl ? 'active' : ''}" data-type="ol" data-doc="${escId}" title="有序列表">${icon('list-ordered')}</button>
-          </div>
-          ${menuButton('doc-menu', '更多', [
+          </div>` : ''}
+          ${!readOnly ? menuButton('doc-menu', '更多', [
             { act: 'menu-ai-summary-doc', label: 'AI 总结', icon: 'sparkles' },
             { act: 'menu-share-doc', label: '分享', icon: 'share-2' },
             { divider: true },
             { act: 'menu-del-doc', label: '删除', icon: 'trash-2', danger: true, docAttr: docId },
-          ])}
+          ]) : ''}
         </div>
       </div>
       <div class="flex-1 overflow-y-auto scrollbar-thin ob-body" data-doc="${escId}">`;
@@ -524,8 +539,8 @@
     const stack = [];
     const blocks = items.map((it, i) => {
       while (stack.length && (it.level || 0) <= stack[stack.length - 1].level) stack.pop();
-      const hide = stack.length > 0;
-      if (it.collapsed) stack.push(it);
+      const hide = readOnly ? false : (stack.length > 0);
+      if (!readOnly && it.collapsed) stack.push(it);
       return { it, i, hide };
     });
     const numList = [];
@@ -535,32 +550,40 @@
       const level = b.it.level || 0;
       if (isOl) { if (level === 0) { curNum++; numList[i] = curNum; } else numList[i] = numList[i - 1] != null ? numList[i - 1] : 0; }
       html += b.it.kind === 'ref'
-        ? renderRefBlock(b.it, b.i, doc.id, isOl, isOl ? numList[i] : null)
-        : renderTextBlock(b.it, b.i, isOl, isOl ? numList[i] : null);
+        ? renderRefBlock(b.it, b.i, doc.id, isOl, isOl ? numList[i] : null, readOnly)
+        : renderTextBlock(b.it, b.i, isOl, isOl ? numList[i] : null, readOnly);
     });
 
-    html += `<div class="ob-add">
-      <button class="ob-add-btn" data-act="ob-add-text" data-doc="${escId}">${icon('plus', 'w-3.5 h-3.5 inline -mt-0.5 mr-1')}添加文字</button>
-    </div>
-    <div class="ob-drop-hint" data-doc="${escId}">把左侧合集卡片或中间素材卡片拖到这里，可作为卡片引用插入</div>
-    </div></div>`;
+    if (!readOnly) {
+      html += `<div class="ob-add">
+        <button class="ob-add-btn" data-act="ob-add-text" data-doc="${escId}">${icon('plus', 'w-3.5 h-3.5 inline -mt-0.5 mr-1')}添加文字</button>
+      </div>
+      <div class="ob-drop-hint" data-doc="${escId}">把左侧合集卡片或中间素材卡片拖到这里，可作为卡片引用插入</div>`;
+    }
+    html += '</div></div>';
     container.innerHTML = html;
 
     container.__shareUrl = buildShareUrl(name, doc.id);
     container.__shareScope = { name, docId: doc.id };
   }
 
-  function renderTextBlock(it, idx, isOl, num) {
+  function renderTextBlock(it, idx, isOl, num, readOnly) {
     const level = it.level || 0;
-    const collapsed = it.collapsed ? ' ob-collapsed' : '';
+    const collapsed = (!readOnly && it.collapsed) ? ' ob-collapsed' : '';
     const bulletCls = isOl ? 'ob-bullet ob-bullet-num' : 'ob-bullet';
     const marker = isOl ? `<span class="ob-num">${num}.</span>` : '';
+    if (readOnly) {
+      return `<div class="ob-block ob-text" data-idx="${idx}" style="margin-left:${level * 22}px">
+        <div class="${bulletCls}">${marker}</div>
+        <div class="ob-edit-readonly">${escHtml(it.value || '')}</div>
+      </div>`;
+    }
     return `<div class="ob-block ob-text${collapsed}" data-idx="${idx}" style="margin-left:${level * 22}px">
       <button class="${bulletCls} ob-drag-handle" draggable="true" data-act="ob-fold" data-idx="${idx}" title="拖动可排序 · 点击折叠/展开">${marker}</button>
       <div class="ob-edit" contenteditable="true" data-idx="${idx}" spellcheck="false">${escHtml(it.value || '')}</div>
     </div>`;
   }
-  function renderRefBlock(it, idx, docId, isOl, num) {
+  function renderRefBlock(it, idx, docId, isOl, num, readOnly) {
     const p = it.payload || {};
     const level = it.level || 0;
     const thumb = p.previewHTML
@@ -569,6 +592,19 @@
     const link = p.url || (p.collection ? '合集 · ' + p.collection : (p.kind === 'collection' ? '合集 · ' + (p.name || '') : ''));
     const bulletCls = isOl ? 'ob-bullet ob-bullet-num' : 'ob-bullet';
     const marker = isOl ? `<span class="ob-num">${num}.</span>` : '';
+    if (readOnly) {
+      return `<div class="ob-block ob-ref" data-idx="${idx}" style="margin-left:${level * 22}px">
+        <div class="${bulletCls}">${marker}</div>
+        <div class="ob-ref-card">
+          ${thumb}
+          <div class="ob-ref-meta">
+            <a class="ob-ref-title" href="${escHtml(p.url || '#')}" target="_blank" rel="noopener">${escHtml(p.title || '未命名素材')}</a>
+            ${link ? `<a class="ob-ref-link" href="${escHtml(p.url || '#')}" target="_blank" rel="noopener">${escHtml(link)}</a>` : ''}
+          </div>
+          <button class="ob-ref-fav" data-act="ref-fav" data-idx="${idx}" title="收藏到常用网站">${icon('star')}</button>
+        </div>
+      </div>`;
+    }
     return `<div class="ob-block ob-ref" data-idx="${idx}" style="margin-left:${level * 22}px">
       <button class="${bulletCls} ob-drag-handle" draggable="true" data-act="ob-fold" data-idx="${idx}" title="拖动可排序 · 点击折叠/展开">${marker}</button>
       <div class="ob-ref-card">
@@ -765,6 +801,8 @@
         renderAll(container); return;
       }
       if (act === 'back-list') {
+        // 只读模式（工作台右侧详情）下直接关闭
+        if (opts.readOnly) { close(); return; }
         // 从文档返回的判断：是回到当前合集列表还是全部视图？
         const cameFromAll = _view.prevMode === 'all';
         _view = { mode: cameFromAll ? 'all' : 'list', docId: null, collectionName: null };
@@ -860,6 +898,15 @@
         renderAll(container);
         return;
       }
+      // 只读模式下收藏卡片到常用网站
+      if (act === 'ref-fav') {
+        const idx = +t.dataset.idx;
+        const name = _view.collectionName || container.__obName;
+        const d = getDocs(name).find(x => x.id === _view.docId); if (!d) return;
+        const it = d.items[idx];
+        if (it && typeof opts.onFav === 'function') opts.onFav(it.payload || {});
+        return;
+      }
       if (t.dataset.type) {
         const name = _view.collectionName || container.__obName;
         setType(name, docId, t.dataset.type);
@@ -881,6 +928,7 @@
 
     // 输入
     container.addEventListener('input', (e) => {
+      if ((container.__obOpts || {}).readOnly) return;
       const t = e.target;
       if (t.classList.contains('ob-doc-title')) {
         const name = _view.collectionName || container.__obName;
@@ -900,6 +948,7 @@
 
     // 键盘
     container.addEventListener('keydown', (e) => {
+      if ((container.__obOpts || {}).readOnly) return;
       const t = e.target;
       if (!t.classList || !t.classList.contains('ob-edit')) return;
       const name = _view.collectionName || container.__obName;
@@ -937,6 +986,7 @@
 
     // 拖入
     container.addEventListener('dragover', (e) => {
+      if ((container.__obOpts || {}).readOnly) return;
       if (_view.mode !== 'doc') return;
       const ok = e.dataTransfer && (Array.from(e.dataTransfer.types).indexOf(CARD_MIME) >= 0 || Array.from(e.dataTransfer.types).indexOf('text/plain') >= 0);
       if (!ok) return;
@@ -950,6 +1000,7 @@
       if (body) body.classList.remove('drag-over');
     });
     container.addEventListener('drop', (e) => {
+      if ((container.__obOpts || {}).readOnly) return;
       if (_view.mode !== 'doc') return;
       const body = e.target.closest('.ob-body');
       if (!body) return;
@@ -1114,6 +1165,7 @@
     buildShareUrl, readShareFromHash,
     renderPanel,
     openAll,
+    openDoc,
     allGroups,
     resetView,
   };
