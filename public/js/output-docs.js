@@ -451,7 +451,7 @@
     let html = `<div class="flex flex-col h-full">
       <div class="panel-header">
         <div class="flex items-center gap-2 min-w-0 flex-1">
-          <button class="hdr-icon-btn" data-act="back-current" title="返回当前合集" aria-label="返回">${icon('arrow-left')}</button>
+          <button class="hdr-icon-btn" data-act="close" title="返回素材列表" aria-label="返回">${icon('arrow-left')}</button>
           <span class="text-sm font-medium text-[#1A1A1A] truncate">全部产出物</span>
         </div>
         <div class="flex items-center gap-1 shrink-0">
@@ -830,8 +830,8 @@
       // ---- 打开 doc ----
       if (act === 'open-doc') {
         const colForOpen = t.dataset.col || container.__obName;
-        _view.prevMode = _view.mode;
-        _view = { mode: 'doc', docId, collectionName: colForOpen };
+        const prevMode = _view.mode; // 记录来源视图（'all' 全部 / 'list' 合集），供返回判断
+        _view = { mode: 'doc', docId, collectionName: colForOpen, prevMode };
         renderAll(container);
         return;
       }
@@ -1043,6 +1043,16 @@
     });
   }
 
+  // 拖拽素材卡片时，用一个小巧的自定义预览替代浏览器默认的整卡缩放预览
+  function createMaterialDragPreview(title) {
+    const d = document.createElement('div');
+    d.className = 'fb-drag-preview';
+    d.textContent = String(title || '素材').slice(0, 14);
+    d.style.cssText = 'position:fixed;left:-9999px;top:-9999px;z-index:-1;pointer-events:none;width:128px;padding:6px 10px;background:#1A1A1A;color:#fff;border-radius:8px;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 12px rgba(0,0,0,.25);';
+    document.body.appendChild(d);
+    return d;
+  }
+
   // 全局 delegation：素材卡 dragstart
   document.addEventListener('dragstart', (e) => {
     const el = e.target.closest && e.target.closest('[data-fb-drag="material"]');
@@ -1068,9 +1078,32 @@
         }
       } catch (_) {}
       e.dataTransfer.setData(CARD_MIME, JSON.stringify(payload));
+      e.dataTransfer.setData('application/x-foubow-material', '1');
       e.dataTransfer.setData('text/plain', payload.title || payload.id);
+      // 设置小尺寸拖拽预览（避免默认把整个卡片缩放进光标）
+      const preview = createMaterialDragPreview(payload.title || payload.id);
+      if (e.dataTransfer && e.dataTransfer.setDragImage) {
+        e.dataTransfer.setDragImage(preview, 64, 16);
+      }
+      el.addEventListener('dragend', () => { if (preview && preview.parentNode) preview.parentNode.removeChild(preview); }, { once: true });
     } catch (err) {}
   });
+
+  // 全局入口：直接展示「全部合集的产出物」分组视图（功能2：素材页头部按钮）
+  function openAll(container, opts) {
+    if (!container) return;
+    container.__obName = opts && opts.collection || '';
+    container.__obOpts = { onClose: opts && opts.onClose, onAi: opts && opts.onAi };
+    if (!container.dataset.obBound) bindPanel(container);
+    container.dataset.obBound = '1';
+    _view = { mode: 'all', docId: null, collectionName: null };
+    renderAll(container);
+  }
+
+  // 重置内部视图状态（避免跨次 renderPanel 残留 _view.mode==='doc' 导致误开旧文档）
+  function resetView() {
+    _view = { mode: 'list', docId: null, collectionName: null, prevMode: null };
+  }
 
   window.OutputDocs = {
     STORAGE_KEY, CARD_MIME,
@@ -1080,6 +1113,9 @@
     parseCardPayload,
     buildShareUrl, readShareFromHash,
     renderPanel,
+    openAll,
+    allGroups,
+    resetView,
   };
 
   // 离开页面/标签隐藏时，尽力把待同步内容立即推云（防止 1.2s 防抖内刷新丢编辑）
