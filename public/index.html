@@ -9,8 +9,6 @@
   @media (min-width: 768px) {
     .header-contact-btn { display: inline-flex !important; }
   }
-  /* 联系我们弹窗宽度兜底（tailwind.css 未生成 max-w-[300px]） */
-  .contact-modal-card { max-width: 260px; }
 </style>
 </head>
 <body class="font-body-md text-on-surface">
@@ -271,7 +269,7 @@
 <div id="contact-modal" class="fixed inset-0 hidden" style="z-index:9999;" aria-hidden="true">
   <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" data-modal-close></div>
   <div class="relative flex items-center justify-center min-h-screen p-4" style="z-index:1;">
-    <div class="bg-surface rounded-2xl shadow-2xl w-full max-w-[300px] p-5 text-center border border-outline-variant/20">
+    <div class="bg-surface rounded-2xl shadow-2xl w-full p-4 text-center border border-outline-variant/20" style="max-width: 240px;">
       <div class="flex items-center justify-between mb-3">
         <h3 class="font-title-md text-title-md text-on-surface font-semibold">联系我们</h3>
         <button type="button" data-modal-close class="w-8 h-8 rounded-full hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant transition-colors" aria-label="关闭">
@@ -280,7 +278,7 @@
       </div>
       <p class="text-on-surface-variant text-sm mb-4">扫码添加微信，随时沟通产品与合作</p>
       <div class="mb-4">
-        <img src="/images/wechat-qr.png" alt="微信二维码" class="w-40 h-40 mx-auto rounded-xl border border-outline-variant/20 object-contain bg-white">
+        <img src="/images/wechat-qr.png" alt="微信二维码" class="w-36 h-36 mx-auto rounded-xl border border-outline-variant/20 object-contain bg-white">
       </div>
       <div class="bg-surface-container-lowest rounded-xl p-3 flex items-center justify-between gap-3">
         <div class="text-left">
