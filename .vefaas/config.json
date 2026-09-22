@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "function": {
+    "id": "go6ynl8s",
+    "runtime": "native-node20/v1",
+    "region": "cn-shanghai",
+    "application_id": "90c0a7ea120c"
+  },
+  "triggers": {
+    "type": "apig",
+    "system_url": "https://sm42ps27mabdnv01fac5a.apigateway-cn-shanghai.volceapi.com/",
+    "id": "gda3sin5eojjqg51em2gg"
+  }
+}
