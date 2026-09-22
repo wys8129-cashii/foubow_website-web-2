@@ -213,6 +213,14 @@
     .day-cell { font-size: 0.68rem; }
     .day-label { font-size: 0.6rem; }
     .tool-drag-handle { display: none; }
+    /* 窄屏下产出物由 3 列改为 1 列，避免卡片过窄 */
+    .wb-output-grid { grid-template-columns: 1fr; gap: 10px; }
+    .header-search { min-width: 0; flex: 1 1 auto; }
+    .wb-output-section { margin-top: 18px; padding-top: 16px; }
+    .wb-output-col { padding: 12px; }
+    .cat-modal { width: 100%; max-width: 100%; margin: 0 12px; }
+    .cat-modal-body { max-height: 60vh; }
+    .share-modal { max-width: calc(100vw - 24px); }
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
