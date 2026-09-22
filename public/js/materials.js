@@ -77,6 +77,45 @@ const fallbackMaterials = [
   },
 ];
 
+// ===== 素材数据缓存（localStorage，TTL 10min）=====
+const MAT_CACHE_KEY = 'foubow-materials-cache-v1';
+const COL_CACHE_KEY = 'foubow-collections-cache-v1';
+const CACHE_TTL = 10 * 60 * 1000;
+function saveMaterialsCache(rawData) { try { localStorage.setItem(MAT_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: rawData })); } catch (e) {} }
+function getMaterialsCache() { try { const r = JSON.parse(localStorage.getItem(MAT_CACHE_KEY) || 'null'); if (!r) return null; if (Date.now() - r.ts > CACHE_TTL) return null; return r.data; } catch (e) { return null; } }
+function saveCollectionsCache(arr) { try { localStorage.setItem(COL_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: arr })); } catch (e) {} }
+function getCollectionsCache() { try { const r = JSON.parse(localStorage.getItem(COL_CACHE_KEY) || 'null'); if (!r) return null; if (Date.now() - r.ts > CACHE_TTL) return null; return r.data; } catch (e) { return null; } }
+function invalidateMaterialsCache() { try { localStorage.removeItem(MAT_CACHE_KEY); } catch (e) {} }
+function invalidateCollectionsCache() { try { localStorage.removeItem(COL_CACHE_KEY); } catch (e) {} }
+
+// 功能4：手动刷新（顶栏按钮）——重新拉取并刷新缓存
+async function refreshData() {
+  const btn = document.querySelector('[onclick="refreshData()"]');
+  if (btn) btn.classList.add('animate-spin');
+  showLoading('正在刷新素材数据...');
+  try {
+    const [apiCollections, mats] = await Promise.all([fetchCollections(), fetchMaterials()]);
+    if (apiCollections && apiCollections.length > 0) {
+      collectionSortMap = {};
+      apiCollections.forEach(c => { collectionSortMap[c.topic] = c.sort; });
+      collections = apiCollections.slice().sort((a, b) => (a.sort ?? 999) - (b.sort ?? 999)).map(c => c.topic);
+      collections = [...new Set(collections)];
+    }
+    applyCollectionOrder();
+    materials = mats;
+    if (!collections.includes('未分类')) collections.push('未分类');
+    renderMainContent();
+    renderCollections();
+    if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+    showShareToast('素材已刷新');
+  } catch (e) {
+    console.error('刷新失败:', e);
+  } finally {
+    hideLoading();
+    if (btn) setTimeout(() => btn.classList.remove('animate-spin'), 300);
+  }
+}
+
 // 判断用户是否登录（localStorage 不可用时视为未登录）
 function isUserLoggedIn() {
   try { return localStorage.getItem('isLogin') === 'true'; } catch (e) { return false; }
@@ -99,6 +138,7 @@ async function fetchMaterials() {
     console.log('API 返回结果:', result);
     if (result.data) {
       const parsed = parseMaterialsData(result.data);
+      saveMaterialsCache(result.data);
       console.log('解析后的素材数据:', parsed);
       return parsed;
     } else {
@@ -189,7 +229,9 @@ async function fetchCollections() {
     console.log('合集列表 API 返回结果:', result);
     
     if (result.data) {
-      return parseCollectionsData(result.data);
+      const parsed = parseCollectionsData(result.data);
+      saveCollectionsCache(parsed);
+      return parsed;
     }
     
     return [];
@@ -442,7 +484,7 @@ function renderOverview() {
     } else {
       html += '<div class="mini-cards">';
       showCards.forEach(item => {
-                html += `<div class="mini-card" draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(item.collection)}" data-material-url="${escHtml(item.url || '')}" onclick="selectCard('${item.id}')" title="${escHtml(item.title)}">
+                html += `<div class="mini-card" draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(item.collection)}" data-material-url="${escHtml(item.url || '')}" onclick="onCardClick('${item.id}')" title="${escHtml(item.title)}">
           <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">
             ${item.getPreviewHTML().replace(/text-xs/g,'text-[7px]').replace(/text-\[10px\]/g,'text-[7px]').replace(/text-sm/g,'text-[8px]').replace(/text-lg/g,'text-[9px]').replace(/text-2xl/g,'text-xs').replace(/w-14 h-20/g,'w-9 h-12').replace(/w-10 h-14/g,'w-6 h-8').replace(/w-16 h-12/g,'w-10 h-8').replace(/w-8 h-6/g,'w-5 h-4').replace(/w-20 h-16/g,'w-12 h-10').replace(/w-12 h-12/g,'w-7 h-7').replace(/w-10 h-10/g,'w-6 h-6').replace(/gap-2/g,'gap-0.5').replace(/gap-1\.5/g,'gap-0.5').replace(/gap-3/g,'gap-1').replace(/p-4 text-center/g,'p-1.5 text-center').replace(/p-3/g,'p-1.5').replace(/max-w-\[200px\]/g,'max-w-[90px]').replace(/mb-3/g,'mb-1').replace(/mb-2/g,'mb-0.5').replace(/mb-1/g,'mb-0').replace(/mt-2/g,'mt-0.5').replace(/leading-relaxed/g,'leading-tight').replace(/rounded /g,'rounded-sm ').replace(/rounded-lg /g,'rounded-sm ')}
           </div>
@@ -517,7 +559,7 @@ function renderCardsInto(containerId, items, showCollection = false) {
         const collectionChip = showCollection && item.collection && item.collection !== '未分类'
           ? `<span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors shrink-0" onclick="event.stopPropagation(); selectCollection('${escHtml(item.collection).replace(/'/g, "\\'")}')" title="进入合集「${escHtml(item.collection)}」">${escHtml(item.collection)}</span>`
           : '';
-    return `<div><div draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(item.collection || '')}" data-material-url="${escHtml(item.url || '')}" onclick="selectCard('${item.id}')"
+    return `<div><div draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(item.collection || '')}" data-material-url="${escHtml(item.url || '')}" onclick="onCardClick('${item.id}')"
       class="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md ${isActive ? 'border-[#1A1A1A] shadow-md' : 'border-[#E5E7EB]'}">
       <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>
       <div class="p-3">
@@ -557,7 +599,7 @@ function renderRightPanel() {
   if (panelMode === 'detail' && selectedId) { renderPanelDetail(content); }
   else if (panelMode === 'waterfall' && panelCollection) { renderPanelWaterfall(content); }
   else if (panelMode === 'collection-output' && panelCollection) { renderCollectionOutputPanel(content); }
-  else if (panelMode === 'collection-output' && panelCollection) { renderCollectionOutputPanel(content); }
+  else if (panelMode === 'all-output') { renderAllOutputsPanel(content); }
 }
 
 function renderPanelDetail(content) {
@@ -594,8 +636,8 @@ function renderPanelDetail(content) {
     <div class="shrink-0 px-4 py-3 border-t border-[#E5E7EB]">
       <div class="flex items-center gap-1.5 text-[11px] text-[#6B7280] mb-2.5 truncate"><i data-lucide="external-link" class="w-2.5 h-2.5 shrink-0"></i><span class="truncate">${item.url}</span></div>
       <div class="flex items-center gap-1.5">
-        <button class="flex-1 py-2 px-3 rounded-lg border border-[#E5E7EB] hover:bg-[#F3F4F6] text-sm text-[#4B5563] transition-colors flex items-center justify-center gap-1" onclick="copyLink('${item.url}')"><i data-lucide="copy" class="w-3.5 h-3.5"></i> 复制链接</button>
-        <button class="flex-1 py-2 px-3 rounded-lg bg-[#1A1A1A] text-white text-sm hover:bg-[#333] transition-colors flex items-center justify-center gap-1" onclick="window.open('${item.url}','_blank')"><i data-lucide="external-link" class="w-3.5 h-3.5"></i> 打开</button>
+        <button class="flex-1 py-2 px-3 rounded-lg border border-[#E5E7EB] hover:bg-[#F3F4F6] text-sm text-[#4B5563] transition-colors flex items-center justify-center gap-1 whitespace-nowrap" onclick="copyImage('${item.coverUrl || ''}')"><i data-lucide="image" class="w-3.5 h-3.5"></i> 复制图片</button>
+        <button class="flex-1 py-2 px-3 rounded-lg border border-[#E5E7EB] hover:bg-[#F3F4F6] text-sm text-[#4B5563] transition-colors flex items-center justify-center gap-1 whitespace-nowrap" onclick="copyLink('${item.url}')"><i data-lucide="copy" class="w-3.5 h-3.5"></i> 复制链接</button>
       </div>
     </div>
   </div>`;
@@ -801,7 +843,7 @@ function renderPanelWaterfall(content) {
     html += '<div class="panel-grid">';
     items.forEach(item => {
       const isActive = item.id === selectedId;
-            html += `<div class="panel-card ${isActive ? 'ring-2 ring-[#1A1A1A]' : ''}" draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(panelCollection)}" data-material-url="${escHtml(item.url || '')}" onclick="selectCard('${item.id}')">
+            html += `<div class="panel-card ${isActive ? 'ring-2 ring-[#1A1A1A]' : ''}" draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(panelCollection)}" data-material-url="${escHtml(item.url || '')}" onclick="onCardClick('${item.id}')">
         <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML().replace(/text-xs/g,'text-[7px]').replace(/text-\[10px\]/g,'text-[7px]').replace(/text-sm/g,'text-[8px]').replace(/text-lg/g,'text-[9px]').replace(/text-2xl/g,'text-xs').replace(/w-14 h-20/g,'w-8 h-11').replace(/w-10 h-14/g,'w-5 h-7').replace(/w-16 h-12/g,'w-9 h-7').replace(/w-8 h-6/g,'w-4 h-3').replace(/w-20 h-16/g,'w-10 h-8').replace(/w-12 h-12/g,'w-6 h-6').replace(/w-10 h-10/g,'w-5 h-5').replace(/gap-2/g,'gap-0.5').replace(/gap-1\.5/g,'gap-0.5').replace(/gap-3/g,'gap-1').replace(/p-4 text-center/g,'p-1 text-center').replace(/p-3/g,'p-1').replace(/max-w-\[200px\]/g,'max-w-[80px]').replace(/mb-3/g,'mb-0.5').replace(/mb-2/g,'mb-0').replace(/mb-1/g,'mb-0').replace(/mt-2/g,'mt-0.5').replace(/leading-relaxed/g,'leading-tight')}</div>
         <div class="p-2"><div class="text-[10px] font-medium text-[#1A1A1A] leading-snug line-clamp-2">${escHtml(item.title)}</div></div>
       </div>`;
@@ -1197,8 +1239,8 @@ function renderMobilePanel() {
       <div class="shrink-0 px-4 py-3 border-t border-[#E5E7EB]">
         <div class="flex items-center gap-1.5 text-[11px] text-[#6B7280] mb-2.5 truncate"><i data-lucide="external-link" class="w-2.5 h-2.5 shrink-0"></i><span class="truncate">${item.url}</span></div>
         <div class="flex items-center gap-1.5">
-          <button class="flex-1 py-2 px-3 rounded-lg border border-[#E5E7EB] hover:bg-[#F3F4F6] text-sm text-[#4B5563] transition-colors flex items-center justify-center gap-1" onclick="copyLink('${item.url}')"><i data-lucide="copy" class="w-3.5 h-3.5"></i> 复制链接</button>
-          <button class="flex-1 py-2 px-3 rounded-lg bg-[#1A1A1A] text-white text-sm hover:bg-[#333] transition-colors flex items-center justify-center gap-1" onclick="window.open('${item.url}','_blank')"><i data-lucide="external-link" class="w-3.5 h-3.5"></i> 打开</button>
+          <button class="flex-1 py-2 px-3 rounded-lg border border-[#E5E7EB] hover:bg-[#F3F4F6] text-sm text-[#4B5563] transition-colors flex items-center justify-center gap-1 whitespace-nowrap" onclick="copyImage('${item.coverUrl || ''}')"><i data-lucide="image" class="w-3.5 h-3.5"></i> 复制图片</button>
+        <button class="flex-1 py-2 px-3 rounded-lg border border-[#E5E7EB] hover:bg-[#F3F4F6] text-sm text-[#4B5563] transition-colors flex items-center justify-center gap-1 whitespace-nowrap" onclick="copyLink('${item.url}')"><i data-lucide="copy" class="w-3.5 h-3.5"></i> 复制链接</button>
         </div>
       </div>
     </div>`;
@@ -1216,7 +1258,7 @@ function renderMobilePanel() {
       html += '<div class="collection-grid">';
       items.forEach(item => {
         const isActive = item.id === selectedId;
-                html += `<div><div draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(item.collection)}" data-material-url="${escHtml(item.url || '')}" onclick="selectCard('${item.id}')" class="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isActive ? 'border-[#1A1A1A] shadow-md' : 'border-[#E5E7EB]'}">
+                html += `<div><div draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(item.collection)}" data-material-url="${escHtml(item.url || '')}" onclick="onCardClick('${item.id}')" class="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isActive ? 'border-[#1A1A1A] shadow-md' : 'border-[#E5E7EB]'}">
           <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>
           <div class="p-3"><div class="text-sm font-medium text-[#1A1A1A] leading-snug line-clamp-2 mb-1">${item.title}</div></div>
         </div></div>`;
@@ -1230,6 +1272,14 @@ function renderMobilePanel() {
       OutputDocs.renderPanel({
         container: panel,
         collection: panelCollection,
+        onClose: () => closeMobilePanel(),
+        onAi: () => alert('AI 总结功能即将上线'),
+        isMobile: true,
+      });
+    }
+  } else if (panelMode === 'all-output') {
+    if (window.OutputDocs) {
+      window.OutputDocs.openAll(panel, {
         onClose: () => closeMobilePanel(),
         onAi: () => alert('AI 总结功能即将上线'),
         isMobile: true,
@@ -1305,6 +1355,32 @@ function openCollectionOutputs(collection) {
   }
 }
 
+// 功能2：顶部"产出物"按钮 → 右侧面板显示所有合集的产出物文档列表
+function openAllOutputs() {
+  panelMode = 'all-output';
+  selectedId = null;
+  panelCollection = null;
+  if (window.innerWidth >= 1024) {
+    document.getElementById('detail-desktop').style.display = 'flex';
+    renderRightPanel();
+  } else {
+    renderMobilePanel();
+  }
+}
+function renderAllOutputsPanel(content) {
+  if (!window.OutputDocs) {
+    content.innerHTML = '<div class="p-4 text-sm text-[#9CA3AF]">产出物模块未加载</div>';
+    return;
+  }
+  window.OutputDocs.openAll(content, {
+    onClose: () => {
+      try { closeRightPanel && closeRightPanel(); } catch (e) {}
+      try { closeMobilePanel && closeMobilePanel(); } catch (e) {}
+    },
+    onAi: () => alert('AI 总结功能即将上线'),
+  });
+}
+
 function closeMobilePanel() {
   panelMode = null;
   panelCollection = null;
@@ -1342,6 +1418,20 @@ async function selectCollection(name) {
 }
 
 function copyLink(url) { navigator.clipboard.writeText(url).then(() => alert('链接已复制')); }
+
+// 功能5：复制图片链接到剪贴板
+function copyImage(url) {
+  if (!url) { showShareToast('该素材暂无封面图'); return; }
+  if (!navigator.clipboard || !navigator.clipboard.writeText) { alert('当前浏览器不支持一键复制'); return; }
+  navigator.clipboard.writeText(url)
+    .then(() => showShareToast('已复制图片链接'))
+    .catch(err => alert('复制失败：' + err.message));
+}
+
+// 功能1：卡片点击 → 新窗口打开来源链接（保留 foubow 窗口）；无链接则打开详情
+function onCardClick(id) { selectCard(id); }
+// 卡片底部"详情"按钮：显式打开详情（功能1保留详情入口）
+function openCardDetail(id) { selectCard(id); }
 
 // 复制标签文字
 function copyTagText(tag) {
@@ -1381,6 +1471,7 @@ async function deleteMaterial(id) {
 
     // 从列表中移除
     materials = materials.filter(m => m.id !== id);
+    invalidateMaterialsCache();
     selectedId = null; panelMode = null;
     document.getElementById('detail-desktop').style.display = 'none';
     document.getElementById('detail-mobile').classList.remove('open');
@@ -1474,7 +1565,7 @@ function renderCollections() {
     const count = getMaterialsByCollection(name).length;
     const displayCount = count >= 100 ? '99+' : count;
     const hasReminder = !!getReminderConfig(name);
-    html += `<div class="collection-item relative group" draggable="true" data-collection-index="${idx}" title="长按拖动可排序">
+    html += `<div class="collection-item relative group" draggable="true" data-collection-index="${idx}" data-collection-name="${escName}" title="长按拖动可排序；把素材卡片拖到此处可改合集">
       <button onclick="selectCollection('${escName}')"
         class="w-full pl-3 pr-9 py-2 rounded-lg text-sm text-left transition-colors duration-150 flex items-center gap-2 ${
           isActive ? 'bg-white text-[#1A1A1A] font-medium shadow-sm'
@@ -1497,8 +1588,11 @@ function renderCollections() {
   container.innerHTML = html;
   lucide.createIcons();
 
-  // 拖动排序
+  // 拖动排序 + 素材拖入改合集（功能3）
+  // 仅素材卡拖入才视为「改合集」，合集自身排序（text/plain=序号）不受干扰
+  const isMaterialDrag = (e) => !!(e.dataTransfer && Array.from(e.dataTransfer.types).indexOf('application/x-foubow-material') >= 0);
   container.querySelectorAll('.collection-item').forEach((el) => {
+    const name = el.dataset.collectionName || '';
     el.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/plain', el.dataset.collectionIndex);
       e.dataTransfer.effectAllowed = 'move';
@@ -1507,10 +1601,12 @@ function renderCollections() {
     el.addEventListener('dragend', () => {
       el.classList.remove('opacity-40');
       container.querySelectorAll('.collection-item').forEach(n => {
-        n.classList.remove('border-t-2', 'border-[#1A1A1A]', 'border-b-2', 'border-[#1A1A1A]');
+        n.classList.remove('border-t-2', 'border-[#1A1A1A]', 'border-b-2', 'border-[#1A1A1A]', 'collection-drop-target');
       });
     });
+    // 合集自身排序高亮（仅在拖动合集时生效）
     el.addEventListener('dragover', (e) => {
+      if (isMaterialDrag(e)) return; // 素材拖入交给下方处理
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       const rect = el.getBoundingClientRect();
@@ -1520,9 +1616,11 @@ function renderCollections() {
       el.classList.toggle('border-[#1A1A1A]', true);
     });
     el.addEventListener('dragleave', () => {
+      if (isMaterialDrag(e)) return;
       el.classList.remove('border-t-2', 'border-b-2', 'border-[#1A1A1A]');
     });
     el.addEventListener('drop', (e) => {
+      if (isMaterialDrag(e)) return;
       e.preventDefault();
       el.classList.remove('border-t-2', 'border-b-2', 'border-[#1A1A1A]');
       const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
@@ -1532,6 +1630,25 @@ function renderCollections() {
         const isUpper = (e.clientY - rect.top) < rect.height / 2;
         const target = isUpper ? toIdx : toIdx + 1;
         reorderCollections(fromIdx, target);
+      }
+    });
+    // 素材拖入：高亮 + 松手调用工作流改合集
+    el.addEventListener('dragover', (e) => {
+      if (!isMaterialDrag(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      el.classList.add('collection-drop-target');
+    });
+    el.addEventListener('dragleave', () => {
+      el.classList.remove('collection-drop-target');
+    });
+    el.addEventListener('drop', (e) => {
+      if (!isMaterialDrag(e)) return;
+      e.preventDefault();
+      el.classList.remove('collection-drop-target');
+      const p = OutputDocs.parseCardPayload(e);
+      if (p && p.kind === 'material') {
+        moveMaterialToCollection(p.id, p.title, name);
       }
     });
   });
@@ -1730,6 +1847,7 @@ async function changeCollection() {
     const result = await response.json();
     if (result.code === 1) {
       item.collection = newCollection;
+      invalidateMaterialsCache();
       renderMainContent();
       renderRightPanel();
       renderMobilePanel();
@@ -1743,6 +1861,38 @@ async function changeCollection() {
     console.error('更新合集错误:', error);
     hideLoading();
     alert('更新失败：' + error.message);
+  }
+}
+
+// 功能3：拖拽素材卡片到合集 → 调 move 工作流修改所属合集
+async function moveMaterialToCollection(id, title, targetName) {
+  if (!title || !targetName) return;
+  const item = getMaterialById(id);
+  if (item && item.collection === targetName) { showShareToast('该素材已在「' + targetName + '」'); return; }
+  try {
+    showLoading('正在移动素材到「' + targetName + '」...');
+    const response = await fetchWithTimeout('/api/coze/materials/move', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ title, topic: targetName }),
+    });
+    const result = await response.json();
+    hideLoading();
+    if (result.code === 1) {
+      if (item) item.collection = targetName;
+      invalidateMaterialsCache();
+      renderMainContent();
+      renderCollections();
+      if (panelMode === 'detail' && selectedId === id) renderRightPanel();
+      if (panelMode === 'waterfall' && panelCollection) renderRightPanel();
+      showShareToast('已移动到「' + targetName + '」');
+    } else {
+      alert('移动失败：' + (result.msg || '未知错误'));
+    }
+  } catch (error) {
+    console.error('移动素材错误:', error);
+    hideLoading();
+    alert('移动失败：' + error.message);
   }
 }
 
@@ -1805,6 +1955,8 @@ async function confirmUpload() {
     uploadImages = [];
     closeUploadModal();
     renderUploadList();
+    invalidateMaterialsCache();
+    invalidateCollectionsCache();
     materials = await fetchMaterials();
     renderMainContent();
   } catch (error) {
@@ -2198,6 +2350,28 @@ async function init() {
   if (nicknameEl) nicknameEl.textContent = nickname;
   if (avatarEl && avatar) {
     avatarEl.innerHTML = `<img src="${avatar}" alt="头像" class="w-full h-full object-cover" />`;
+  }
+
+  // 1.5 优先从缓存即时渲染（功能4：首屏不等待网络）
+  const cachedCols = getCollectionsCache();
+  const cachedMats = getMaterialsCache();
+  const hasCache = !!(cachedCols && cachedCols.length) || !!(cachedMats && cachedMats.data);
+  if (cachedCols && cachedCols.length) {
+    collectionSortMap = {};
+    cachedCols.forEach(c => { collectionSortMap[c.topic] = c.sort; });
+    collections = cachedCols.slice().sort((a, b) => (a.sort ?? 999) - (b.sort ?? 999)).map(c => c.topic);
+    collections = [...new Set(collections)];
+    applyCollectionOrder();
+  }
+  if (cachedMats && cachedMats.data) {
+    try { materials = parseMaterialsData(cachedMats.data); } catch (e) { materials = []; }
+  }
+  if (hasCache) {
+    if (!collections.includes('未分类')) collections.push('未分类');
+    renderMainContent();
+    renderCollections();
+    if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+    hideLoading(); // 缓存命中：先解除 loading，后台再静默刷新
   }
 
   // 2. 加载合集列表

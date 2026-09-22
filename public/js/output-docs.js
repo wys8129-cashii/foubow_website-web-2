@@ -329,12 +329,24 @@
 
   // -------- 渲染：总入口 --------
   function renderPanel(opts) {
-    const { container, collection, onClose, onAi } = opts || {};
+    const { container, collection, onClose, onAi, onFav, readOnly, isFav } = opts || {};
     if (!container) return;
     container.__obName = collection;
-    container.__obOpts = { onClose, onAi };
+    container.__obOpts = { onClose, onAi, onFav, readOnly, isFav };
     if (!container.dataset.obBound) bindPanel(container);
     container.dataset.obBound = '1';
+    renderAll(container);
+  }
+
+  // 直接打开某篇文档（用于工作台右侧详情，跳过列表视图）
+  function openDoc(container, name, docId, opts) {
+    const { onClose, onAi, onFav, readOnly, isFav } = opts || {};
+    if (!container || !docId) return;
+    container.__obName = name;
+    container.__obOpts = { onClose, onAi, onFav, readOnly, isFav };
+    if (!container.dataset.obBound) bindPanel(container);
+    container.dataset.obBound = '1';
+    _view = { mode: 'doc', docId, collectionName: name };
     renderAll(container);
   }
 
@@ -451,7 +463,7 @@
     let html = `<div class="flex flex-col h-full">
       <div class="panel-header">
         <div class="flex items-center gap-2 min-w-0 flex-1">
-          <button class="hdr-icon-btn" data-act="back-current" title="返回当前合集" aria-label="返回">${icon('arrow-left')}</button>
+          <button class="hdr-icon-btn" data-act="close" title="返回素材列表" aria-label="返回">${icon('arrow-left')}</button>
           <span class="text-sm font-medium text-[#1A1A1A] truncate">全部产出物</span>
         </div>
         <div class="flex items-center gap-1 shrink-0">
@@ -493,6 +505,7 @@
 
   // ============ 视图 B：在线文档 ============
   function renderDocView(container, name, docId, opts) {
+    const readOnly = opts && opts.readOnly;
     const doc = getDocs(name).find(d => d.id === docId);
     if (!doc) { _view = { mode: 'list', docId: null, collectionName: null }; return renderListView(container, name, opts); }
     const isOl = doc.type === 'ol';
@@ -503,19 +516,21 @@
       <div class="panel-header">
         <div class="flex items-center gap-1 min-w-0 flex-1">
           <button class="hdr-icon-btn" data-act="back-list" title="返回" aria-label="返回">${icon('arrow-left')}</button>
-          <input class="ob-doc-title" data-doc="${escId}" value="${escTitle}" placeholder="文档标题…" />
+          ${readOnly
+            ? `<div class="ob-doc-title-static">${escTitle}</div>`
+            : `<input class="ob-doc-title" data-doc="${escId}" value="${escTitle}" placeholder="文档标题…" />`}
         </div>
         <div class="flex items-center gap-1 shrink-0">
-          <div class="output-type-toggle" data-doc="${escId}" title="切换列表类型">
+          ${!readOnly ? `<div class="output-type-toggle" data-doc="${escId}" title="切换列表类型">
             <button class="${!isOl ? 'active' : ''}" data-type="ul" data-doc="${escId}" title="无序列表">${icon('list')}</button>
             <button class="${isOl ? 'active' : ''}" data-type="ol" data-doc="${escId}" title="有序列表">${icon('list-ordered')}</button>
-          </div>
-          ${menuButton('doc-menu', '更多', [
+          </div>` : ''}
+          ${!readOnly ? menuButton('doc-menu', '更多', [
             { act: 'menu-ai-summary-doc', label: 'AI 总结', icon: 'sparkles' },
             { act: 'menu-share-doc', label: '分享', icon: 'share-2' },
             { divider: true },
             { act: 'menu-del-doc', label: '删除', icon: 'trash-2', danger: true, docAttr: docId },
-          ])}
+          ]) : ''}
         </div>
       </div>
       <div class="flex-1 overflow-y-auto scrollbar-thin ob-body" data-doc="${escId}">`;
@@ -524,8 +539,8 @@
     const stack = [];
     const blocks = items.map((it, i) => {
       while (stack.length && (it.level || 0) <= stack[stack.length - 1].level) stack.pop();
-      const hide = stack.length > 0;
-      if (it.collapsed) stack.push(it);
+      const hide = readOnly ? false : (stack.length > 0);
+      if (!readOnly && it.collapsed) stack.push(it);
       return { it, i, hide };
     });
     const numList = [];
@@ -535,40 +550,64 @@
       const level = b.it.level || 0;
       if (isOl) { if (level === 0) { curNum++; numList[i] = curNum; } else numList[i] = numList[i - 1] != null ? numList[i - 1] : 0; }
       html += b.it.kind === 'ref'
-        ? renderRefBlock(b.it, b.i, doc.id, isOl, isOl ? numList[i] : null)
-        : renderTextBlock(b.it, b.i, isOl, isOl ? numList[i] : null);
+        ? renderRefBlock(b.it, b.i, doc.id, isOl, isOl ? numList[i] : null, readOnly, opts)
+        : renderTextBlock(b.it, b.i, isOl, isOl ? numList[i] : null, readOnly);
     });
 
-    html += `<div class="ob-add">
-      <button class="ob-add-btn" data-act="ob-add-text" data-doc="${escId}">${icon('plus', 'w-3.5 h-3.5 inline -mt-0.5 mr-1')}添加文字</button>
-    </div>
-    <div class="ob-drop-hint" data-doc="${escId}">把左侧合集卡片或中间素材卡片拖到这里，可作为卡片引用插入</div>
-    </div></div>`;
+    if (!readOnly) {
+      html += `<div class="ob-add">
+        <button class="ob-add-btn" data-act="ob-add-text" data-doc="${escId}">${icon('plus', 'w-3.5 h-3.5 inline -mt-0.5 mr-1')}添加文字</button>
+      </div>
+      <div class="ob-drop-hint" data-doc="${escId}">把左侧合集卡片或中间素材卡片拖到这里，可作为卡片引用插入</div>`;
+    }
+    html += '</div></div>';
     container.innerHTML = html;
 
     container.__shareUrl = buildShareUrl(name, doc.id);
     container.__shareScope = { name, docId: doc.id };
   }
 
-  function renderTextBlock(it, idx, isOl, num) {
+  function renderTextBlock(it, idx, isOl, num, readOnly) {
     const level = it.level || 0;
-    const collapsed = it.collapsed ? ' ob-collapsed' : '';
+    const collapsed = (!readOnly && it.collapsed) ? ' ob-collapsed' : '';
     const bulletCls = isOl ? 'ob-bullet ob-bullet-num' : 'ob-bullet';
     const marker = isOl ? `<span class="ob-num">${num}.</span>` : '';
+    if (readOnly) {
+      return `<div class="ob-block ob-text" data-idx="${idx}" style="margin-left:${level * 22}px">
+        <div class="${bulletCls}">${marker}</div>
+        <div class="ob-edit-readonly">${escHtml(it.value || '')}</div>
+      </div>`;
+    }
     return `<div class="ob-block ob-text${collapsed}" data-idx="${idx}" style="margin-left:${level * 22}px">
       <button class="${bulletCls} ob-drag-handle" draggable="true" data-act="ob-fold" data-idx="${idx}" title="拖动可排序 · 点击折叠/展开">${marker}</button>
       <div class="ob-edit" contenteditable="true" data-idx="${idx}" spellcheck="false">${escHtml(it.value || '')}</div>
     </div>`;
   }
-  function renderRefBlock(it, idx, docId, isOl, num) {
+  function renderRefBlock(it, idx, docId, isOl, num, readOnly, opts) {
     const p = it.payload || {};
     const level = it.level || 0;
-    const thumb = p.previewHTML
-      ? `<div class="ob-thumb ${escHtml(p.previewBg || '')}">${p.previewHTML}</div>`
-      : `<div class="ob-thumb ${escHtml(p.previewBg || 'ob-thumb-empty')}"></div>`;
     const link = p.url || (p.collection ? '合集 · ' + p.collection : (p.kind === 'collection' ? '合集 · ' + (p.name || '') : ''));
     const bulletCls = isOl ? 'ob-bullet ob-bullet-num' : 'ob-bullet';
     const marker = isOl ? `<span class="ob-num">${num}.</span>` : '';
+    const bg = escHtml(p.previewBg || '');
+    if (readOnly) {
+      const faved = (opts && typeof opts.isFav === 'function') ? opts.isFav(p) : false;
+      const thumb = `<div class="ob-thumb ${bg}" data-act="ref-cover" data-idx="${idx}" role="button" title="查看大图" style="cursor:zoom-in">${p.previewHTML || ''}</div>`;
+      return `<div class="ob-block ob-ref" data-idx="${idx}" style="margin-left:${level * 22}px">
+        <div class="${bulletCls}">${marker}</div>
+        <div class="ob-ref-card" data-act="ref-open" data-idx="${idx}">
+          ${thumb}
+          <div class="ob-ref-meta">
+            <a class="ob-ref-title" href="${escHtml(p.url || '#')}" target="_blank" rel="noopener">${escHtml(p.title || '未命名素材')}</a>
+            ${link ? `<a class="ob-ref-link" href="${escHtml(p.url || '#')}" target="_blank" rel="noopener">${escHtml(link)}</a>` : ''}
+          </div>
+          <button class="ob-ref-fav${faved ? ' faved' : ''}" data-act="ref-fav" data-idx="${idx}" title="${faved ? '取消收藏' : '收藏到常用网站'}">${icon('star')}</button>
+        </div>
+      </div>`;
+    }
+    const thumb = p.previewHTML
+      ? `<div class="ob-thumb ${bg}">${p.previewHTML}</div>`
+      : `<div class="ob-thumb ${bg || 'ob-thumb-empty'}"></div>`;
     return `<div class="ob-block ob-ref" data-idx="${idx}" style="margin-left:${level * 22}px">
       <button class="${bulletCls} ob-drag-handle" draggable="true" data-act="ob-fold" data-idx="${idx}" title="拖动可排序 · 点击折叠/展开">${marker}</button>
       <div class="ob-ref-card">
@@ -737,7 +776,79 @@
   }
 
   // ============ 事件 ============
+  function ensureObLightbox() {
+    let el = document.getElementById('ob-lightbox');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'ob-lightbox';
+      el.innerHTML = '<div class="ob-lightbox-backdrop"></div><div class="ob-lightbox-box"><button class="ob-lightbox-close" aria-label="关闭">&times;</button><div class="ob-lightbox-content"></div></div>';
+      document.body.appendChild(el);
+      el.addEventListener('click', (ev) => {
+        if (ev.target === el || ev.target.classList.contains('ob-lightbox-backdrop') || ev.target.classList.contains('ob-lightbox-close')) el.classList.remove('show');
+      });
+    }
+    return el;
+  }
+  function showObLightbox(html) {
+    const el = ensureObLightbox();
+    el.querySelector('.ob-lightbox-content').innerHTML = html;
+    el.classList.add('show');
+  }
+  function currentDocPayload(t, container) {
+    const name = _view.collectionName || container.__obName;
+    const d = getDocs(name).find(x => x.id === _view.docId);
+    if (!d) return null;
+    const it = d.items[+t.dataset.idx];
+    return it ? (it.payload || {}) : null;
+  }
+  function showRefCover(t, container) {
+    const p = currentDocPayload(t, container); if (!p) return;
+    const cover = p.previewHTML ? `<div class="ob-lb-cover ${escHtml(p.previewBg || '')}">${p.previewHTML}</div>` : '<div class="ob-lb-empty">无封面图</div>';
+    showObLightbox(cover);
+  }
+  function showRefDetail(t, container) {
+    const p = currentDocPayload(t, container); if (!p) return;
+    const src = p.collection ? ('合集 · ' + p.collection) : (p.kind === 'collection' ? ('合集 · ' + (p.name || '')) : (p.url || ''));
+    const cover = p.previewHTML ? `<div class="ob-lb-cover-mini ${escHtml(p.previewBg || '')}">${p.previewHTML}</div>` : '';
+    const html = `<div class="ob-lb-detail">
+      ${cover}
+      <h3 class="ob-lb-title">${escHtml(p.title || '未命名素材')}</h3>
+      ${src ? `<div class="ob-lb-src">${escHtml(src)}</div>` : ''}
+      ${(p.url && p.url !== '#') ? `<a class="ob-lb-link" href="${escHtml(p.url)}" target="_blank" rel="noopener">打开链接 ↗</a>` : ''}
+      ${p.desc ? `<p class="ob-lb-desc">${escHtml(p.desc)}</p>` : ''}
+    </div>`;
+    showObLightbox(html);
+  }
+  function injectObCss() {
+    if (window.__obCssInjected) return; window.__obCssInjected = true;
+    const s = document.createElement('style');
+    s.textContent = `
+    .ob-ref-card{cursor:default}
+    .ob-ref-fav{position:absolute;top:8px;right:8px;width:26px;height:26px;border:none;background:rgba(0,0,0,.04);border-radius:8px;color:#f5a623;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:.15s}
+    .ob-ref-card:hover .ob-ref-fav{opacity:1}
+    .ob-ref-fav.faved{opacity:1;color:#f5a623;background:rgba(245,166,35,.12)}
+    .ob-lightbox{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center}
+    .ob-lightbox.show{display:flex}
+    .ob-lightbox-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
+    .ob-lightbox-box{position:relative;max-width:92vw;max-height:92vh;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.45);display:flex;flex-direction:column}
+    .ob-lightbox-close{position:absolute;top:10px;right:12px;z-index:3;width:34px;height:34px;border:none;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;font-size:20px;line-height:1;cursor:pointer}
+    .ob-lightbox-content{overflow:auto;max-height:92vh}
+    .ob-lightbox-content img{max-width:92vw;display:block}
+    .ob-lb-cover{padding:16px;display:flex;align-items:center;justify-content:center;background:#f7f8fa}
+    .ob-lb-cover > *{transform:none!important;max-width:90vw}
+    .ob-lb-cover-mini{border-radius:12px;overflow:hidden;margin-bottom:12px}
+    .ob-lb-empty{padding:48px;color:#999;text-align:center}
+    .ob-lb-detail{padding:24px;min-width:320px;max-width:560px}
+    .ob-lb-title{font-size:16px;margin:0 0 8px;color:#111}
+    .ob-lb-src{font-size:12px;color:#888;margin-bottom:10px}
+    .ob-lb-link{display:inline-block;color:#2f7d4f;font-size:14px;text-decoration:none;margin-bottom:10px}
+    .ob-lb-desc{font-size:13px;color:#555;line-height:1.7;margin:0}
+    `;
+    document.head.appendChild(s);
+  }
+
   function bindPanel(container) {
+    injectObCss();
     function close() { if (typeof (container.__obOpts || {}).onClose === 'function') (container.__obOpts).onClose(); }
 
     container.addEventListener('click', (e) => {
@@ -746,6 +857,13 @@
       const act = t.dataset.act;
       const docId = t.dataset.doc;
       const opts = container.__obOpts || {};
+
+      // ---- 产出物卡片交互（只读详情）----
+      if (act === 'ref-cover' && _view.mode === 'doc') { showRefCover(t, container); return; }
+      if (act === 'ref-open' && _view.mode === 'doc') {
+        if (e.target.closest('a')) return; // 链接交给浏览器跳转
+        showRefDetail(t, container); return;
+      }
 
       // ---- 顶栏主操作 ----
       if (act === 'add-output') {
@@ -765,6 +883,8 @@
         renderAll(container); return;
       }
       if (act === 'back-list') {
+        // 只读模式（工作台右侧详情）下直接关闭
+        if (opts.readOnly) { close(); return; }
         // 从文档返回的判断：是回到当前合集列表还是全部视图？
         const cameFromAll = _view.prevMode === 'all';
         _view = { mode: cameFromAll ? 'all' : 'list', docId: null, collectionName: null };
@@ -830,8 +950,8 @@
       // ---- 打开 doc ----
       if (act === 'open-doc') {
         const colForOpen = t.dataset.col || container.__obName;
-        _view.prevMode = _view.mode;
-        _view = { mode: 'doc', docId, collectionName: colForOpen };
+        const prevMode = _view.mode; // 记录来源视图（'all' 全部 / 'list' 合集），供返回判断
+        _view = { mode: 'doc', docId, collectionName: colForOpen, prevMode };
         renderAll(container);
         return;
       }
@@ -860,6 +980,16 @@
         renderAll(container);
         return;
       }
+      // 只读模式下收藏卡片到常用网站
+      if (act === 'ref-fav') {
+        const idx = +t.dataset.idx;
+        const name = _view.collectionName || container.__obName;
+        const d = getDocs(name).find(x => x.id === _view.docId); if (!d) return;
+        const it = d.items[idx];
+        if (it && typeof opts.onFav === 'function') opts.onFav(it.payload || {});
+        renderAll(container); // 刷新收藏按钮状态（faved / 取消）
+        return;
+      }
       if (t.dataset.type) {
         const name = _view.collectionName || container.__obName;
         setType(name, docId, t.dataset.type);
@@ -881,6 +1011,7 @@
 
     // 输入
     container.addEventListener('input', (e) => {
+      if ((container.__obOpts || {}).readOnly) return;
       const t = e.target;
       if (t.classList.contains('ob-doc-title')) {
         const name = _view.collectionName || container.__obName;
@@ -900,6 +1031,7 @@
 
     // 键盘
     container.addEventListener('keydown', (e) => {
+      if ((container.__obOpts || {}).readOnly) return;
       const t = e.target;
       if (!t.classList || !t.classList.contains('ob-edit')) return;
       const name = _view.collectionName || container.__obName;
@@ -937,6 +1069,7 @@
 
     // 拖入
     container.addEventListener('dragover', (e) => {
+      if ((container.__obOpts || {}).readOnly) return;
       if (_view.mode !== 'doc') return;
       const ok = e.dataTransfer && (Array.from(e.dataTransfer.types).indexOf(CARD_MIME) >= 0 || Array.from(e.dataTransfer.types).indexOf('text/plain') >= 0);
       if (!ok) return;
@@ -950,6 +1083,7 @@
       if (body) body.classList.remove('drag-over');
     });
     container.addEventListener('drop', (e) => {
+      if ((container.__obOpts || {}).readOnly) return;
       if (_view.mode !== 'doc') return;
       const body = e.target.closest('.ob-body');
       if (!body) return;
@@ -1043,6 +1177,16 @@
     });
   }
 
+  // 拖拽素材卡片时，用一个小巧的自定义预览替代浏览器默认的整卡缩放预览
+  function createMaterialDragPreview(title) {
+    const d = document.createElement('div');
+    d.className = 'fb-drag-preview';
+    d.textContent = String(title || '素材').slice(0, 14);
+    d.style.cssText = 'position:fixed;left:-9999px;top:-9999px;z-index:-1;pointer-events:none;width:128px;padding:6px 10px;background:#1A1A1A;color:#fff;border-radius:8px;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 12px rgba(0,0,0,.25);';
+    document.body.appendChild(d);
+    return d;
+  }
+
   // 全局 delegation：素材卡 dragstart
   document.addEventListener('dragstart', (e) => {
     const el = e.target.closest && e.target.closest('[data-fb-drag="material"]');
@@ -1068,9 +1212,32 @@
         }
       } catch (_) {}
       e.dataTransfer.setData(CARD_MIME, JSON.stringify(payload));
+      e.dataTransfer.setData('application/x-foubow-material', '1');
       e.dataTransfer.setData('text/plain', payload.title || payload.id);
+      // 设置小尺寸拖拽预览（避免默认把整个卡片缩放进光标）
+      const preview = createMaterialDragPreview(payload.title || payload.id);
+      if (e.dataTransfer && e.dataTransfer.setDragImage) {
+        e.dataTransfer.setDragImage(preview, 64, 16);
+      }
+      el.addEventListener('dragend', () => { if (preview && preview.parentNode) preview.parentNode.removeChild(preview); }, { once: true });
     } catch (err) {}
   });
+
+  // 全局入口：直接展示「全部合集的产出物」分组视图（功能2：素材页头部按钮）
+  function openAll(container, opts) {
+    if (!container) return;
+    container.__obName = opts && opts.collection || '';
+    container.__obOpts = { onClose: opts && opts.onClose, onAi: opts && opts.onAi };
+    if (!container.dataset.obBound) bindPanel(container);
+    container.dataset.obBound = '1';
+    _view = { mode: 'all', docId: null, collectionName: null };
+    renderAll(container);
+  }
+
+  // 重置内部视图状态（避免跨次 renderPanel 残留 _view.mode==='doc' 导致误开旧文档）
+  function resetView() {
+    _view = { mode: 'list', docId: null, collectionName: null, prevMode: null };
+  }
 
   window.OutputDocs = {
     STORAGE_KEY, CARD_MIME,
@@ -1080,6 +1247,10 @@
     parseCardPayload,
     buildShareUrl, readShareFromHash,
     renderPanel,
+    openAll,
+    openDoc,
+    allGroups,
+    resetView,
   };
 
   // 离开页面/标签隐藏时，尽力把待同步内容立即推云（防止 1.2s 防抖内刷新丢编辑）
