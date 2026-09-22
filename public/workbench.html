@@ -189,14 +189,32 @@
   ::-webkit-scrollbar-thumb { background: oklch(0.4 0.01 255 / 0.25); border-radius: 10px; }
   ::-webkit-scrollbar-thumb:hover { background: oklch(0.5 0.01 255 / 0.4); }
 
-  @media (max-width: 768px) {
+  /* 窄桌面 / 平板 / 浏览器侧栏打开：右侧边栏移到主内容下方，产出物 2 列 */
+  @media (max-width: 1024px) {
     body { overflow: auto; }
     .app-wrapper { grid-template-columns: 1fr; grid-template-rows: auto auto; height: auto; min-height: 100vh; gap: 0; }
     .main-panel { max-height: none; overflow: visible; }
-    .side-scroll { overflow: visible; padding: 0 16px 20px; gap: 16px; }
+    .side-scroll { overflow: visible; padding: 0 20px 24px; gap: 16px; display: grid; grid-template-columns: repeat(2, 1fr); }
+    .side-scroll > .side-block { min-width: 0; }
     .detail-panel { overflow: visible; padding: 20px 16px; gap: 16px; }
     .output-panel { display: none; }
     .output-panel.visible { display: flex; }
+    .header { padding: 16px 20px 12px; }
+    .header-search { max-width: 240px; }
+    .cat-tabs { padding: 0 20px 12px; }
+    .tools-scroll { padding: 0 20px 20px; overflow: visible; max-height: none; }
+    .tools-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+    .tool-card { padding: 12px 14px; }
+    .side-block { padding: 16px; }
+    .day-cell { font-size: 0.68rem; }
+    .day-label { font-size: 0.6rem; }
+    .tool-drag-handle { display: none; }
+    .wb-output-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .wb-output-section { margin-top: 18px; padding-top: 16px; }
+    .wb-output-col { padding: 12px; }
+  }
+  /* 手机：完全堆叠，产出物 1 列 */
+  @media (max-width: 768px) {
     .header { padding: 14px 16px 10px; gap: 10px; }
     .logo { font-size: 1.05rem; }
     .header-search { max-width: 160px; flex: 0 1 auto; }
@@ -206,17 +224,15 @@
     .header-right { gap: 8px; }
     .cat-tabs { padding: 0 16px 10px; gap: 4px; }
     .cat-tab { font-size: 0.62rem; padding: 4px 10px; }
-    .tools-scroll { padding: 0 12px 16px; overflow: visible; max-height: none; }
+    .tools-scroll { padding: 0 12px 16px; }
     .tools-grid { grid-template-columns: 1fr; gap: 8px; }
-    .tool-card { padding: 12px 14px; }
+    .side-scroll { padding: 0 16px 20px; grid-template-columns: 1fr; }
     .side-block { padding: 16px; }
     .day-cell { font-size: 0.68rem; }
     .day-label { font-size: 0.6rem; }
     .tool-drag-handle { display: none; }
-    /* 窄屏下产出物由 3 列改为 1 列，避免卡片过窄 */
     .wb-output-grid { grid-template-columns: 1fr; gap: 10px; }
     .header-search { min-width: 0; flex: 1 1 auto; }
-    .wb-output-section { margin-top: 18px; padding-top: 16px; }
     .wb-output-col { padding: 12px; }
     .cat-modal { width: 100%; max-width: 100%; margin: 0 12px; }
     .cat-modal-body { max-height: 60vh; }
