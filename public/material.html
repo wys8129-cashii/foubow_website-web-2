@@ -506,6 +506,19 @@
     }
     .doc-view-all:hover .doc-view-all-count { background: #1A1A1A; color: #fff; }
 
+    /* 产出物列表：右上角悬浮"新增产出物"按钮（位于列表外部） */
+    .ob-list-fab {
+      position: absolute; top: 62px; right: 14px; z-index: 30;
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 8px 13px; border: none; border-radius: 999px;
+      background: #1A1A1A; color: #fff; font-size: 12px; font-weight: 600;
+      cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,0.20);
+      transition: all 0.15s ease;
+    }
+    .ob-list-fab:hover { background: #333; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,0.26); }
+    .ob-list-fab:active { transform: scale(0.96); }
+    .ob-list-fab i { width: 14px; height: 14px; }
+
     /* 分享弹窗 */
     .share-modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100;

@@ -398,7 +398,7 @@
     const escName = escHtml(name);
     const shareUrl = buildShareUrl(name);
 
-    let html = `<div class="flex flex-col h-full">
+    let html = `<div class="flex flex-col h-full" style="position:relative">
       <div class="panel-header">
         ${headerLeft(`产出物`)}
         <div class="flex items-center gap-1 shrink-0">
@@ -410,6 +410,7 @@
           <button class="hdr-icon-btn" data-act="close" title="关闭" aria-label="关闭">${icon('x')}</button>
         </div>
       </div>
+      <button class="ob-list-fab" data-act="add-output" title="新增产出物">${icon('plus', 'w-3.5 h-3.5')}<span>新增产出物</span></button>
       <div class="flex-1 overflow-y-auto scrollbar-thin doc-list-body">`;
 
     if (docs.length === 0) {
@@ -419,7 +420,7 @@
         <button class="mt-4 px-4 py-2 text-xs rounded-lg bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors" data-act="add-output">${icon('plus', 'w-3.5 h-3.5 inline -mt-0.5 mr-1')}新建第一份文档</button>
       </div>`;
     } else {
-      html += '<div class="px-3 pt-3 space-y-2">';
+      html += '<div class="px-3 pt-14 space-y-2">';
       docs.forEach(d => { html += renderDocRow(d, name); });
       html += '</div>';
     }
@@ -460,7 +461,7 @@
     const groups = allGroups();
     const total = groups.reduce((s, g) => s + g.docs.length, 0);
 
-    let html = `<div class="flex flex-col h-full">
+    let html = `<div class="flex flex-col h-full" style="position:relative">
       <div class="panel-header">
         <div class="flex items-center gap-2 min-w-0 flex-1">
           <button class="hdr-icon-btn" data-act="close" title="返回素材列表" aria-label="返回">${icon('arrow-left')}</button>
@@ -474,6 +475,7 @@
           <button class="hdr-icon-btn" data-act="close" title="关闭" aria-label="关闭">${icon('x')}</button>
         </div>
       </div>
+      <button class="ob-list-fab" data-act="add-output-all" title="新增产出物文档">${icon('plus', 'w-3.5 h-3.5')}<span>新增产出物文档</span></button>
       <div class="flex-1 overflow-y-auto scrollbar-thin">`;
 
     if (groups.length === 0) {
@@ -482,7 +484,7 @@
         <p class="text-sm text-[#9CA3AF] mt-3">还没有任何产出物</p>
       </div>`;
     } else {
-      html += '<div class="py-3">';
+      html += '<div class="pt-14 pb-3 px-0">';
       groups.forEach((g, gi) => {
         if (gi > 0) html += '<div class="doc-group-divider"></div>';
         html += `<div class="doc-group">
@@ -869,6 +871,16 @@
       if (act === 'add-output') {
         const d = addDoc(container.__obName, { title: '未命名文档', type: 'ul', items: [] });
         _view = { mode: 'doc', docId: d.id, collectionName: container.__obName };
+        renderAll(container);
+        const title = container.querySelector('.ob-doc-title'); if (title) { title.focus(); title.select(); }
+        return;
+      }
+      if (act === 'add-output-all') {
+        const groups = allGroups();
+        if (!groups.length) { alert('还没有合集，请先在左侧创建合集。'); return; }
+        const targetName = groups[0].name;
+        const d = addDoc(targetName, { title: '未命名文档', type: 'ul', items: [] });
+        _view = { mode: 'doc', docId: d.id, collectionName: targetName, prevMode: 'all' };
         renderAll(container);
         const title = container.querySelector('.ob-doc-title'); if (title) { title.focus(); title.select(); }
         return;
