@@ -1466,13 +1466,32 @@ async function deleteMaterial(id) {
     const response = await fetchWithTimeout('/api/coze/materials/delete', {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ input: item.title, image_url: item.cover_url || item.coverUrl || '' }),
+      body: JSON.stringify({ id: item.id, input: item.title, image_url: item.cover_url || item.coverUrl || '' }),
     });
     const result = await response.json();
-    if (result.code !== 1) { hideLoading(); alert('删除素材失败：' + (result.msg || '未知错误')); return; }
+    if (result.code !== 1) {
+      hideLoading();
+      const detail = result.cozeResult ? '\n\nCoze 返回：' + JSON.stringify(result.cozeResult) : '';
+      alert('删除素材失败：' + (result.msg || '未知错误') + detail);
+      return;
+    }
 
-    // 从列表中移除
-    materials = materials.filter(m => m.id !== id);
+    // 重新从服务端拉取，确保与真实数据一致（避免工作流未真删导致「刷新后还在」）
+    try {
+      const mats = await fetchMaterials();
+      const colResult = await fetchCollections();
+      if (colResult && colResult.length > 0) {
+        collectionSortMap = {};
+        colResult.forEach(c => { collectionSortMap[c.topic] = c.sort; });
+        collections = colResult.slice().sort((a, b) => (a.sort ?? 999) - (b.sort ?? 999)).map(c => c.topic);
+        collections = [...new Set(collections)];
+      }
+      materials = mats;
+      if (!collections.includes('未分类')) collections.push('未分类');
+    } catch (e) {
+      // 拉取失败则退化为本地移除
+      materials = materials.filter(m => m.id !== id);
+    }
     invalidateMaterialsCache();
     selectedId = null; panelMode = null;
     document.getElementById('detail-desktop').style.display = 'none';

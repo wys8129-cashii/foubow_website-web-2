@@ -657,19 +657,22 @@ app.post('/api/coze/materials/filter', authMiddleware, cozeApiLimiter, async (re
 app.post('/api/coze/materials/delete', authMiddleware, cozeApiLimiter, async (req, res) => {
   try {
     const email = req.userEmail;
-    const { input, image_url } = req.body;
+    const { id, input, image_url } = req.body;
 
-    console.log('收到删除素材请求:', { email, input, hasImage: !!image_url });
+    console.log('收到删除素材请求:', { email, id, input, hasImage: !!image_url });
 
-    if (!input) {
-      return res.json({ code: 0, msg: '缺少素材标题' });
+    if (!input && !id) {
+      return res.json({ code: 0, msg: '缺少素材标识（标题或 id）' });
     }
 
-    console.log('调用 Coze 删除素材 API...');
-    const result = await cozeDeleteMaterial({ email, input });
+    console.log('调用 Coze 删除素材 API (workflow 7664793140239499298)...');
+    const result = await cozeDeleteMaterial({ email, id, input });
 
-    console.log('Coze 返回结果:', result);
+    console.log('Coze 删除工作流返回结果:', JSON.stringify(result));
 
+    // 说明：Coze 各工作流的输出 schema 不一，无法在后端可靠判断「是否真删」。
+    // 这里把解析后的真实结果（cozeResult）一并返回，便于前端/日志核对；
+    // 真正的「删没删」以删除后重新拉取的素材列表为准（前端会立即重新拉取）。
     // 删除素材成功后，连带删除 Supabase 上对应的图片（best-effort，失败不影响主流程）
     let imageDeleted = null;
     if (image_url) {
@@ -682,7 +685,7 @@ app.post('/api/coze/materials/delete', authMiddleware, cozeApiLimiter, async (re
       }
     }
 
-    res.json({ code: 1, msg: '删除素材成功', data: result, imageDeleted });
+    res.json({ code: 1, msg: '删除素材成功', cozeResult: result, imageDeleted });
   } catch (error) {
     console.error('删除素材错误:', error.message);
     res.json({ code: 0, msg: error.message });

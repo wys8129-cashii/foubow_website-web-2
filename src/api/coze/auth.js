@@ -24,6 +24,36 @@ function logCozeResponse(label, response) {
 }
 
 /**
+ * 解析 Coze stream_run 的 SSE 响应
+ * stream_run 返回 text/event-stream，每个 event 的 data 是一段 JSON，
+ * 其中 content 字段是增量文本，拼接后即为工作流最终输出的 JSON 字符串。
+ * 直接 axios.post 拿到的 response.data 是整个 SSE 文本，必须解析才能拿到真实结果。
+ * @param {string} raw SSE 原始文本
+ * @returns {any} 解析后的工作流输出（对象或原始文本）
+ */
+function extractStreamRunOutput(raw) {
+  try {
+    const lines = String(raw).split(/\r?\n/);
+    let buf = '';
+    for (const line of lines) {
+      const m = line.match(/^data:\s?(.*)$/);
+      if (!m) continue;
+      const payload = m[1].trim();
+      if (!payload || payload === '[DONE]') continue;
+      try {
+        const obj = JSON.parse(payload);
+        if (typeof obj.content === 'string') buf += obj.content;
+        else if (obj.data != null) buf += (typeof obj.data === 'string' ? obj.data : JSON.stringify(obj.data));
+      } catch (e) { /* 非 JSON 行，跳过 */ }
+    }
+    if (!buf) return raw;
+    try { return JSON.parse(buf); } catch (e) { return buf; }
+  } catch (e) {
+    return raw;
+  }
+}
+
+/**
  * 调用 Coze API 获取素材列表
  * @param {Object} params 参数
  * @param {string} params.email 用户邮箱
@@ -522,16 +552,22 @@ async function cozeDeleteMaterial(params) {
       workflow_id: workflowId,
       app_id: appId,
       email: params.email,
-      input: params.input
+      input: params.input,
+      id: params.id || null
     });
+
+    // 同时传递 id 与 input（标题），给删除工作流一个明确主键；
+    // 若工作流按 id 定位则更可靠，按标题定位也不受影响（多余字段会被忽略）。
+    const parameters = {
+      email: params.email,
+      input: params.input,
+    };
+    if (params.id != null && params.id !== '') parameters.id = params.id;
 
     const requestData = {
       workflow_id: workflowId,
       app_id: appId,
-      parameters: {
-        email: params.email,
-        input: params.input,
-      },
+      parameters,
     };
 
     const response = await cozeAxios.post(
@@ -545,8 +581,10 @@ async function cozeDeleteMaterial(params) {
       }
     );
 
-    logCozeResponse('删除素材', response);
-    return response.data;
+    // stream_run 返回 SSE，必须解析才能拿到工作流真实输出
+    const parsed = extractStreamRunOutput(response.data);
+    logCozeResponse('删除素材', { data: parsed });
+    return parsed;
   } catch (error) {
     console.error("Coze 删除素材接口调用失败：", error.message);
     throw new Error(`删除素材失败：${error.response?.data?.message || error.message}`);
