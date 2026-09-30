@@ -444,16 +444,13 @@
   }
 
   function renderDocRow(d, col, allView) {
-    const count = (d.items || []).length;
     const dragAttrs = allView ? ' draggable="true" class="doc-row doc-row-draggable"' : ' class="doc-row"';
-    const colTag = allView && col ? `<span class="doc-row-col" title="所属合集：${escHtml(col)}">${escHtml(col)}</span>` : '';
     const dragHint = allView ? `<span class="doc-row-drag-hint" title="拖动可修改分类">${icon('grip-vertical', 'w-3 h-3 text-[#9CA3AF]')}</span>` : '';
     return `<div${dragAttrs} data-act="open-doc" data-doc="${escHtml(d.id)}" data-col="${escHtml(col || '')}">
       ${dragHint}
       <span class="doc-row-icon">${icon('file-text', 'w-4 h-4 text-[#6B7280]')}</span>
       <div class="doc-row-main">
-        <div class="doc-row-title-wrap">${escHtml(d.title || '未命名文档')}${colTag}</div>
-        <div class="doc-row-meta">${count} 项 · ${fmtTime(d.createdAt)}</div>
+        <div class="doc-row-title-wrap"><span class="doc-row-title">${escHtml(d.title || '未命名文档')}</span></div>
       </div>
       <span class="doc-row-arrow">${icon('chevron-right', 'w-4 h-4 text-[#9CA3AF]')}</span>
     </div>`;

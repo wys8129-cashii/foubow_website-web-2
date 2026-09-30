@@ -362,13 +362,13 @@
     .doc-row:active { transform: scale(0.99); }
     .doc-row-icon { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 9px; background: #F3F4F6; color: #6B7280; flex: 0 0 auto; }
     .doc-row-main { flex: 1; min-width: 0; }
-    .doc-row-title { font-size: 13px; font-weight: 600; color: #1A1A1A; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .doc-row-title { font-size: 12px; font-weight: 500; color: #1A1A1A; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .doc-row-title-wrap { display: flex; align-items: center; gap: 8px; }
     .doc-row-col { flex: 0 0 auto; max-width: 80px; padding: 2px 8px; border-radius: 999px; background: #F3F4F6; color: #6B7280; font-size: 10px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .doc-row-meta { font-size: 11px; color: #9CA3AF; margin-top: 2px; }
     .doc-row-arrow { display: inline-flex; color: #9CA3AF; flex: 0 0 auto; }
-    .doc-row-drag-hint { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: -4px; cursor: grab; opacity: 0; transition: opacity 0.15s; }
-    .doc-row-draggable:hover .doc-row-drag-hint { opacity: 1; }
+    .doc-row-drag-hint { display: none; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: -4px; cursor: grab; opacity: 0; transition: opacity 0.15s; }
+    .doc-row-draggable:hover .doc-row-drag-hint { display: inline-flex; opacity: 1; }
     .doc-row-drag-hint:active { cursor: grabbing; }
 
     .ob-body { padding: 10px 10px 20px; }
