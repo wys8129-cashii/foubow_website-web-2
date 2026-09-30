@@ -517,27 +517,20 @@ async function cozeDeleteMaterial(params) {
     const appId = cozeConfig.appId;
     const baseUrl = cozeConfig.baseUrl;
 
-    console.log('调用 Coze 删除素材 API:', {
+    console.log('调用 Coze 删除素材 API (workflow 7664793140239499298):', {
       url: baseUrl,
       workflow_id: workflowId,
       app_id: appId,
       email: params.email,
-      input: params.input,
-      title: params.input,
-      id: params.id || null
+      title: params.input
     });
 
-    // 关键修复：项目里操作「单个素材」的工作流（如 cozeMoveMaterial 修改素材所属合集）
-    // 统一用 title 定位素材，而非 input/id。原删除只传了 input + id，导致工作流拿不到
-    // title → 找不到目标素材 → 静默不删但 HTTP 仍 200，表现为「删除失效但不报错」。
-    // 这里把 title 一并透传（input 也保留以兼容按名定位的工作流；id 为前端位置序号，不可靠）。
-    // Coze 会忽略工作流未声明的多余字段，因此多发几个标识字段是安全的。
+    // 工作流 7664793140239499298 仅声明两个输入参数：title（素材标题）、email（用户邮箱）。
+    // 直接按这两个参数名透传，与 Coze 控制台输入参数严格对齐。
     const parameters = {
       email: params.email,
-      input: params.input,
       title: params.input,
     };
-    if (params.id != null && params.id !== '') parameters.id = params.id;
 
     const requestData = {
       workflow_id: workflowId,
