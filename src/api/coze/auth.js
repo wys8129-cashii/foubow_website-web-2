@@ -523,14 +523,19 @@ async function cozeDeleteMaterial(params) {
       app_id: appId,
       email: params.email,
       input: params.input,
+      title: params.input,
       id: params.id || null
     });
 
-    // 同时传递 id 与 input（标题），给删除工作流一个明确主键；
-    // 若工作流按 id 定位则更可靠，按标题定位也不受影响（多余字段会被忽略）。
+    // 关键修复：项目里操作「单个素材」的工作流（如 cozeMoveMaterial 修改素材所属合集）
+    // 统一用 title 定位素材，而非 input/id。原删除只传了 input + id，导致工作流拿不到
+    // title → 找不到目标素材 → 静默不删但 HTTP 仍 200，表现为「删除失效但不报错」。
+    // 这里把 title 一并透传（input 也保留以兼容按名定位的工作流；id 为前端位置序号，不可靠）。
+    // Coze 会忽略工作流未声明的多余字段，因此多发几个标识字段是安全的。
     const parameters = {
       email: params.email,
       input: params.input,
+      title: params.input,
     };
     if (params.id != null && params.id !== '') parameters.id = params.id;
 
