@@ -410,7 +410,6 @@
           <button class="hdr-icon-btn" data-act="close" title="关闭" aria-label="关闭">${icon('x')}</button>
         </div>
       </div>
-      <button class="ob-list-fab" data-act="add-output" title="新增产出物">${icon('plus', 'w-3.5 h-3.5')}<span>新增产出物</span></button>
       <div class="flex-1 overflow-y-auto scrollbar-thin doc-list-body">`;
 
     if (docs.length === 0) {
@@ -420,7 +419,7 @@
         <button class="mt-4 px-4 py-2 text-xs rounded-lg bg-[#1A1A1A] text-white hover:bg-[#333] transition-colors" data-act="add-output">${icon('plus', 'w-3.5 h-3.5 inline -mt-0.5 mr-1')}新建第一份文档</button>
       </div>`;
     } else {
-      html += '<div class="px-3 pt-14 space-y-2">';
+      html += '<div class="px-3 pt-3 space-y-2">';
       docs.forEach(d => { html += renderDocRow(d, name); });
       html += '</div>';
     }
@@ -444,9 +443,10 @@
     container.__shareScope = { name, docId: null };
   }
 
-  function renderDocRow(d, col) {
+  function renderDocRow(d, col, allView) {
     const count = (d.items || []).length;
-    return `<div class="doc-row" data-act="open-doc" data-doc="${escHtml(d.id)}" data-col="${escHtml(col || '')}">
+    const dragAttrs = allView ? ' draggable="true" class="doc-row doc-row-draggable"' : ' class="doc-row"';
+    return `<div${dragAttrs} data-act="open-doc" data-doc="${escHtml(d.id)}" data-col="${escHtml(col || '')}">
       <span class="doc-row-icon">${icon('file-text', 'w-4 h-4 text-[#6B7280]')}</span>
       <div class="doc-row-main">
         <div class="doc-row-title">${escHtml(d.title || '未命名文档')}</div>
@@ -468,6 +468,7 @@
           <span class="text-sm font-medium text-[#1A1A1A] truncate">全部产出物</span>
         </div>
         <div class="flex items-center gap-1 shrink-0">
+          <button class="ob-all-add-btn" data-act="add-output-all" title="新增产出物文档">${icon('plus', 'w-3.5 h-3.5')}<span>新增产出物</span></button>
           ${menuButton('all-menu', '更多', [
             { act: 'menu-ai-summary-list', label: 'AI 总结全部', icon: 'sparkles' },
             { act: 'menu-share-list', label: '分享全部', icon: 'share-2' },
@@ -475,7 +476,6 @@
           <button class="hdr-icon-btn" data-act="close" title="关闭" aria-label="关闭">${icon('x')}</button>
         </div>
       </div>
-      <button class="ob-list-fab" data-act="add-output-all" title="新增产出物文档">${icon('plus', 'w-3.5 h-3.5')}<span>新增产出物文档</span></button>
       <div class="flex-1 overflow-y-auto scrollbar-thin">`;
 
     if (groups.length === 0) {
@@ -484,16 +484,16 @@
         <p class="text-sm text-[#9CA3AF] mt-3">还没有任何产出物</p>
       </div>`;
     } else {
-      html += '<div class="pt-14 pb-3 px-0">';
+      html += '<div class="pt-3 pb-3 px-0">';
       groups.forEach((g, gi) => {
         if (gi > 0) html += '<div class="doc-group-divider"></div>';
-        html += `<div class="doc-group">
+        html += `<div class="doc-group doc-group-droppable" data-col="${escHtml(g.name)}">
           <div class="doc-group-header">
             <span class="doc-group-name">${escHtml(g.name)}</span>
             <span class="doc-group-count">${g.docs.length} 个文档</span>
           </div>
           <div class="px-3 space-y-2">`;
-        g.docs.forEach(d => { html += renderDocRow(d, g.name); });
+        g.docs.forEach(d => { html += renderDocRow(d, g.name, true); });
         html += '</div></div>';
       });
       html += '</div>';
@@ -853,6 +853,13 @@
     injectObCss();
     function close() { if (typeof (container.__obOpts || {}).onClose === 'function') (container.__obOpts).onClose(); }
 
+    // 全部产出物视图：跨合集拖拽分类
+    let docDragging = null;
+    function clearDocDrop() {
+      container.querySelectorAll('.doc-group-drop-target').forEach(el => el.classList.remove('doc-group-drop-target'));
+      container.querySelectorAll('.ob-doc-dragging').forEach(el => el.classList.remove('ob-doc-dragging'));
+    }
+
     container.addEventListener('click', (e) => {
       const t = e.target.closest('[data-act],[data-type]');
       if (!t) return;
@@ -877,8 +884,14 @@
       }
       if (act === 'add-output-all') {
         const groups = allGroups();
-        if (!groups.length) { alert('还没有合集，请先在左侧创建合集。'); return; }
-        const targetName = groups[0].name;
+        // 优先归属当前选中的合集；未选中则 fallback 到第一个有产出/有数据的合集
+        let targetName = container.__obName;
+        if (!targetName) {
+          const allCols = Object.keys(state);
+          const firstWithDocs = groups[0] && groups[0].name;
+          targetName = firstWithDocs || (allCols[0] || '');
+        }
+        if (!targetName) { alert('还没有合集，请先在左侧创建合集。'); return; }
         const d = addDoc(targetName, { title: '未命名文档', type: 'ul', items: [] });
         _view = { mode: 'doc', docId: d.id, collectionName: targetName, prevMode: 'all' };
         renderAll(container);
@@ -1122,6 +1135,22 @@
       if (d) d.classList.remove('ob-dragging');
     }
     container.addEventListener('dragstart', (e) => {
+      // 全部产出物视图：拖动文档行跨合集分类
+      if (_view.mode === 'all') {
+        const row = e.target.closest && e.target.closest('.doc-row-draggable');
+        if (!row) return;
+        const fromCol = row.dataset.col;
+        const docId = row.dataset.doc;
+        if (!fromCol || !docId) return;
+        docDragging = { docId, fromCol };
+        try {
+          e.dataTransfer.setData('application/x-foubow-doc', JSON.stringify(docDragging));
+          e.dataTransfer.effectAllowed = 'move';
+        } catch (err) {}
+        row.classList.add('ob-doc-dragging');
+        e.stopPropagation();
+        return;
+      }
       const handle = e.target.closest && e.target.closest('.ob-drag-handle');
       if (!handle || _view.mode !== 'doc') return;
       draggingIdx = parseInt(handle.dataset.idx, 10);
@@ -1134,6 +1163,17 @@
       e.stopPropagation();
     });
     container.addEventListener('dragover', (e) => {
+      // 全部产出物视图：拖动文档到某个合集分组
+      if (_view.mode === 'all' && docDragging) {
+        if (!e.dataTransfer || Array.from(e.dataTransfer.types).indexOf('application/x-foubow-doc') < 0) return;
+        const group = e.target.closest && e.target.closest('.doc-group-droppable');
+        if (!group) { clearDocDrop(); return; }
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        clearDocDrop();
+        group.classList.add('doc-group-drop-target');
+        return;
+      }
       if (_view.mode !== 'doc' || draggingIdx < 0) return;
       if (!e.dataTransfer || Array.from(e.dataTransfer.types).indexOf(BLOCK_DRAG_MIME) < 0) return;
       e.preventDefault();
@@ -1147,11 +1187,38 @@
       }
     });
     container.addEventListener('dragleave', (e) => {
+      if (_view.mode === 'all' && docDragging) {
+        const group = e.target.closest && e.target.closest('.doc-group-droppable');
+        if (group) group.classList.remove('doc-group-drop-target');
+        return;
+      }
       if (_view.mode !== 'doc' || draggingIdx < 0) return;
       const block = e.target.closest && e.target.closest('.ob-block');
       if (block) block.classList.remove('ob-drop-before', 'ob-drop-after');
     });
     container.addEventListener('drop', (e) => {
+      // 全部产出物视图：把文档放置到目标合集
+      if (_view.mode === 'all' && docDragging) {
+        if (!e.dataTransfer || Array.from(e.dataTransfer.types).indexOf('application/x-foubow-doc') < 0) { clearDocDrop(); docDragging = null; return; }
+        const group = e.target.closest && e.target.closest('.doc-group-droppable');
+        if (!group) { clearDocDrop(); docDragging = null; return; }
+        e.preventDefault();
+        const toCol = group.dataset.col;
+        const { docId, fromCol } = docDragging;
+        if (toCol && toCol !== fromCol) {
+          const fromList = getDocs(fromCol);
+          const idx = fromList.findIndex(d => d.id === docId);
+          if (idx >= 0) {
+            const [moved] = fromList.splice(idx, 1);
+            getDocs(toCol).push(moved);
+            saveState();
+          }
+        }
+        clearDocDrop();
+        docDragging = null;
+        renderAll(container);
+        return;
+      }
       if (_view.mode !== 'doc' || draggingIdx < 0) return;
       if (!e.dataTransfer || Array.from(e.dataTransfer.types).indexOf(BLOCK_DRAG_MIME) < 0) return;
       e.preventDefault();
@@ -1186,6 +1253,8 @@
     container.addEventListener('dragend', () => {
       clearAllBlockUI();
       draggingIdx = -1;
+      clearDocDrop();
+      docDragging = null;
     });
   }
 

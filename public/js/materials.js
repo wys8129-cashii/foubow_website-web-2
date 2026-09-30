@@ -1359,7 +1359,8 @@ function openCollectionOutputs(collection) {
 function openAllOutputs() {
   panelMode = 'all-output';
   selectedId = null;
-  panelCollection = null;
+  // 若当前正查看某合集，打开全部产出物时以其为默认归属合集
+  panelCollection = (viewMode === 'collection' && activeCollection && activeCollection !== 'all') ? activeCollection : null;
   if (window.innerWidth >= 1024) {
     document.getElementById('detail-desktop').style.display = 'flex';
     renderRightPanel();
@@ -1373,6 +1374,7 @@ function renderAllOutputsPanel(content) {
     return;
   }
   window.OutputDocs.openAll(content, {
+    collection: panelCollection || '',
     onClose: () => {
       try { closeRightPanel && closeRightPanel(); } catch (e) {}
       try { closeMobilePanel && closeMobilePanel(); } catch (e) {}
