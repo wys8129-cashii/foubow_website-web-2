@@ -471,7 +471,7 @@
           <span class="text-sm font-medium text-[#1A1A1A] truncate">全部产出物</span>
         </div>
         <div class="flex items-center gap-1 shrink-0">
-          <button class="ob-all-add-btn" data-act="add-output-all" title="新增产出物文档">${icon('plus', 'w-3.5 h-3.5')}<span>新增产出物</span></button>
+          <button class="ob-all-add-btn" data-act="add-output-all" title="新增产出物文档">${icon('plus', 'w-3.5 h-3.5')}<span>新增</span></button>
           ${menuButton('all-menu', '更多', [
             { act: 'menu-ai-summary-list', label: 'AI 总结全部', icon: 'sparkles' },
             { act: 'menu-share-list', label: '分享全部', icon: 'share-2' },
