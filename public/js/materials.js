@@ -473,10 +473,9 @@ function renderOverview() {
     const items = getMaterialsByCollection(name);
     const showCards = items.slice(0, 4);
     const escName = escHtml(name);
-    const outputs = getOutputsByCollection(name);
     html += `<div class="collection-section">
       <div class="section-header">
-        <h2><span class="collection-name-link" onclick="selectCollection('${escName}')">${escName}</span><span class="count">${items.length} 个素材</span><span class="count">${outputs.length} 个产出物</span></h2>
+        <h2><span class="collection-name-link" onclick="selectCollection('${escName}')">${escName}</span><span class="count">${items.length} 个素材</span></h2>
         <span class="more-link" onclick="openWaterfall('${escName}')">查看更多 <i data-lucide="chevron-right" class="w-3 h-3"></i></span>
       </div>`;
     if (items.length === 0) {
@@ -518,9 +517,6 @@ function renderCollectionDetail(name) {
       <h1 class="text-base font-semibold text-[#1A1A1A] truncate">${escName} <span class="text-xs font-normal text-[#9CA3AF] ml-1">${items.length} 个素材</span></h1>
     </div>
     <div class="flex items-center gap-2 shrink-0">
-      <button id="btn-outputs-collection" onclick="openCollectionOutputs('${escName}')" class="px-2.5 py-1.5 text-xs rounded-md bg-[#F3F4F6] text-[#4B5563] hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors flex items-center gap-1.5" title="查看本合集的产出物">
-        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>产出物<span class="text-[10px] text-[#9CA3AF] ml-0.5">${outputs.length}</span>
-      </button>
       <div class="hdr-menu-wrap relative" data-menu="collection-more">
         <button class="hdr-icon-btn tag" data-act="menu-toggle" data-menu="collection-more" title="更多" aria-label="更多" onclick="event.stopPropagation(); toggleCollectionMore(this)">
           <i data-lucide="more-horizontal" class="w-4 h-4 text-[#4B5563]"></i>
