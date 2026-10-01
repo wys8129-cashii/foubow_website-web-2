@@ -958,12 +958,10 @@
           if (scope.name === '' && state[''] && state[''].length === 0) {
             delete state[''];
             saveStateRaw();
-            close();
-            return;
           }
         }
-        _view.prevMode = _view.mode;
-        _view = { mode: 'list', docId: null, collectionName: null };
+        // 删除后回到“全部产出物”首页
+        _view = { mode: 'all', docId: null, collectionName: null };
         renderAll(container);
         return;
       }
@@ -982,10 +980,9 @@
         if (delName === '' && state[''] && state[''].length === 0) {
           delete state[''];
           saveStateRaw();
-          close();
-          return;
         }
-        _view = { mode: 'list', docId: null, collectionName: null };
+        // 删除后回到“全部产出物”首页
+        _view = { mode: 'all', docId: null, collectionName: null };
         renderAll(container);
         return;
       }

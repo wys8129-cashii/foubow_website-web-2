@@ -81,7 +81,7 @@ const corsOrigin = corsOriginEnv === '*'
 // 中间件
 app.use(cors({
   origin: corsOrigin,
-  methods: ['GET', 'POST', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 // 截图 base64 体积较大，放宽 JSON 上限到 12mb（上传类接口走 multipart，不受影响）
