@@ -335,6 +335,8 @@
     container.__obOpts = { onClose, onAi, onFav, readOnly, isFav };
     if (!container.dataset.obBound) bindPanel(container);
     container.dataset.obBound = '1';
+    // 默认以“全部产出物”作为产出物面板首页
+    if (_view.mode !== 'doc') _view = { mode: 'all', docId: null, collectionName: null };
     renderAll(container);
   }
 
@@ -464,7 +466,6 @@
     let html = `<div class="flex flex-col h-full" style="position:relative">
       <div class="panel-header">
         <div class="flex items-center gap-2 min-w-0 flex-1">
-          <button class="hdr-icon-btn" data-act="close" title="返回素材列表" aria-label="返回">${icon('arrow-left')}</button>
           <span class="text-sm font-medium text-[#1A1A1A] truncate">全部产出物</span>
         </div>
         <div class="flex items-center gap-1 shrink-0">
