@@ -258,7 +258,7 @@
     const groups = [];
     Object.keys(state).forEach(col => {
       const docs = state[col] || [];
-      if (docs.length > 0) groups.push({ name: col, docs });
+      if (docs.length > 0) groups.push({ name: col, displayName: col || '未分类', docs });
     });
     return groups;
   }
@@ -489,7 +489,7 @@
         if (gi > 0) html += '<div class="doc-group-divider"></div>';
         html += `<div class="doc-group doc-group-droppable" data-col="${escHtml(g.name)}">
           <div class="doc-group-header">
-            <span class="doc-group-name">${escHtml(g.name)}</span>
+            <span class="doc-group-name">${escHtml(g.displayName || g.name)}</span>
             <span class="doc-group-count">${g.docs.length} 个文档</span>
           </div>
           <div class="px-3 space-y-2">`;
@@ -884,12 +884,12 @@
       }
       if (act === 'add-output-all') {
         const groups = allGroups();
-        // 优先归属当前选中的合集；未选中则 fallback 到第一个有产出/有数据的合集
+        // 优先归属当前选中的合集；未选中则 fallback 到第一个名称非空且有产出的合集
         let targetName = container.__obName;
         if (!targetName) {
-          const allCols = Object.keys(state);
-          const firstWithDocs = groups[0] && groups[0].name;
-          targetName = firstWithDocs || (allCols[0] || '');
+          const firstWithDocs = groups.find(g => g.name) && groups.find(g => g.name).name;
+          const firstCol = Object.keys(state).find(c => c);
+          targetName = firstWithDocs || firstCol || '';
         }
         if (!targetName) { alert('还没有合集，请先在左侧创建合集。'); return; }
         const d = addDoc(targetName, { title: '未命名文档', type: 'ul', items: [] });
