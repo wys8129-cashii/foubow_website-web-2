@@ -951,7 +951,16 @@
         closeMenu(container);
         if (!confirm('确认删除该文档？')) return;
         const scope = container.__shareScope || {};
-        if (scope.name && scope.docId) deleteDoc(scope.name, scope.docId);
+        if (scope.name != null && scope.docId) {
+          deleteDoc(scope.name, scope.docId);
+          // 若是无名分类且已清空，直接删掉这个脏 key，避免继续显示“未分类”分组
+          if (scope.name === '' && state[''] && state[''].length === 0) {
+            delete state[''];
+            saveStateRaw();
+            close();
+            return;
+          }
+        }
         _view.prevMode = _view.mode;
         _view = { mode: 'list', docId: null, collectionName: null };
         renderAll(container);
@@ -966,7 +975,15 @@
       }
       if (act === 'doc-del') {
         if (!confirm('确认删除该文档？')) return;
-        deleteDoc(container.__obName, docId);
+        const delName = container.__obName;
+        deleteDoc(delName, docId);
+        // 若是无名分类且已清空，直接删掉这个脏 key
+        if (delName === '' && state[''] && state[''].length === 0) {
+          delete state[''];
+          saveStateRaw();
+          close();
+          return;
+        }
         _view = { mode: 'list', docId: null, collectionName: null };
         renderAll(container);
         return;
