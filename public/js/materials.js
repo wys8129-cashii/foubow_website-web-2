@@ -1341,6 +1341,7 @@ function closeRightPanel() {
 }
 
 function openCollectionOutputs(collection) {
+  if (window.OutputDocs && typeof window.OutputDocs.promptLogin === 'function' && window.OutputDocs.promptLogin()) return;
   panelCollection = collection;
   panelMode = 'collection-output';
   selectedId = null;
@@ -1353,6 +1354,7 @@ function openCollectionOutputs(collection) {
 
 // 功能2：顶部"产出物"按钮 → 右侧面板显示所有合集的产出物文档列表
 function openAllOutputs() {
+  if (window.OutputDocs && typeof window.OutputDocs.promptLogin === 'function' && window.OutputDocs.promptLogin()) return;
   panelMode = 'all-output';
   selectedId = null;
   // 若当前正查看某合集，打开全部产出物时以其为默认归属合集

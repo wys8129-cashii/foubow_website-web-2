@@ -815,29 +815,18 @@ app.post('/api/cron/notify', async (req, res) => {
   }
 });
 
-// ===== 工作区初始化（公开，无需鉴权）=====
-// 前端首次使用无登录态：本接口创建一个匿名 Supabase auth user（email=uuid@foubow.local, email_confirm=true）
-// 并为其签发 fob_xxx API Key，返回给前端长期保存于 localStorage。
-// 所有产出物请求均携带此 Key 作为「工作区身份」。
-app.post('/api/workspace/init', async (req, res) => {
+// ===== 工作区初始化（需登录）=====
+// 已登录用户：返回其账户已签发的 fob_xxx API Key（若不存在则签发），作为「工作区身份」。
+// 未登录：401，不再为匿名访客创建 Supabase auth user（防止被刷量 / 白造用户与 Key）。
+app.post('/api/workspace/init', authMiddleware, async (req, res) => {
+  const owner = req.userId || req.userEmail;
+  if (!owner) return res.status(401).json({ code: 0, msg: '请先登录' });
   try {
-    const uid = crypto.randomUUID();
-    const email = `${uid}@foubow.local`;
-    const password = crypto.randomBytes(16).toString('hex');
-    const { data: created, error: cErr } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    });
-    if (cErr || !created || !created.user) {
-      console.error('[workspace/init] 创建用户失败:', cErr && cErr.message);
-      return res.status(500).json({ code: 0, msg: '工作区初始化失败：无法创建用户' });
-    }
-    const apiKey = await getOrCreateUserApiKey(created.user.id);
+    const apiKey = await getOrCreateUserApiKey(req.userId);
     if (!apiKey) {
       return res.status(500).json({ code: 0, msg: '工作区初始化失败：无法签发密钥' });
     }
-    res.json({ code: 1, msg: 'ok', data: { apiKey, userId: created.user.id } });
+    res.json({ code: 1, msg: 'ok', data: { apiKey, userId: req.userId } });
   } catch (e) {
     console.error('[workspace/init] 异常:', e.message);
     res.status(500).json({ code: 0, msg: e.message });

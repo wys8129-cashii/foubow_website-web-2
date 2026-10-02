@@ -47,6 +47,8 @@
   let _dirty = false;
 
   async function ensureWorkspaceKey() {
+    // 未登录用户不再创建/使用云端工作区身份（避免匿名刷量）；由面板入口统一引导登录
+    if (!isLoggedIn()) return null;
     if (_cloudKey) return _cloudKey;
     let key = null;
     try { key = localStorage.getItem(WS_KEY); } catch (e) {}
@@ -63,6 +65,42 @@
     return key;
   }
 
+  // ===== 登录态拦截（未登录访问产出物：弹窗引导登录）=====
+  function isLoggedIn() {
+    try { return localStorage.getItem('isLogin') === 'true'; } catch (e) { return false; }
+  }
+  // 未登录则弹出「请登录」弹窗并返回 true（表示已拦截）；已登录返回 false（放行）
+  function promptLogin() {
+    if (isLoggedIn()) return false;
+    showLoginModal();
+    return true;
+  }
+  function showLoginModal() {
+    try { document.getElementById('fb-login-modal')?.remove(); } catch (e) {}
+    const overlay = document.createElement('div');
+    overlay.id = 'fb-login-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);';
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:28px 24px;width:320px;max-width:88vw;box-shadow:0 24px 70px rgba(0,0,0,.35);text-align:center;font-family:PingFang SC,Microsoft YaHei,sans-serif;">
+        <div style="width:48px;height:48px;border-radius:50%;background:#F3F4F6;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+          <i data-lucide="log-in" style="width:22px;height:22px;color:#1A1A1A"></i>
+        </div>
+        <h3 style="font-size:16px;color:#1A1A1A;margin:0 0 8px;font-weight:600;">请登录</h3>
+        <p style="font-size:13px;color:#6B7280;line-height:1.6;margin:0 0 20px;">登录后即可使用产出物云同步功能，随时随地保存你的创作。</p>
+        <div style="display:flex;gap:10px;">
+          <button id="fb-login-cancel" style="flex:1;padding:10px;border:1px solid #E5E7EB;background:#fff;border-radius:10px;font-size:14px;color:#6B7280;cursor:pointer;">取消</button>
+          <button id="fb-login-ok" style="flex:1;padding:10px;border:none;background:#1A1A1A;color:#fff;border-radius:10px;font-size:14px;cursor:pointer;">确定</button>
+        </div>
+      </div>`;
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
+    const cancel = overlay.querySelector('#fb-login-cancel');
+    const ok = overlay.querySelector('#fb-login-ok');
+    if (cancel) cancel.onclick = () => overlay.remove();
+    if (ok) ok.onclick = () => { window.location.href = '/login.html'; };
+    if (window.lucide) window.lucide.createIcons();
+  }
+
   async function apiCall(path, opts) {
     const key = await ensureWorkspaceKey();
     const headers = { 'Content-Type': 'application/json' };
@@ -75,6 +113,7 @@
   // 本地 state 全量镜像到云端：删云端多余 + upsert 本地全部文档（带 id 幂等）
   // 使用独立 _pushSyncing 锁，不阻塞初始化拉取（_loadSyncing），避免慢 GET 期间保存无法推云
   async function pushCloudAll() {
+    if (!isLoggedIn()) return; // 未登录不触发任何云端写入
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
     if (_pushSyncing) { _dirty = true; return; } // 正在推送中：标记脏，结束后再补推
     const key = await ensureWorkspaceKey();
@@ -125,6 +164,7 @@
   //  - 云端空但本地有：保留本地，后续编辑自然推云
   // 使用独立 _loadSyncing 锁，不阻塞 pushCloudAll
   async function syncLoadFromCloud() {
+    if (!isLoggedIn()) return; // 未登录不触发任何云端读取
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
     const key = await ensureWorkspaceKey();
     if (!key) return;
@@ -1347,6 +1387,8 @@
     openDoc,
     allGroups,
     resetView,
+    isLoggedIn,
+    promptLogin,
   };
 
   // 离开页面/标签隐藏时，尽力把待同步内容立即推云（防止 1.2s 防抖内刷新丢编辑）

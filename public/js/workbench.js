@@ -716,6 +716,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function wb_openOutputDoc(name, docId) {
+    if (window.OutputDocs && typeof window.OutputDocs.promptLogin === 'function' && window.OutputDocs.promptLogin()) return;
     if (!outputContainer || !window.OutputDocs || !OutputDocs.openDoc) return;
     if (OutputDocs.resetView) OutputDocs.resetView();
     OutputDocs.openDoc(outputContainer, name, docId, {
