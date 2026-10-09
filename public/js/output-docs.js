@@ -653,18 +653,22 @@
     const collapsed = (!readOnly && it.collapsed) ? ' ob-collapsed' : '';
     const isHeading = !!(it.heading && it.heading >= 1 && it.heading <= 6);
     const hCollapsed = !!it.headingCollapsed;
-    const foldAttr = isHeading ? '' : ' data-act="ob-fold"';
-    let gutterCls, gutterInner;
-    if (listType === 'ol') { gutterCls = 'ob-bullet ob-bullet-num ob-drag-handle'; gutterInner = marker; }
-    else if (listType === 'ul') { gutterCls = 'ob-bullet ob-drag-handle'; gutterInner = ''; }
-    else { gutterCls = 'ob-gutter-empty ob-drag-handle'; gutterInner = ''; }
-    const caret = isHeading
+
+    // 左侧列表序号按钮：点击切换列表样式
+    let leftGutter = '';
+    if (listType === 'ol') {
+      leftGutter = `<button class="ob-gutter ob-gutter-ol${readOnly ? '' : ' ob-gutter-btn'}" data-idx="${idx}"${readOnly ? '' : ' data-act="blk-list-toggle"'} title="${readOnly ? '' : '点击切换列表样式'}">${marker}</button>`;
+    } else if (listType === 'ul') {
+      leftGutter = `<button class="ob-gutter ob-gutter-ul${readOnly ? '' : ' ob-gutter-btn'}" data-idx="${idx}"${readOnly ? '' : ' data-act="blk-list-toggle"'} title="${readOnly ? '' : '点击切换列表样式'}"></button>`;
+    }
+
+    // 右侧折叠按钮：标题折叠其下正文/卡片；正文折叠自己
+    const rightFold = isHeading
       ? `<button class="ob-heading-caret${hCollapsed ? ' collapsed' : ''}" data-act="heading-fold" data-idx="${idx}" title="${hCollapsed ? '展开本节' : '折叠本节'}">${icon('chevron-right')}</button>`
-      : '';
-    const toggle = (!readOnly && !isHeading)
-      ? `<button class="ob-list-toggle" data-act="blk-list-toggle" data-idx="${idx}" title="列表：${listType === 'ol' ? '有序' : listType === 'ul' ? '无序' : '正文'}">${icon('list')}</button>`
-      : '';
-    const slot = isHeading ? '' : (!readOnly ? '' : '<span class="ob-gutter-slot"></span>');
+      : `<button class="ob-fold-right${it.collapsed ? ' collapsed' : ''}" data-act="ob-fold" data-idx="${idx}" title="${it.collapsed ? '展开' : '折叠'}">${icon('chevron-down')}</button>`;
+
+    const dragHandle = readOnly ? '' : `<span class="ob-grip ob-drag-handle" draggable="true" data-idx="${idx}" title="拖动排序">${icon('grip-vertical', 'w-3 h-3')}</span>`;
+
     const pop = (!readOnly && _listMenuIdx === idx)
       ? `<div class="ob-list-pop" data-idx="${idx}">
            <button class="ob-list-opt${(!listType) ? ' active' : ''}" data-act="blk-list-set" data-idx="${idx}" data-list="none">${icon('minus')}<span>正文</span></button>
@@ -672,15 +676,12 @@
            <button class="ob-list-opt${(listType === 'ol') ? ' active' : ''}" data-act="blk-list-set" data-idx="${idx}" data-list="ol">${icon('list-ordered')}<span>有序</span></button>
          </div>`
       : '';
+
     const body = `<div class="${readOnly ? 'ob-edit-readonly' : 'ob-edit'}${hcls}"${readOnly ? '' : ' contenteditable="true" spellcheck="false"'} data-idx="${idx}">${escHtml(it.value || '')}</div>`;
-    if (readOnly) {
-      const g = `<button class="${gutterCls}" draggable="false" data-idx="${idx}">${gutterInner}</button>`;
-      return `<div class="ob-block ob-text" data-idx="${idx}" style="margin-left:${level * 22}px">
-        ${caret}${slot}${g}${body}
-      </div>`;
-    }
+    const rightActions = `<span class="ob-right-actions">${rightFold}${dragHandle}</span>`;
+
     return `<div class="ob-block ob-text${collapsed}" data-idx="${idx}" style="margin-left:${level * 22}px">
-      ${toggle}${caret}<button class="${gutterCls}" draggable="true"${foldAttr} data-idx="${idx}" title="拖动排序 · 点击${isHeading ? '' : '折叠/'}展开">${gutterInner}</button>${body}${pop}
+      ${leftGutter}${body}${rightActions}${pop}
     </div>`;
   }
   function renderRefBlock(it, idx, docId, listType, marker, readOnly, opts) {
@@ -689,18 +690,19 @@
     const link = p.url || (p.collection ? '合集 · ' + p.collection : (p.kind === 'collection' ? '合集 · ' + (p.name || '') : ''));
     const isHeading = !!(it.heading && it.heading >= 1 && it.heading <= 6);
     const hCollapsed = !!it.headingCollapsed;
-    const foldAttr = isHeading ? '' : ' data-act="ob-fold"';
-    let gutterCls, gutterInner;
-    if (listType === 'ol') { gutterCls = 'ob-bullet ob-bullet-num ob-drag-handle'; gutterInner = marker; }
-    else if (listType === 'ul') { gutterCls = 'ob-bullet ob-drag-handle'; gutterInner = ''; }
-    else { gutterCls = 'ob-gutter-empty ob-drag-handle'; gutterInner = ''; }
-    const caret = isHeading
+
+    let leftGutter = '';
+    if (listType === 'ol') {
+      leftGutter = `<button class="ob-gutter ob-gutter-ol${readOnly ? '' : ' ob-gutter-btn'}" data-idx="${idx}"${readOnly ? '' : ' data-act="blk-list-toggle"'} title="${readOnly ? '' : '点击切换列表样式'}">${marker}</button>`;
+    } else if (listType === 'ul') {
+      leftGutter = `<button class="ob-gutter ob-gutter-ul${readOnly ? '' : ' ob-gutter-btn'}" data-idx="${idx}"${readOnly ? '' : ' data-act="blk-list-toggle"'} title="${readOnly ? '' : '点击切换列表样式'}"></button>`;
+    }
+
+    const rightFold = isHeading
       ? `<button class="ob-heading-caret${hCollapsed ? ' collapsed' : ''}" data-act="heading-fold" data-idx="${idx}" title="${hCollapsed ? '展开本节' : '折叠本节'}">${icon('chevron-right')}</button>`
-      : '';
-    const toggle = (!readOnly && !isHeading)
-      ? `<button class="ob-list-toggle" data-act="blk-list-toggle" data-idx="${idx}" title="列表：${listType === 'ol' ? '有序' : listType === 'ul' ? '无序' : '正文'}">${icon('list')}</button>`
-      : '';
-    const slot = isHeading ? '' : (!readOnly ? '' : '<span class="ob-gutter-slot"></span>');
+      : `<button class="ob-fold-right${it.collapsed ? ' collapsed' : ''}" data-act="ob-fold" data-idx="${idx}" title="${it.collapsed ? '展开' : '折叠'}">${icon('chevron-down')}</button>`;
+    const dragHandle = readOnly ? '' : `<span class="ob-grip ob-drag-handle" draggable="true" data-idx="${idx}" title="拖动排序">${icon('grip-vertical', 'w-3 h-3')}</span>`;
+
     const pop = (!readOnly && _listMenuIdx === idx)
       ? `<div class="ob-list-pop" data-idx="${idx}">
            <button class="ob-list-opt${(!listType) ? ' active' : ''}" data-act="blk-list-set" data-idx="${idx}" data-list="none">${icon('minus')}<span>正文</span></button>
@@ -708,12 +710,14 @@
            <button class="ob-list-opt${(listType === 'ol') ? ' active' : ''}" data-act="blk-list-set" data-idx="${idx}" data-list="ol">${icon('list-ordered')}<span>有序</span></button>
          </div>`
       : '';
+
     const bg = escHtml(p.previewBg || '');
+    const rightActions = `<span class="ob-right-actions">${rightFold}${dragHandle}</span>`;
     if (readOnly) {
       const faved = (opts && typeof opts.isFav === 'function') ? opts.isFav(p) : false;
       const thumb = `<div class="ob-thumb ${bg}" data-act="ref-cover" data-idx="${idx}" role="button" title="查看大图" style="cursor:zoom-in">${p.previewHTML || ''}</div>`;
       return `<div class="ob-block ob-ref" data-idx="${idx}" style="margin-left:${level * 22}px">
-        ${caret}${slot}<button class="${gutterCls}" draggable="false" data-idx="${idx}">${gutterInner}</button>
+        ${leftGutter}
         <div class="ob-ref-card" data-act="ref-open" data-idx="${idx}">
           ${thumb}
           <div class="ob-ref-meta">
@@ -722,13 +726,14 @@
           </div>
           <button class="ob-ref-fav${faved ? ' faved' : ''}" data-act="ref-fav" data-idx="${idx}" title="${faved ? '取消收藏' : '收藏到常用网站'}">${icon('star')}</button>
         </div>
+        ${rightActions}${pop}
       </div>`;
     }
     const thumb = p.previewHTML
       ? `<div class="ob-thumb ${bg}">${p.previewHTML}</div>`
       : `<div class="ob-thumb ${bg || 'ob-thumb-empty'}"></div>`;
     return `<div class="ob-block ob-ref" data-idx="${idx}" style="margin-left:${level * 22}px">
-      ${toggle}${caret}<button class="${gutterCls}" draggable="true"${foldAttr} data-idx="${idx}" title="拖动排序">${gutterInner}</button>
+      ${leftGutter}
       <div class="ob-ref-card">
         ${thumb}
         <div class="ob-ref-meta">
@@ -737,7 +742,7 @@
         </div>
         <button class="ob-block-del" data-act="ob-del" data-idx="${idx}" title="删除">${icon('x')}</button>
       </div>
-      ${pop}
+      ${rightActions}${pop}
     </div>`;
   }
 

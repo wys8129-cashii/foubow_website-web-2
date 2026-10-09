@@ -374,40 +374,52 @@
     .ob-body { padding: 10px 10px 20px; }
     .ob-body.drag-over { background: #F9FAFB; box-shadow: inset 0 0 0 2px #1A1A1A; border-radius: 12px; }
     .ob-block {
-      display: flex; align-items: flex-start; gap: 6px; margin: 2px 0;
-      padding: 3px 6px; border-radius: 8px; transition: background 0.12s;
-      position: relative;
+      display: flex; align-items: flex-start; gap: 0; margin: 0; padding: 2px 0; border-radius: 6px; transition: background 0.12s;
+      position: relative; min-height: 24px;
     }
     .ob-block:hover { background: #F9FAFB; }
-    .ob-bullet {
-      flex: 0 0 auto; width: 16px; height: 16px; margin-top: 3px; border: none; background: transparent;
-      cursor: pointer; position: relative; border-radius: 50%;
+    /* 左侧列表序号/圆点：仅列表块显示，点击编辑样式 */
+    .ob-gutter {
+      flex: 0 0 auto; width: 22px; min-height: 24px; border: none; background: transparent;
+      display: inline-flex; align-items: flex-start; justify-content: flex-end;
+      color: #6B7280; font-size: 13px; line-height: 22px; padding-right: 6px;
+      cursor: default; position: relative;
     }
-    .ob-bullet::before { content: ""; position: absolute; left: 4px; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: #9CA3AF; transition: background 0.15s; }
-    .ob-bullet:hover::before { background: #1A1A1A; }
-    .ob-block.ob-collapsed > .ob-bullet::before { background: #1A1A1A; box-shadow: 0 0 0 3px rgba(26,26,26,0.12); }
-    /* 有序模式：圆点隐藏，数字显示在折叠按钮内，避免「圆点+数字」重复 */
-    .ob-bullet-num::before { display: none !important; }
-    .ob-bullet-num { width: auto; min-width: 20px; height: 22px; margin-top: 0; padding: 0; border-radius: 0; justify-content: flex-end; line-height: 22px; }
-    .ob-num { flex: 0 0 auto; font-size: 13px; color: #6B7280; min-width: 20px; text-align: right; line-height: 22px; }
-    /* 有序列表数字（直接渲染于手柄内） */
-    .ob-bullet-num { color: #6B7280; font-size: 13px; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
-    /* 正文（无列表）：占位 gutter，无圆点 */
-    .ob-gutter-empty { flex: 0 0 auto; width: 16px; height: 16px; margin-top: 3px; border: none; background: transparent; }
-    .ob-gutter-empty::before { display: none !important; }
-    /* 只读/标题块左侧占位槽，保证标题与正文左对齐 */
-    .ob-gutter-slot { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 2px; }
-    /* 块级列表：悬停出现的切换按钮 + 弹出菜单（云文档风格，每块独立设置） */
-    .ob-list-toggle {
-      flex: 0 0 auto; width: 18px; height: 18px; margin-top: 2px; border: none; background: transparent;
-      color: #9CA3AF; cursor: pointer; opacity: 0; transition: opacity 0.12s, background 0.12s, color 0.12s;
-      display: inline-flex; align-items: center; justify-content: center; border-radius: 4px;
+    .ob-gutter-ol { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; text-align: right; }
+    .ob-gutter-ul::before { content: "·"; font-size: 22px; line-height: 18px; color: #6B7280; transform: translateY(-1px); }
+    .ob-gutter-btn { cursor: pointer; border-radius: 4px; }
+    .ob-gutter-btn:hover { background: #F3F4F6; color: #1A1A1A; }
+    .ob-gutter-btn:hover::before { color: #1A1A1A; }
+    /* 正文块无左侧 gutter，与标题左对齐 */
+    /* 右侧操作区：折叠按钮 + 拖拽柄，默认隐藏，悬停显示 */
+    .ob-right-actions {
+      flex: 0 0 auto; display: inline-flex; align-items: center; gap: 2px;
+      margin-left: 6px; padding-right: 2px;
     }
-    .ob-list-toggle svg { width: 14px; height: 14px; }
-    .ob-list-toggle:hover { background: #F3F4F6; color: #1A1A1A; }
-    .ob-block:hover .ob-list-toggle { opacity: 1; }
+    .ob-heading-caret, .ob-fold-right, .ob-grip {
+      width: 20px; height: 20px; border: none; background: transparent;
+      color: #9CA3AF; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 4px; transition: transform 0.15s ease, color 0.15s, background 0.15s;
+    }
+    .ob-heading-caret svg, .ob-fold-right svg, .ob-grip svg { width: 14px; height: 14px; }
+    .ob-heading-caret:hover, .ob-fold-right:hover, .ob-grip:hover { background: #F3F4F6; color: #1A1A1A; }
+    .ob-heading-caret { transform: rotate(90deg); color: #9CA3AF; }
+    .ob-heading-caret.collapsed { transform: rotate(0deg); color: #6B7280; }
+    .ob-fold-right { color: #D1D5DB; transition: color 0.12s, background 0.12s; }
+    .ob-block:hover .ob-fold-right { color: #9CA3AF; }
+    .ob-fold-right:hover { color: #1A1A1A; background: #F3F4F6; }
+    .ob-fold-right.collapsed { color: #9CA3AF; }
+    .ob-grip { cursor: grab; touch-action: none; opacity: 0; transition: opacity 0.12s; }
+    .ob-block:hover .ob-grip { opacity: 1; }
+    .ob-grip:active { cursor: grabbing; }
+    .ob-dragging { opacity: 0.35; }
+    .ob-block.ob-drop-before { position: relative; }
+    .ob-block.ob-drop-before::before { content: ''; position: absolute; left: 0; right: 0; top: -2px; height: 2px; background: #1A1A1A; border-radius: 2px; }
+    .ob-block.ob-drop-after { position: relative; }
+    .ob-block.ob-drop-after::after { content: ''; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; background: #1A1A1A; border-radius: 2px; }
+    /* 列表样式切换弹层：出现在序号上方 */
     .ob-list-pop {
-      position: absolute; top: 100%; left: 0; z-index: 60; margin-top: 2px;
+      position: absolute; bottom: 100%; left: 0; z-index: 60; margin-bottom: 4px;
       background: #fff; border: 1px solid #E5E7EB; border-radius: 8px;
       box-shadow: 0 6px 18px rgba(17,24,39,0.14); padding: 4px; display: flex; flex-direction: column; gap: 2px; min-width: 108px;
     }
@@ -419,28 +431,11 @@
     .ob-list-opt:hover { background: #F3F4F6; }
     .ob-list-opt.active { background: #EEF2FF; color: #1A1A1A; }
     .ob-list-opt.active svg { color: #1A1A1A; }
-    /* 标题折叠：点击 caret 把下方正文/卡片收进标题 */
-    .ob-heading-caret {
-      flex: 0 0 auto; width: 18px; height: 18px; margin-top: 3px; border: none; background: transparent; color: #9CA3AF;
-      cursor: pointer; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px;
-      transition: transform 0.15s ease, color 0.15s, background 0.15s; transform: rotate(90deg);
-    }
-    .ob-heading-caret svg { width: 14px; height: 14px; }
-    .ob-heading-caret:hover { color: #1A1A1A; background: #F3F4F6; }
-    .ob-heading-caret.collapsed { transform: rotate(0deg); color: #6B7280; }
-    /* 块拖动排序：手柄 = 无序/有序标记 */
-    .ob-drag-handle { cursor: grab; touch-action: none; }
-    .ob-drag-handle:active { cursor: grabbing; }
-    .ob-dragging { opacity: 0.35; }
-    .ob-block.ob-drop-before { position: relative; }
-    .ob-block.ob-drop-before::before { content: ''; position: absolute; left: 0; right: 0; top: -3px; height: 2px; background: #1A1A1A; border-radius: 2px; }
-    .ob-block.ob-drop-after { position: relative; }
-    .ob-block.ob-drop-after::after { content: ''; position: absolute; left: 0; right: 0; bottom: -3px; height: 2px; background: #1A1A1A; border-radius: 2px; }
     .ob-edit {
       flex: 1; min-width: 0; outline: none; font-size: 13px; color: #1A1A1A;
       line-height: 22px; min-height: 22px; word-break: break-word;
     }
-    .ob-edit:empty::before { content: "输入文字…"; color: #9CA3AF; }
+    .ob-edit:empty::before { display: none; }
     .ob-ref { align-items: stretch; }
     .ob-ref-card {
       flex: 1; display: flex; align-items: center; gap: 10px; padding: 8px;
@@ -457,6 +452,21 @@
     .ob-ref-title { font-size: 13px; font-weight: 600; color: #1A1A1A; text-decoration: none; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .ob-ref-title:hover { text-decoration: underline; }
     .ob-ref-link { font-size: 11px; color: #6B7280; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* 预览/只读态整体缩小字号 */
+    .ob-edit-readonly { flex: 1; min-width: 0; font-size: 12px; color: #1A1A1A; line-height: 20px; min-height: 20px; word-break: break-word; }
+    .ob-edit-readonly.ob-heading-1 { font-size: 18px; font-weight: 700; line-height: 1.25; }
+    .ob-edit-readonly.ob-heading-2 { font-size: 16px; font-weight: 700; line-height: 1.25; }
+    .ob-edit-readonly.ob-heading-3 { font-size: 15px; font-weight: 650; line-height: 1.3; }
+    .ob-edit-readonly.ob-heading-4 { font-size: 14px; font-weight: 600; line-height: 1.35; }
+    .ob-edit-readonly.ob-heading-5 { font-size: 13px; font-weight: 600; line-height: 1.35; }
+    .ob-edit-readonly.ob-heading-6 { font-size: 12.5px; font-weight: 600; line-height: 1.35; }
+    /* 编辑态标题字号同步微调 */
+    .ob-edit.ob-heading-1 { font-size: 18px; font-weight: 700; line-height: 1.25; }
+    .ob-edit.ob-heading-2 { font-size: 16px; font-weight: 700; line-height: 1.25; }
+    .ob-edit.ob-heading-3 { font-size: 15px; font-weight: 650; line-height: 1.3; }
+    .ob-edit.ob-heading-4 { font-size: 14px; font-weight: 600; line-height: 1.35; }
+    .ob-edit.ob-heading-5 { font-size: 13px; font-weight: 600; line-height: 1.35; }
+    .ob-edit.ob-heading-6 { font-size: 12.5px; font-weight: 600; line-height: 1.35; }
     .ob-ref-link:hover { color: #1A1A1A; text-decoration: underline; }
     .ob-block-del { display: none; flex: 0 0 auto; align-items: center; justify-content: center; width: 22px; height: 22px; border: none; background: transparent; border-radius: 6px; color: #9CA3AF; cursor: pointer; }
     .ob-block:hover .ob-block-del { display: inline-flex; }
