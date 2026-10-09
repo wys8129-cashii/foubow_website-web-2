@@ -619,10 +619,10 @@
         b.headingHide = hHidden;
       }
     });
-    // 列表编号：每块可独立设置 无序/有序/正文，连续有序自动连续编号
+    // 列表样式：每块独立设置（默认正文无符号），连续有序自动连续编号
     let curNum = 0;
     blocks.forEach(b => {
-      const lt = b.it.list || doc.type || null;
+      const lt = b.it.list || null;
       if (lt === 'ol') { curNum++; b.listType = 'ol'; b.listMarker = curNum + '.'; }
       else if (lt === 'ul') { curNum = 0; b.listType = 'ul'; b.listMarker = ''; }
       else { curNum = 0; b.listType = null; b.listMarker = ''; }
@@ -634,11 +634,13 @@
         : renderTextBlock(b.it, b.i, b.listType, b.listMarker, readOnly);
     });
 
-    if (!readOnly) {
+    if (!readOnly && items.length === 0) {
       html += `<div class="ob-add">
         <button class="ob-add-btn" data-act="ob-add-text" data-doc="${escId}">${icon('plus', 'w-3.5 h-3.5 inline -mt-0.5 mr-1')}添加文字</button>
       </div>
-      <div class="ob-drop-hint" data-doc="${escId}">把左侧合集卡片或中间素材卡片拖到这里，可作为卡片引用插入</div>`;
+      <div class="ob-add ob-drop-hint-wrap">
+        <div class="ob-add-btn ob-drop-hint" role="note">拖入左侧素材卡片</div>
+      </div>`;
     }
     html += '</div></div>';
     container.innerHTML = html;
@@ -662,10 +664,10 @@
       leftGutter = `<button class="ob-gutter ob-gutter-ul${readOnly ? '' : ' ob-gutter-btn'}" data-idx="${idx}"${readOnly ? '' : ' data-act="blk-list-toggle"'} title="${readOnly ? '' : '点击切换列表样式'}"></button>`;
     }
 
-    // 右侧折叠按钮：标题折叠其下正文/卡片；正文折叠自己
+    // 折叠按钮：仅标题行显示（折叠其下正文/卡片），正文行不显示
     const rightFold = isHeading
       ? `<button class="ob-heading-caret${hCollapsed ? ' collapsed' : ''}" data-act="heading-fold" data-idx="${idx}" title="${hCollapsed ? '展开本节' : '折叠本节'}">${icon('chevron-right')}</button>`
-      : `<button class="ob-fold-right${it.collapsed ? ' collapsed' : ''}" data-act="ob-fold" data-idx="${idx}" title="${it.collapsed ? '展开' : '折叠'}">${icon('chevron-down')}</button>`;
+      : '';
 
     const dragHandle = readOnly ? '' : `<span class="ob-grip ob-drag-handle" draggable="true" data-idx="${idx}" title="拖动排序">${icon('grip-vertical', 'w-3 h-3')}</span>`;
 
@@ -700,7 +702,7 @@
 
     const rightFold = isHeading
       ? `<button class="ob-heading-caret${hCollapsed ? ' collapsed' : ''}" data-act="heading-fold" data-idx="${idx}" title="${hCollapsed ? '展开本节' : '折叠本节'}">${icon('chevron-right')}</button>`
-      : `<button class="ob-fold-right${it.collapsed ? ' collapsed' : ''}" data-act="ob-fold" data-idx="${idx}" title="${it.collapsed ? '展开' : '折叠'}">${icon('chevron-down')}</button>`;
+      : '';
     const dragHandle = readOnly ? '' : `<span class="ob-grip ob-drag-handle" draggable="true" data-idx="${idx}" title="拖动排序">${icon('grip-vertical', 'w-3 h-3')}</span>`;
 
     const pop = (!readOnly && _listMenuIdx === idx)
@@ -1355,8 +1357,10 @@
       renderAll(container);
     });
 
-    // ===== 块级拖动排序（手柄 = 无序/有序标记，整行作放置目标）=====
+    // ===== 块级拖动排序（手柄 = 拖拽柄，整行作放置目标）=====
     let draggingIdx = -1;
+    let blockDragPreview = null;
+    let dropRaf = null;
     function clearDropIndicators() {
       container.querySelectorAll('.ob-drop-before, .ob-drop-after').forEach(el => el.classList.remove('ob-drop-before', 'ob-drop-after'));
     }
@@ -1364,6 +1368,14 @@
       clearDropIndicators();
       const d = container.querySelector('.ob-dragging');
       if (d) d.classList.remove('ob-dragging');
+    }
+    function createBlockDragPreview() {
+      const d = document.createElement('div');
+      d.className = 'fb-drag-preview';
+      d.textContent = '移动中…';
+      d.style.cssText = 'position:fixed;left:-9999px;top:-9999px;z-index:-1;pointer-events:none;width:120px;padding:6px 10px;background:#1A1A1A;color:#fff;border-radius:8px;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 12px rgba(0,0,0,.25);';
+      document.body.appendChild(d);
+      return d;
     }
     container.addEventListener('dragstart', (e) => {
       // 全部产出物视图：拖动文档行跨合集分类
@@ -1388,6 +1400,8 @@
       try {
         e.dataTransfer.setData(BLOCK_DRAG_MIME, String(draggingIdx));
         e.dataTransfer.effectAllowed = 'move';
+        blockDragPreview = createBlockDragPreview();
+        if (e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(blockDragPreview, 60, 14);
       } catch (err) {}
       const block = handle.closest('.ob-block');
       if (block) block.classList.add('ob-dragging');
@@ -1409,13 +1423,19 @@
       if (!e.dataTransfer || Array.from(e.dataTransfer.types).indexOf(BLOCK_DRAG_MIME) < 0) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
-      clearDropIndicators();
+      // 用 requestAnimationFrame 节流视觉指示器更新，减少拖拽卡顿
       const block = e.target.closest('.ob-block');
+      let after = false;
       if (block) {
         const rect = block.getBoundingClientRect();
-        const after = (e.clientY - rect.top) > rect.height / 2;
-        block.classList.add(after ? 'ob-drop-after' : 'ob-drop-before');
+        after = (e.clientY - rect.top) > rect.height / 2;
       }
+      if (dropRaf) cancelAnimationFrame(dropRaf);
+      dropRaf = requestAnimationFrame(() => {
+        dropRaf = null;
+        clearDropIndicators();
+        if (block) block.classList.add(after ? 'ob-drop-after' : 'ob-drop-before');
+      });
     });
     container.addEventListener('dragleave', (e) => {
       if (_view.mode === 'all' && docDragging) {
@@ -1452,6 +1472,7 @@
       }
       if (_view.mode !== 'doc' || draggingIdx < 0) return;
       if (!e.dataTransfer || Array.from(e.dataTransfer.types).indexOf(BLOCK_DRAG_MIME) < 0) return;
+      if (dropRaf) { cancelAnimationFrame(dropRaf); dropRaf = null; }
       e.preventDefault();
       const from = parseInt(e.dataTransfer.getData(BLOCK_DRAG_MIME), 10);
       if (isNaN(from)) return;
@@ -1486,6 +1507,7 @@
       draggingIdx = -1;
       clearDocDrop();
       docDragging = null;
+      if (blockDragPreview) { try { blockDragPreview.parentNode && blockDragPreview.parentNode.removeChild(blockDragPreview); } catch (_) {} blockDragPreview = null; }
     });
   }
 
