@@ -485,11 +485,19 @@
       height: 0; margin: 8px 12px; border-top: 1px dashed #D1D5DB;
     }
     .doc-group-header {
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; align-items: center; justify-content: flex-start; gap: 2px;
       padding: 4px 14px 8px;
     }
+    .doc-group-fold {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; margin-right: 2px; padding: 0;
+      border: none; background: transparent; color: #6B7280; cursor: pointer;
+      border-radius: 6px; transition: background 0.15s, color 0.15s;
+    }
+    .doc-group-fold:hover { background: #F3F4F6; color: #1A1A1A; }
+    .doc-group-fold i { width: 16px; height: 16px; }
     .doc-group-name { font-size: 12px; font-weight: 600; color: #1A1A1A; }
-    .doc-group-count { font-size: 11px; color: #9CA3AF; }
+    .doc-group-count { font-size: 11px; color: #9CA3AF; margin-left: auto; }
 
     /* 底部"查看全部产出物" */
     .doc-view-all-wrap {
@@ -510,6 +518,24 @@
       font-size: 10px; font-weight: 600; margin-left: 4px;
     }
     .doc-view-all:hover .doc-view-all-count { background: #1A1A1A; color: #fff; }
+
+    /* 文档头部：编辑/预览切换按钮 */
+    .hdr-action-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 6px 10px; border: 1px solid #E5E7EB; border-radius: 999px;
+      background: #fff; color: #1A1A1A; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .hdr-action-btn:hover { border-color: #1A1A1A; background: #F9FAFB; }
+    .hdr-action-btn i { width: 14px; height: 14px; }
+
+    /* 产出物文档：标题级别（Option+数字） */
+    .ob-edit.ob-heading-1, .ob-edit-readonly.ob-heading-1 { font-size: 22px; font-weight: 700; line-height: 1.35; }
+    .ob-edit.ob-heading-2, .ob-edit-readonly.ob-heading-2 { font-size: 19px; font-weight: 700; line-height: 1.35; }
+    .ob-edit.ob-heading-3, .ob-edit-readonly.ob-heading-3 { font-size: 17px; font-weight: 600; line-height: 1.35; }
+    .ob-edit.ob-heading-4, .ob-edit-readonly.ob-heading-4 { font-size: 15px; font-weight: 600; }
+    .ob-edit.ob-heading-5, .ob-edit-readonly.ob-heading-5 { font-size: 14px; font-weight: 600; }
+    .ob-edit.ob-heading-6, .ob-edit-readonly.ob-heading-6 { font-size: 13px; font-weight: 600; }
 
     /* 全部产出物弹窗头部：黑色胶囊新增按钮 */
     .ob-all-add-btn {

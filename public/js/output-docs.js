@@ -18,6 +18,21 @@
   let _view = { mode: 'list', docId: null, collectionName: null };
   let _pendingFocus = -1;
 
+  // 全部产出物视图：分类（合集）折叠状态，持久化到 localStorage
+  const GROUP_COLLAPSE_KEY = 'foubow-output-groups-collapsed';
+  let _collapsedGroups = loadCollapsedGroups();
+  function loadCollapsedGroups() {
+    try {
+      const raw = localStorage.getItem(GROUP_COLLAPSE_KEY);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? new Set(arr) : new Set();
+    } catch (e) { return new Set(); }
+  }
+  function saveCollapsedGroups() {
+    try { localStorage.setItem(GROUP_COLLAPSE_KEY, JSON.stringify([..._collapsedGroups])); } catch (e) {}
+  }
+
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -509,6 +524,7 @@
           <span class="text-sm font-medium text-[#1A1A1A] truncate">全部产出物</span>
         </div>
         <div class="flex items-center gap-1 shrink-0">
+          <button class="hdr-icon-btn" data-act="group-fold-all" title="折叠/展开全部合集">${icon((groups.length && _collapsedGroups.size >= groups.length) ? 'chevrons-down-up' : 'chevrons-up-down')}</button>
           <button class="ob-all-add-btn" data-act="add-output-all" title="新增产出物文档">${icon('plus', 'w-3.5 h-3.5')}<span>新增</span></button>
           ${menuButton('all-menu', '更多', [
             { act: 'menu-ai-summary-list', label: 'AI 总结全部', icon: 'sparkles' },
@@ -528,12 +544,14 @@
       html += '<div class="pt-3 pb-3 px-0">';
       groups.forEach((g, gi) => {
         if (gi > 0) html += '<div class="doc-group-divider"></div>';
-        html += `<div class="doc-group doc-group-droppable" data-col="${escHtml(g.name)}">
+        const gcollapsed = _collapsedGroups.has(g.name);
+        html += `<div class="doc-group doc-group-droppable${gcollapsed ? ' ob-group-collapsed' : ''}" data-col="${escHtml(g.name)}">
           <div class="doc-group-header">
+            <button class="doc-group-fold" data-act="group-fold" data-col="${escHtml(g.name)}" title="折叠/展开">${icon(gcollapsed ? 'chevron-right' : 'chevron-down')}</button>
             <span class="doc-group-name">${escHtml(g.displayName || g.name)}</span>
             <span class="doc-group-count">${g.docs.length} 个文档</span>
           </div>
-          <div class="px-3 space-y-2">`;
+          <div class="px-3 space-y-2"${gcollapsed ? ' style="display:none"' : ''}>`;
         g.docs.forEach(d => { html += renderDocRow(d, g.name, true); });
         html += '</div></div>';
       });
@@ -574,6 +592,9 @@
             { divider: true },
             { act: 'menu-del-doc', label: '删除', icon: 'trash-2', danger: true, docAttr: docId },
           ]) : ''}
+          ${readOnly
+            ? `<button class="hdr-action-btn" data-act="doc-toggle-edit" title="编辑文档">${icon('pencil')}<span>编辑</span></button>`
+            : `<button class="hdr-action-btn" data-act="doc-toggle-edit" title="完成预览">${icon('eye')}<span>预览</span></button>`}
         </div>
       </div>
       <div class="flex-1 overflow-y-auto scrollbar-thin ob-body" data-doc="${escId}">`;
@@ -612,18 +633,19 @@
 
   function renderTextBlock(it, idx, isOl, num, readOnly) {
     const level = it.level || 0;
+    const hcls = (it.heading && it.heading >= 1 && it.heading <= 6) ? ' ob-heading-' + it.heading : '';
     const collapsed = (!readOnly && it.collapsed) ? ' ob-collapsed' : '';
     const bulletCls = isOl ? 'ob-bullet ob-bullet-num' : 'ob-bullet';
     const marker = isOl ? `<span class="ob-num">${num}.</span>` : '';
     if (readOnly) {
       return `<div class="ob-block ob-text" data-idx="${idx}" style="margin-left:${level * 22}px">
         <div class="${bulletCls}">${marker}</div>
-        <div class="ob-edit-readonly">${escHtml(it.value || '')}</div>
+        <div class="ob-edit-readonly${hcls}">${escHtml(it.value || '')}</div>
       </div>`;
     }
     return `<div class="ob-block ob-text${collapsed}" data-idx="${idx}" style="margin-left:${level * 22}px">
       <button class="${bulletCls} ob-drag-handle" draggable="true" data-act="ob-fold" data-idx="${idx}" title="拖动可排序 · 点击折叠/展开">${marker}</button>
-      <div class="ob-edit" contenteditable="true" data-idx="${idx}" spellcheck="false">${escHtml(it.value || '')}</div>
+      <div class="ob-edit${hcls}" contenteditable="true" data-idx="${idx}" spellcheck="false">${escHtml(it.value || '')}</div>
     </div>`;
   }
   function renderRefBlock(it, idx, docId, isOl, num, readOnly, opts) {
@@ -939,7 +961,29 @@
         const title = container.querySelector('.ob-doc-title'); if (title) { title.focus(); title.select(); }
         return;
       }
+      if (act === 'doc-toggle-edit') {
+        const o = container.__obOpts || {};
+        o.readOnly = !o.readOnly;
+        renderAll(container);
+        return;
+      }
       if (act === 'close') { close(); return; }
+      if (act === 'group-fold') {
+        const col = t.dataset.col;
+        if (_collapsedGroups.has(col)) _collapsedGroups.delete(col);
+        else _collapsedGroups.add(col);
+        saveCollapsedGroups();
+        renderAll(container);
+        return;
+      }
+      if (act === 'group-fold-all') {
+        const gs = allGroups();
+        const allCollapsed = gs.length > 0 && _collapsedGroups.size >= gs.length;
+        _collapsedGroups = allCollapsed ? new Set() : new Set(gs.map(g => g.name));
+        saveCollapsedGroups();
+        renderAll(container);
+        return;
+      }
       if (act === 'view-all-docs') {
         _view = { mode: 'all', docId: null, collectionName: null };
         renderAll(container); return;
@@ -1120,10 +1164,41 @@
       const d = getDocs(name).find(x => x.id === docId);
       if (!d) return;
 
+      // Option/Alt + 数字：设置当前块标题级别（Option+1~6 = H1~H6，Option+0 = 正文）
+      if (e.altKey && e.code && /^Digit[0-6]$/.test(e.code)) {
+        e.preventDefault();
+        const it = d.items[idx]; if (!it) return;
+        const h = e.code === 'Digit0' ? 0 : parseInt(e.code.slice(5), 10);
+        it.heading = h;
+        saveState();
+        _pendingFocus = idx;
+        renderAll(container);
+        return;
+      }
+
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        const level = (d.items[idx] && d.items[idx].level) || 0;
-        addItemAt(name, docId, idx + 1, { kind: 'text', value: '', level });
+        const it = d.items[idx]; if (!it) return;
+        const cur = it.value || '';
+        let before = cur, after = '';
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount) {
+          const range = sel.getRangeAt(0);
+          try {
+            const pre = document.createRange();
+            pre.selectNodeContents(t);
+            pre.setEnd(range.startContainer, range.startOffset);
+            before = pre.toString();
+            const post = document.createRange();
+            post.selectNodeContents(t);
+            post.setStart(range.endContainer, range.endOffset);
+            after = post.toString();
+          } catch (err) { before = cur; after = ''; }
+        }
+        it.kind = 'text';
+        it.value = before;
+        const level = it.level || 0;
+        addItemAt(name, docId, idx + 1, { kind: 'text', value: after, level });
         _pendingFocus = idx + 1;
         renderAll(container);
         return;
