@@ -1819,6 +1819,7 @@ async function saveCollection() {
 }
 async function deleteCollection() {
   if (!editingCollection) return;
+  if (editingCollection === '未分类') { alert('「未分类」为默认合集，不支持删除。'); return; }
   if (!confirm(`确定要删除合集「${editingCollection}」吗？\n该合集下的素材将移至「未分类」。`)) return;
 
   const userEmail = localStorage.getItem('userEmail') || 'guest@foubow.fun';

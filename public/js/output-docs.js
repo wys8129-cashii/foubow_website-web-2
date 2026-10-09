@@ -1016,15 +1016,14 @@
         return;
       }
       if (act === 'add-output-all') {
-        const groups = allGroups();
-        // 优先归属当前选中的合集；未选中则 fallback 到第一个名称非空且有产出的合集
+        // 优先归属当前选中的合集；未选中则 fallback 到第一个已有合集；都没有时默认放入「未分类」
         let targetName = container.__obName;
         if (!targetName) {
+          const groups = allGroups();
           const firstWithDocs = groups.find(g => g.name) && groups.find(g => g.name).name;
           const firstCol = Object.keys(state).find(c => c);
-          targetName = firstWithDocs || firstCol || '';
+          targetName = firstWithDocs || firstCol || '未分类';
         }
-        if (!targetName) { alert('还没有合集，请先在左侧创建合集。'); return; }
         const d = addDoc(targetName, { title: '未命名文档', type: 'ul', items: [] });
         _view = { mode: 'doc', docId: d.id, collectionName: targetName, prevMode: 'all' };
         renderAll(container);
