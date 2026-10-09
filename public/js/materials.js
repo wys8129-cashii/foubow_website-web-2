@@ -347,6 +347,7 @@ function parseMaterialDetailData(data) {
 
     console.log('最终解析到的详情项:', item);
     return {
+      id: item.id || '',
       title: item.title || '',
       url: item.web_url || item.url || '',
       content: item.content || '',
@@ -1308,6 +1309,9 @@ async function selectCard(id) {
       if (detail.url) currentItem.url = detail.url;
       currentItem.tags = detail.tags || [];
       currentItem.detailContent = detail.content || '';
+      // 详情工作流 7635623569224957986 新增输出参数 id（string），
+      // 用于「按 id 删除」工作流 7664793140239499298 的输入。
+      currentItem.cozeId = detail.id || '';
     }
   }
 
@@ -1461,10 +1465,11 @@ async function deleteMaterial(id) {
 
   try {
     showLoading('正在删除素材...');
+    const delId = item.cozeId || item.id;
     const response = await fetchWithTimeout('/api/coze/materials/delete', {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ id: item.id, input: item.title, image_url: item.cover_url || item.coverUrl || '' }),
+      body: JSON.stringify({ id: delId, image_url: item.cover_url || item.coverUrl || '' }),
     });
     const result = await response.json();
     if (result.code !== 1) {
@@ -1472,6 +1477,11 @@ async function deleteMaterial(id) {
       const detail = result.cozeResult ? '\n\nCoze 返回：' + JSON.stringify(result.cozeResult) : '';
       alert('删除素材失败：' + (result.msg || '未知错误') + detail);
       return;
+    }
+    // 工作流返回的 output（是否成功状态）。Coze 各工作流 schema 不一，
+    // 以「删除后重新拉取的列表」为最终真实结果；此处仅作提示性反馈。
+    if (result.deleted === false || result.deleted === 'false') {
+      console.warn('删除工作流返回 output 为失败状态:', result.deleted);
     }
 
     // 重新从服务端拉取，确保与真实数据一致（避免工作流未真删导致「刷新后还在」）

@@ -17,6 +17,7 @@
   let state = loadState();
   let _view = { mode: 'list', docId: null, collectionName: null };
   let _pendingFocus = -1;
+  let _listMenuIdx = -1; // 当前打开列表菜单的块索引（每块独立设置 无序/有序/正文）
 
   // 全部产出物视图：分类（合集）折叠状态，持久化到 localStorage
   const GROUP_COLLAPSE_KEY = 'foubow-output-groups-collapsed';
@@ -569,7 +570,6 @@
     const readOnly = opts && opts.readOnly;
     const doc = getDocs(name).find(d => d.id === docId);
     if (!doc) { _view = { mode: 'list', docId: null, collectionName: null }; return renderListView(container, name, opts); }
-    const isOl = doc.type === 'ol';
     const escId = escHtml(doc.id);
     const escTitle = escHtml(doc.title || '未命名文档');
 
@@ -582,10 +582,6 @@
             : `<input class="ob-doc-title" data-doc="${escId}" value="${escTitle}" placeholder="文档标题…" />`}
         </div>
         <div class="flex items-center gap-1 shrink-0">
-          ${!readOnly ? `<div class="output-type-toggle" data-doc="${escId}" title="切换列表类型">
-            <button class="${!isOl ? 'active' : ''}" data-type="ul" data-doc="${escId}" title="无序列表">${icon('list')}</button>
-            <button class="${isOl ? 'active' : ''}" data-type="ol" data-doc="${escId}" title="有序列表">${icon('list-ordered')}</button>
-          </div>` : ''}
           ${!readOnly ? menuButton('doc-menu', '更多', [
             { act: 'menu-ai-summary-doc', label: 'AI 总结', icon: 'sparkles' },
             { act: 'menu-share-doc', label: '分享', icon: 'share-2' },
@@ -607,15 +603,31 @@
       if (!readOnly && it.collapsed) stack.push(it);
       return { it, i, hide };
     });
-    const numList = [];
+    // 标题折叠：标题下方的正文/卡片收进标题内（直到同级或更高级标题出现）
+    let hHidden = false, hThresh = 99;
+    blocks.forEach(b => {
+      const h = b.it.heading;
+      if (h && h >= 1 && h <= 6) {
+        if (hHidden && h <= hThresh) hHidden = false;
+        b.headingHide = hHidden;
+        if (b.it.headingCollapsed) { hHidden = true; hThresh = h; } else hHidden = false;
+      } else {
+        b.headingHide = hHidden;
+      }
+    });
+    // 列表编号：每块可独立设置 无序/有序/正文，连续有序自动连续编号
     let curNum = 0;
-    blocks.forEach((b, i) => {
-      if (b.hide) return;
-      const level = b.it.level || 0;
-      if (isOl) { if (level === 0) { curNum++; numList[i] = curNum; } else numList[i] = numList[i - 1] != null ? numList[i - 1] : 0; }
+    blocks.forEach(b => {
+      const lt = b.it.list || doc.type || null;
+      if (lt === 'ol') { curNum++; b.listType = 'ol'; b.listMarker = curNum + '.'; }
+      else if (lt === 'ul') { curNum = 0; b.listType = 'ul'; b.listMarker = ''; }
+      else { curNum = 0; b.listType = null; b.listMarker = ''; }
+    });
+    blocks.forEach(b => {
+      if (b.hide || b.headingHide) return;
       html += b.it.kind === 'ref'
-        ? renderRefBlock(b.it, b.i, doc.id, isOl, isOl ? numList[i] : null, readOnly, opts)
-        : renderTextBlock(b.it, b.i, isOl, isOl ? numList[i] : null, readOnly);
+        ? renderRefBlock(b.it, b.i, doc.id, b.listType, b.listMarker, readOnly, opts)
+        : renderTextBlock(b.it, b.i, b.listType, b.listMarker, readOnly);
     });
 
     if (!readOnly) {
@@ -631,35 +643,73 @@
     container.__shareScope = { name, docId: doc.id };
   }
 
-  function renderTextBlock(it, idx, isOl, num, readOnly) {
+  function renderTextBlock(it, idx, listType, marker, readOnly) {
     const level = it.level || 0;
     const hcls = (it.heading && it.heading >= 1 && it.heading <= 6) ? ' ob-heading-' + it.heading : '';
     const collapsed = (!readOnly && it.collapsed) ? ' ob-collapsed' : '';
-    const bulletCls = isOl ? 'ob-bullet ob-bullet-num' : 'ob-bullet';
-    const marker = isOl ? `<span class="ob-num">${num}.</span>` : '';
+    const isHeading = !!(it.heading && it.heading >= 1 && it.heading <= 6);
+    const hCollapsed = !!it.headingCollapsed;
+    const foldAttr = isHeading ? '' : ' data-act="ob-fold"';
+    let gutterCls, gutterInner;
+    if (listType === 'ol') { gutterCls = 'ob-bullet ob-bullet-num ob-drag-handle'; gutterInner = marker; }
+    else if (listType === 'ul') { gutterCls = 'ob-bullet ob-drag-handle'; gutterInner = ''; }
+    else { gutterCls = 'ob-gutter-empty ob-drag-handle'; gutterInner = ''; }
+    const caret = isHeading
+      ? `<button class="ob-heading-caret${hCollapsed ? ' collapsed' : ''}" data-act="heading-fold" data-idx="${idx}" title="${hCollapsed ? '展开本节' : '折叠本节'}">${icon('chevron-right')}</button>`
+      : '';
+    const toggle = (!readOnly && !isHeading)
+      ? `<button class="ob-list-toggle" data-act="blk-list-toggle" data-idx="${idx}" title="列表：${listType === 'ol' ? '有序' : listType === 'ul' ? '无序' : '正文'}">${icon('list')}</button>`
+      : '';
+    const slot = isHeading ? '' : (!readOnly ? '' : '<span class="ob-gutter-slot"></span>');
+    const pop = (!readOnly && _listMenuIdx === idx)
+      ? `<div class="ob-list-pop" data-idx="${idx}">
+           <button class="ob-list-opt${(!listType) ? ' active' : ''}" data-act="blk-list-set" data-idx="${idx}" data-list="none">${icon('minus')}<span>正文</span></button>
+           <button class="ob-list-opt${(listType === 'ul') ? ' active' : ''}" data-act="blk-list-set" data-idx="${idx}" data-list="ul">${icon('list')}<span>无序</span></button>
+           <button class="ob-list-opt${(listType === 'ol') ? ' active' : ''}" data-act="blk-list-set" data-idx="${idx}" data-list="ol">${icon('list-ordered')}<span>有序</span></button>
+         </div>`
+      : '';
+    const body = `<div class="${readOnly ? 'ob-edit-readonly' : 'ob-edit'}${hcls}"${readOnly ? '' : ' contenteditable="true" spellcheck="false"'} data-idx="${idx}">${escHtml(it.value || '')}</div>`;
     if (readOnly) {
+      const g = `<button class="${gutterCls}" draggable="false" data-idx="${idx}">${gutterInner}</button>`;
       return `<div class="ob-block ob-text" data-idx="${idx}" style="margin-left:${level * 22}px">
-        <div class="${bulletCls}">${marker}</div>
-        <div class="ob-edit-readonly${hcls}">${escHtml(it.value || '')}</div>
+        ${caret}${slot}${g}${body}
       </div>`;
     }
     return `<div class="ob-block ob-text${collapsed}" data-idx="${idx}" style="margin-left:${level * 22}px">
-      <button class="${bulletCls} ob-drag-handle" draggable="true" data-act="ob-fold" data-idx="${idx}" title="拖动可排序 · 点击折叠/展开">${marker}</button>
-      <div class="ob-edit${hcls}" contenteditable="true" data-idx="${idx}" spellcheck="false">${escHtml(it.value || '')}</div>
+      ${toggle}${caret}<button class="${gutterCls}" draggable="true"${foldAttr} data-idx="${idx}" title="拖动排序 · 点击${isHeading ? '' : '折叠/'}展开">${gutterInner}</button>${body}${pop}
     </div>`;
   }
-  function renderRefBlock(it, idx, docId, isOl, num, readOnly, opts) {
+  function renderRefBlock(it, idx, docId, listType, marker, readOnly, opts) {
     const p = it.payload || {};
     const level = it.level || 0;
     const link = p.url || (p.collection ? '合集 · ' + p.collection : (p.kind === 'collection' ? '合集 · ' + (p.name || '') : ''));
-    const bulletCls = isOl ? 'ob-bullet ob-bullet-num' : 'ob-bullet';
-    const marker = isOl ? `<span class="ob-num">${num}.</span>` : '';
+    const isHeading = !!(it.heading && it.heading >= 1 && it.heading <= 6);
+    const hCollapsed = !!it.headingCollapsed;
+    const foldAttr = isHeading ? '' : ' data-act="ob-fold"';
+    let gutterCls, gutterInner;
+    if (listType === 'ol') { gutterCls = 'ob-bullet ob-bullet-num ob-drag-handle'; gutterInner = marker; }
+    else if (listType === 'ul') { gutterCls = 'ob-bullet ob-drag-handle'; gutterInner = ''; }
+    else { gutterCls = 'ob-gutter-empty ob-drag-handle'; gutterInner = ''; }
+    const caret = isHeading
+      ? `<button class="ob-heading-caret${hCollapsed ? ' collapsed' : ''}" data-act="heading-fold" data-idx="${idx}" title="${hCollapsed ? '展开本节' : '折叠本节'}">${icon('chevron-right')}</button>`
+      : '';
+    const toggle = (!readOnly && !isHeading)
+      ? `<button class="ob-list-toggle" data-act="blk-list-toggle" data-idx="${idx}" title="列表：${listType === 'ol' ? '有序' : listType === 'ul' ? '无序' : '正文'}">${icon('list')}</button>`
+      : '';
+    const slot = isHeading ? '' : (!readOnly ? '' : '<span class="ob-gutter-slot"></span>');
+    const pop = (!readOnly && _listMenuIdx === idx)
+      ? `<div class="ob-list-pop" data-idx="${idx}">
+           <button class="ob-list-opt${(!listType) ? ' active' : ''}" data-act="blk-list-set" data-idx="${idx}" data-list="none">${icon('minus')}<span>正文</span></button>
+           <button class="ob-list-opt${(listType === 'ul') ? ' active' : ''}" data-act="blk-list-set" data-idx="${idx}" data-list="ul">${icon('list')}<span>无序</span></button>
+           <button class="ob-list-opt${(listType === 'ol') ? ' active' : ''}" data-act="blk-list-set" data-idx="${idx}" data-list="ol">${icon('list-ordered')}<span>有序</span></button>
+         </div>`
+      : '';
     const bg = escHtml(p.previewBg || '');
     if (readOnly) {
       const faved = (opts && typeof opts.isFav === 'function') ? opts.isFav(p) : false;
       const thumb = `<div class="ob-thumb ${bg}" data-act="ref-cover" data-idx="${idx}" role="button" title="查看大图" style="cursor:zoom-in">${p.previewHTML || ''}</div>`;
       return `<div class="ob-block ob-ref" data-idx="${idx}" style="margin-left:${level * 22}px">
-        <div class="${bulletCls}">${marker}</div>
+        ${caret}${slot}<button class="${gutterCls}" draggable="false" data-idx="${idx}">${gutterInner}</button>
         <div class="ob-ref-card" data-act="ref-open" data-idx="${idx}">
           ${thumb}
           <div class="ob-ref-meta">
@@ -674,7 +724,7 @@
       ? `<div class="ob-thumb ${bg}">${p.previewHTML}</div>`
       : `<div class="ob-thumb ${bg || 'ob-thumb-empty'}"></div>`;
     return `<div class="ob-block ob-ref" data-idx="${idx}" style="margin-left:${level * 22}px">
-      <button class="${bulletCls} ob-drag-handle" draggable="true" data-act="ob-fold" data-idx="${idx}" title="拖动可排序 · 点击折叠/展开">${marker}</button>
+      ${toggle}${caret}<button class="${gutterCls}" draggable="true"${foldAttr} data-idx="${idx}" title="拖动排序">${gutterInner}</button>
       <div class="ob-ref-card">
         ${thumb}
         <div class="ob-ref-meta">
@@ -683,6 +733,7 @@
         </div>
         <button class="ob-block-del" data-act="ob-del" data-idx="${idx}" title="删除">${icon('x')}</button>
       </div>
+      ${pop}
     </div>`;
   }
 
@@ -1089,6 +1140,32 @@
         renderAll(container);
         return;
       }
+      // 标题折叠：把标题下方的正文/卡片收进标题内
+      if (act === 'heading-fold') {
+        const name = _view.collectionName || container.__obName;
+        const d = getDocs(name).find(x => x.id === _view.docId); if (!d) return;
+        const it = d.items[+t.dataset.idx]; if (!it) return;
+        it.headingCollapsed = !it.headingCollapsed; saveState();
+        renderAll(container);
+        return;
+      }
+      // 块级列表：打开/关闭 正文·无序·有序 菜单
+      if (act === 'blk-list-toggle') {
+        const idx = +t.dataset.idx;
+        _listMenuIdx = (_listMenuIdx === idx) ? -1 : idx;
+        renderAll(container);
+        return;
+      }
+      if (act === 'blk-list-set') {
+        const name = _view.collectionName || container.__obName;
+        const d = getDocs(name).find(x => x.id === _view.docId); if (!d) return;
+        const it = d.items[+t.dataset.idx]; if (!it) return;
+        const list = t.dataset.list;
+        it.list = (list === 'none') ? null : list;
+        _listMenuIdx = -1; saveState();
+        renderAll(container);
+        return;
+      }
       if (act === 'ob-del') {
         const name = _view.collectionName || container.__obName;
         removeItem(name, _view.docId, +t.dataset.idx);
@@ -1131,6 +1208,10 @@
       if (e.target.closest('[data-act="menu-toggle"]')) return;
       if (e.target.closest('.hdr-menu')) return;
       closeMenu(container);
+      // 点击空白处关闭块级列表菜单
+      if (_listMenuIdx >= 0 && !e.target.closest('.ob-list-pop') && !e.target.closest('.ob-list-toggle')) {
+        _listMenuIdx = -1; renderAll(container);
+      }
     });
 
     // 输入
@@ -1170,6 +1251,17 @@
         const it = d.items[idx]; if (!it) return;
         const h = e.code === 'Digit0' ? 0 : parseInt(e.code.slice(5), 10);
         it.heading = h;
+        saveState();
+        _pendingFocus = idx;
+        renderAll(container);
+        return;
+      }
+
+      // Ctrl/Cmd + Shift + 7/8：当前块设为有序/无序列表（云文档习惯）
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && (e.code === 'Digit7' || e.code === 'Digit8')) {
+        e.preventDefault();
+        const it = d.items[idx]; if (!it) return;
+        it.list = (e.code === 'Digit7') ? 'ol' : 'ul';
         saveState();
         _pendingFocus = idx;
         renderAll(container);

@@ -376,6 +376,7 @@
     .ob-block {
       display: flex; align-items: flex-start; gap: 6px; margin: 2px 0;
       padding: 3px 6px; border-radius: 8px; transition: background 0.12s;
+      position: relative;
     }
     .ob-block:hover { background: #F9FAFB; }
     .ob-bullet {
@@ -389,6 +390,44 @@
     .ob-bullet-num::before { display: none !important; }
     .ob-bullet-num { width: auto; min-width: 20px; height: 22px; margin-top: 0; padding: 0; border-radius: 0; justify-content: flex-end; line-height: 22px; }
     .ob-num { flex: 0 0 auto; font-size: 13px; color: #6B7280; min-width: 20px; text-align: right; line-height: 22px; }
+    /* 有序列表数字（直接渲染于手柄内） */
+    .ob-bullet-num { color: #6B7280; font-size: 13px; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+    /* 正文（无列表）：占位 gutter，无圆点 */
+    .ob-gutter-empty { flex: 0 0 auto; width: 16px; height: 16px; margin-top: 3px; border: none; background: transparent; }
+    .ob-gutter-empty::before { display: none !important; }
+    /* 只读/标题块左侧占位槽，保证标题与正文左对齐 */
+    .ob-gutter-slot { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 2px; }
+    /* 块级列表：悬停出现的切换按钮 + 弹出菜单（云文档风格，每块独立设置） */
+    .ob-list-toggle {
+      flex: 0 0 auto; width: 18px; height: 18px; margin-top: 2px; border: none; background: transparent;
+      color: #9CA3AF; cursor: pointer; opacity: 0; transition: opacity 0.12s, background 0.12s, color 0.12s;
+      display: inline-flex; align-items: center; justify-content: center; border-radius: 4px;
+    }
+    .ob-list-toggle svg { width: 14px; height: 14px; }
+    .ob-list-toggle:hover { background: #F3F4F6; color: #1A1A1A; }
+    .ob-block:hover .ob-list-toggle { opacity: 1; }
+    .ob-list-pop {
+      position: absolute; top: 100%; left: 0; z-index: 60; margin-top: 2px;
+      background: #fff; border: 1px solid #E5E7EB; border-radius: 8px;
+      box-shadow: 0 6px 18px rgba(17,24,39,0.14); padding: 4px; display: flex; flex-direction: column; gap: 2px; min-width: 108px;
+    }
+    .ob-list-opt {
+      display: flex; align-items: center; gap: 7px; width: 100%; padding: 6px 8px; border: none; background: transparent;
+      border-radius: 6px; font-size: 12px; color: #374151; cursor: pointer; text-align: left;
+    }
+    .ob-list-opt svg { width: 14px; height: 14px; color: #6B7280; }
+    .ob-list-opt:hover { background: #F3F4F6; }
+    .ob-list-opt.active { background: #EEF2FF; color: #1A1A1A; }
+    .ob-list-opt.active svg { color: #1A1A1A; }
+    /* 标题折叠：点击 caret 把下方正文/卡片收进标题 */
+    .ob-heading-caret {
+      flex: 0 0 auto; width: 18px; height: 18px; margin-top: 3px; border: none; background: transparent; color: #9CA3AF;
+      cursor: pointer; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px;
+      transition: transform 0.15s ease, color 0.15s, background 0.15s; transform: rotate(90deg);
+    }
+    .ob-heading-caret svg { width: 14px; height: 14px; }
+    .ob-heading-caret:hover { color: #1A1A1A; background: #F3F4F6; }
+    .ob-heading-caret.collapsed { transform: rotate(0deg); color: #6B7280; }
     /* 块拖动排序：手柄 = 无序/有序标记 */
     .ob-drag-handle { cursor: grab; touch-action: none; }
     .ob-drag-handle:active { cursor: grabbing; }
