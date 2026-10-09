@@ -21,6 +21,33 @@
       gap: 12px;
     }
 
+    /* ===== 卡片备注图标 + 气泡弹窗 ===== */
+    .mat-note-btn {
+      position: absolute; top: 6px; right: 6px; z-index: 12;
+      width: 24px; height: 24px; border-radius: 9999px;
+      background: rgba(255,255,255,.94); color: #6B7280;
+      box-shadow: 0 1px 4px rgba(17,24,39,.14);
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s ease;
+    }
+    .mat-note-btn:hover { background: #fff; color: #1A1A1A; }
+    .mat-note-btn.is-empty { opacity: .55; }
+    .mat-note-pop {
+      position: fixed; z-index: 9999; max-width: 240px;
+      background: #fff; border: 1px solid #E5E7EB; border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(17,24,39,.14);
+      padding: 8px 10px; font-size: 11px; line-height: 1.5; color: #4B5563;
+    }
+    .mat-note-pop.hidden { display: none; }
+    /* 最多展示 2 行，超出可在窗口内滑动 */
+    .mat-note-pop-inner {
+      max-height: 33px; overflow-y: auto; overscroll-behavior: contain;
+      white-space: pre-wrap; word-break: break-word;
+      scrollbar-width: thin;
+    }
+    .mat-note-pop-inner::-webkit-scrollbar { width: 3px; }
+    .mat-note-pop-inner::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 2px; }
+
     /* ===== 合集详情 2 列 ===== */
     .collection-grid {
       display: grid;

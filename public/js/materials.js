@@ -14,6 +14,33 @@ let panelCollection = null;
 let searchResults = [];         // 搜索结果列表
 let searchKeyword = '';         // 当前搜索关键词
 
+// ===== 备注（note）=====
+// 数据来源：素材列表 / 素材详情工作流返回的 note 参数
+// 由于暂无「更新备注」工作流，本地编辑结果暂存在 localStorage，按素材 id / title 覆盖
+let detailNoteOpen = true;      // 详情页备注气泡是否展开
+let detailNoteEditing = false;  // 详情页备注是否处于编辑态
+const NOTE_LS_KEY = 'foubow-material-notes';
+function loadNoteOverrides() {
+  try { return JSON.parse(localStorage.getItem(NOTE_LS_KEY) || '{}') || {}; } catch (e) { return {}; }
+}
+function saveNoteOverride(id, title, text) {
+  try {
+    const m = loadNoteOverrides();
+    if (id) m[String(id)] = { title: title || '', note: text || '' };
+    if (title) m['t:' + title] = { note: text || '' };
+    localStorage.setItem(NOTE_LS_KEY, JSON.stringify(m));
+  } catch (e) {}
+}
+function getNoteOf(item) {
+  if (!item) return '';
+  const o = loadNoteOverrides();
+  const byId = item.id ? o[String(item.id)] : null;
+  if (byId && typeof byId.note === 'string') return byId.note;
+  const byTitle = item.title ? o['t:' + item.title] : null;
+  if (byTitle && typeof byTitle.note === 'string') return byTitle.note;
+  return item.note || '';
+}
+
 // Helper
 function getMaterialsByCollection(name) { return materials.filter(m => m.collection === name); }
 function getAllCollections() { return [...collections]; }
@@ -353,6 +380,7 @@ function parseMaterialDetailData(data) {
       content: item.content || '',
       coverUrl: item.cover_url || item.coverUrl || '',
       tags: item.tag || [],
+      note: item.note || '',
     };
   } catch (error) {
     console.error('解析素材详情数据错误:', error);
@@ -438,6 +466,8 @@ function parseMaterialItem(item, index) {
       navigation: item.details?.navigation || ['暂无导航信息'],
     },
     tags: Array.isArray(item.tags) ? item.tags : (item.tag ? [item.tag] : []),
+    // 素材列表工作流的备注字段（note）
+    note: item.note || '',
     detectAspectRatio: () => detectAspectRatio(item.cover_url || item.coverUrl),
     getPreviewHTML() {
       if (this.coverUrl) {
@@ -551,14 +581,20 @@ function renderCollectionDetail(name) {
 function renderCardsInto(containerId, items, showCollection = false) {
   const container = document.getElementById(containerId);
   if (!container) return;
+  hideMatNotePop();
   container.innerHTML = items.map(item => {
         const isActive = item.id === selectedId;
+        const noteText = getNoteOf(item);
+        const noteBtn = `<button type="button" class="mat-note-btn${noteText.trim() ? '' : ' is-empty'}" data-note-text="${escHtml(noteText)}" onclick="event.stopPropagation(); toggleMatNotePop(this)" title="${noteText.trim() ? '查看备注' : '暂无备注'}"><i data-lucide="message-square" class="w-3.5 h-3.5"></i></button>`;
         const collectionChip = showCollection && item.collection && item.collection !== '未分类'
           ? `<span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors shrink-0" onclick="event.stopPropagation(); selectCollection('${escHtml(item.collection).replace(/'/g, "\\'")}')" title="进入合集「${escHtml(item.collection)}」">${escHtml(item.collection)}</span>`
           : '';
     return `<div><div draggable="true" data-fb-drag="material" data-material-id="${escHtml(item.id)}" data-material-title="${escHtml(item.title)}" data-material-collection="${escHtml(item.collection || '')}" data-material-url="${escHtml(item.url || '')}" onclick="onCardClick('${item.id}')"
       class="bg-white rounded-[10px] border overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md ${isActive ? 'border-[#1A1A1A] shadow-md' : 'border-[#E5E7EB]'}">
-      <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>
+      <div class="relative">
+        <div class="${item.previewBg} flex items-center justify-center overflow-hidden w-full aspect-[4/3]">${item.getPreviewHTML()}</div>
+        ${noteBtn}
+      </div>
       <div class="p-3">
         <h3 class="text-sm font-medium text-[#1A1A1A] leading-snug line-clamp-2 mb-1">${item.title}</h3>
         <div class="flex items-center gap-2">
@@ -571,6 +607,50 @@ function renderCardsInto(containerId, items, showCollection = false) {
   }).join('');
   lucide.createIcons();
 }
+
+// ===== 卡片备注气泡：点击图标弹出，最多展示 2 行，超出可在窗口内滑动；点击空白折叠 =====
+function ensureMatNotePop() {
+  let pop = document.getElementById('mat-note-pop');
+  if (!pop) {
+    pop = document.createElement('div');
+    pop.id = 'mat-note-pop';
+    pop.className = 'mat-note-pop hidden';
+    document.body.appendChild(pop);
+  }
+  return pop;
+}
+function hideMatNotePop() {
+  const pop = document.getElementById('mat-note-pop');
+  if (!pop) return;
+  pop.classList.add('hidden');
+  pop.__anchor = null;
+}
+function toggleMatNotePop(btn) {
+  const pop = ensureMatNotePop();
+  if (!pop.classList.contains('hidden') && pop.__anchor === btn) { hideMatNotePop(); return; }
+  const text = btn.getAttribute('data-note-text') || '';
+  pop.innerHTML = `<div class="mat-note-pop-inner">${text.trim() ? escHtml(text) : '<span class="text-[#C4C8CF]">暂无备注</span>'}</div>`;
+  pop.__anchor = btn;
+  pop.classList.remove('hidden');
+  pop.style.left = '0px';
+  pop.style.top = '0px';
+  const r = btn.getBoundingClientRect();
+  const pw = pop.offsetWidth;
+  const ph = pop.offsetHeight;
+  let left = r.right - pw;
+  if (left < 8) left = 8;
+  if (left + pw > window.innerWidth - 8) left = Math.max(8, window.innerWidth - pw - 8);
+  let top = r.bottom + 6;
+  if (top + ph > window.innerHeight - 8) top = Math.max(8, r.top - ph - 6);
+  pop.style.left = left + 'px';
+  pop.style.top = top + 'px';
+}
+document.addEventListener('click', (e) => {
+  if (e.target && e.target.closest && (e.target.closest('.mat-note-btn') || e.target.closest('#mat-note-pop'))) return;
+  hideMatNotePop();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideMatNotePop(); });
+window.addEventListener('scroll', hideMatNotePop, true);
 
 // ===== Right Panel =====
 function renderTagBlock(item) {
@@ -599,6 +679,72 @@ function renderRightPanel() {
   else if (panelMode === 'all-output') { renderAllOutputsPanel(content); }
 }
 
+// ===== 详情页备注：气泡置顶展示 + 左下角黑色按钮（折叠 / 编辑）=====
+// 备注气泡（置顶在详情页上方，字号与标签一致 11px）
+function renderNoteBubble(item) {
+  if (!detailNoteOpen) return '';
+  const note = getNoteOf(item);
+  const has = !!String(note).trim();
+  const body = detailNoteEditing
+    ? `<textarea id="detail-note-input" class="w-full h-[72px] resize-none bg-transparent outline-none text-[11px] leading-relaxed text-[#1A1A1A] placeholder:text-[#C4C8CF] scrollbar-thin" placeholder="写点备注…">${escHtml(note)}</textarea>
+       <div class="flex items-center justify-end gap-1 mt-1">
+         <button type="button" id="note-cancel-btn" class="px-2 py-0.5 text-[11px] text-[#9CA3AF] hover:text-[#4B5563] transition-colors">取消</button>
+         <button type="button" id="note-save-btn" class="px-2.5 py-0.5 rounded-md bg-[#1A1A1A] text-white text-[11px] hover:bg-[#333] transition-colors">保存</button>
+       </div>`
+    : `<div class="flex items-start gap-1.5">
+         <div class="flex-1 min-w-0 max-h-[68px] overflow-y-auto scrollbar-thin whitespace-pre-wrap break-words text-[11px] text-[#4B5563] leading-relaxed">${has ? escHtml(note) : '<span class="text-[#C4C8CF]">暂无备注，点击左下角黑色按钮添加</span>'}</div>
+         <button type="button" id="note-edit-btn" class="shrink-0 p-0.5 rounded hover:bg-[#EDEEF0] transition-colors" title="编辑备注"><i data-lucide="pencil" class="w-3 h-3 text-[#9CA3AF]"></i></button>
+       </div>`;
+  return `<div id="detail-note-wrap" class="shrink-0 px-3 pt-2 pb-0.5">
+    <div class="relative rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] px-3 py-2 shadow-sm">
+      <span class="absolute -top-[5px] left-5 w-2.5 h-2.5 rotate-45 bg-[#FAFAFA] border-l border-t border-[#E5E7EB] rounded-[2px]"></span>
+      ${body}
+    </div>
+  </div>`;
+}
+
+// 左下角黑色按钮：展开态点击 = 折叠到按钮内；折叠态点击 = 展开并编辑
+function renderNoteToggleBtn(item) {
+  const has = !!String(getNoteOf(item)).trim();
+  const icon = detailNoteOpen ? 'chevron-down' : (has ? 'message-square' : 'pencil');
+  const title = detailNoteOpen ? '收起备注' : (has ? '展开并编辑备注' : '添加备注');
+  return `<button type="button" id="detail-note-toggle" class="relative shrink-0 w-9 h-9 rounded-lg bg-[#1A1A1A] hover:bg-[#333] text-white flex items-center justify-center transition-colors" title="${title}">
+      <i data-lucide="${icon}" class="w-4 h-4"></i>
+      ${(!detailNoteOpen && has) ? '<span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#F59E0B] border border-white"></span>' : ''}
+    </button>`;
+}
+
+function bindNoteControls(item, rerender) {
+  const btn = document.getElementById('detail-note-toggle');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      if (detailNoteEditing) { detailNoteEditing = false; detailNoteOpen = false; }      // 编辑中 → 放弃并折叠
+      else if (detailNoteOpen) { detailNoteOpen = false; }                               // 展开中 → 折叠到黑色按钮内
+      else { detailNoteOpen = true; detailNoteEditing = true; }                          // 折叠中 → 展开并编辑
+      rerender();
+    });
+  }
+  const editBtn = document.getElementById('note-edit-btn');
+  if (editBtn) editBtn.addEventListener('click', (e) => { e.stopPropagation(); detailNoteEditing = true; rerender(); });
+  const cancelBtn = document.getElementById('note-cancel-btn');
+  if (cancelBtn) cancelBtn.addEventListener('click', () => { detailNoteEditing = false; rerender(); });
+  const saveBtn = document.getElementById('note-save-btn');
+  if (saveBtn) saveBtn.addEventListener('click', () => {
+    const v = (document.getElementById('detail-note-input') || {}).value || '';
+    item.note = v.trim();
+    saveNoteOverride(item.id, item.title, v.trim());
+    detailNoteEditing = false;
+    detailNoteOpen = true;
+    rerender();
+    renderMainContent();
+    showShareToast('备注已保存');
+  });
+  if (detailNoteEditing) {
+    const ta = document.getElementById('detail-note-input');
+    if (ta) { ta.focus(); try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {} }
+  }
+}
+
 function renderPanelDetail(content) {
   const item = getMaterialById(selectedId);
   if (!item) return;
@@ -612,6 +758,7 @@ function renderPanelDetail(content) {
       <span class="text-sm font-medium text-[#1A1A1A]">素材详情</span>
       <button class="p-1 rounded-md hover:bg-[#F3F4F6] transition-colors" onclick="closeRightPanel()"><i data-lucide="x" class="w-4 h-4 text-[#6B7280]"></i></button>
     </div>
+    ${renderNoteBubble(item)}
     <div class="sticky top-0 z-10 bg-white relative" id="detail-cover-wrap">
       ${imgHTML}
       <div class="absolute bottom-2 right-2 flex gap-2 z-20" id="detail-cover-tools">
@@ -633,6 +780,7 @@ function renderPanelDetail(content) {
     <div class="shrink-0 px-4 py-3 border-t border-[#E5E7EB]">
       <div class="flex items-center gap-1.5 text-[11px] text-[#6B7280] mb-2.5 truncate"><i data-lucide="external-link" class="w-2.5 h-2.5 shrink-0"></i><span class="truncate">${item.url}</span></div>
       <div class="flex items-center gap-1.5">
+        ${renderNoteToggleBtn(item)}
         <button class="flex-1 py-2 px-3 rounded-lg border border-[#E5E7EB] hover:bg-[#F3F4F6] text-sm text-[#4B5563] transition-colors flex items-center justify-center gap-1 whitespace-nowrap" onclick="copyImage('${item.coverUrl || ''}')"><i data-lucide="image" class="w-3.5 h-3.5"></i> 复制图片</button>
         <button class="flex-1 py-2 px-3 rounded-lg border border-[#E5E7EB] hover:bg-[#F3F4F6] text-sm text-[#4B5563] transition-colors flex items-center justify-center gap-1 whitespace-nowrap" onclick="copyLink('${item.url}')"><i data-lucide="copy" class="w-3.5 h-3.5"></i> 复制链接</button>
       </div>
@@ -640,6 +788,7 @@ function renderPanelDetail(content) {
   </div>`;
   lucide.createIcons();
   bindCoverEdit(item);
+  bindNoteControls(item, renderRightPanel);
 }
 
 function bindCoverEdit(item) {
@@ -1215,6 +1364,7 @@ function renderMobilePanel() {
         <span class="text-sm font-medium text-[#1A1A1A]">素材详情</span>
         <button class="p-1 rounded-md hover:bg-[#F3F4F6]" onclick="closeMobilePanel()"><i data-lucide="x" class="w-4 h-4 text-[#6B7280]"></i></button>
       </div>
+      ${renderNoteBubble(item)}
       <div class="sticky top-[49px] z-10 bg-white relative" id="detail-cover-wrap">
         ${imgHTML}
         <div class="absolute bottom-2 right-2 flex gap-2 z-20" id="detail-cover-tools">
@@ -1236,12 +1386,14 @@ function renderMobilePanel() {
       <div class="shrink-0 px-4 py-3 border-t border-[#E5E7EB]">
         <div class="flex items-center gap-1.5 text-[11px] text-[#6B7280] mb-2.5 truncate"><i data-lucide="external-link" class="w-2.5 h-2.5 shrink-0"></i><span class="truncate">${item.url}</span></div>
         <div class="flex items-center gap-1.5">
+          ${renderNoteToggleBtn(item)}
           <button class="flex-1 py-2 px-3 rounded-lg border border-[#E5E7EB] hover:bg-[#F3F4F6] text-sm text-[#4B5563] transition-colors flex items-center justify-center gap-1 whitespace-nowrap" onclick="copyImage('${item.coverUrl || ''}')"><i data-lucide="image" class="w-3.5 h-3.5"></i> 复制图片</button>
         <button class="flex-1 py-2 px-3 rounded-lg border border-[#E5E7EB] hover:bg-[#F3F4F6] text-sm text-[#4B5563] transition-colors flex items-center justify-center gap-1 whitespace-nowrap" onclick="copyLink('${item.url}')"><i data-lucide="copy" class="w-3.5 h-3.5"></i> 复制链接</button>
         </div>
       </div>
     </div>`;
   bindCoverEdit(item);
+  bindNoteControls(item, renderMobilePanel);
   } else if (panelMode === 'waterfall' && panelCollection) {
     const items = getMaterialsByCollection(panelCollection);
     let html = `<div class="flex flex-col h-full">
@@ -1309,6 +1461,9 @@ async function selectCard(id) {
       if (detail.url) currentItem.url = detail.url;
       currentItem.tags = detail.tags || [];
       currentItem.detailContent = detail.content || '';
+      // 备注：详情工作流返回的 note 优先；本地编辑过的以本地为准
+      if (detail.note && String(detail.note).trim()) currentItem.note = String(detail.note);
+      currentItem.note = getNoteOf(currentItem);
       // 详情工作流 7635623569224957986 新增输出参数 id（string），
       // 用于「按 id 删除」工作流 7664793140239499298 的输入。
       currentItem.cozeId = detail.id || '';
