@@ -371,7 +371,7 @@
     .doc-row-draggable:hover .doc-row-drag-hint { display: inline-flex; opacity: 1; }
     .doc-row-drag-hint:active { cursor: grabbing; }
 
-    .ob-body { padding: 10px 10px 20px; }
+    .ob-body { padding: 10px 10px 20px 20px; }
     .ob-body.drag-over { background: #F9FAFB; box-shadow: inset 0 0 0 2px #1A1A1A; border-radius: 12px; }
     .ob-block {
       display: flex; align-items: flex-start; gap: 0; margin: 0; padding: 2px 0; border-radius: 6px; transition: background 0.12s;
@@ -387,9 +387,11 @@
     }
     .ob-gutter-ol { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; text-align: right; }
     .ob-gutter-ul::before { content: "·"; font-size: 22px; line-height: 18px; color: #6B7280; transform: translateY(-1px); }
+    .ob-gutter-none::before { content: "·"; font-size: 16px; line-height: 22px; color: #D1D5DB; transform: translateY(-1px); }
     .ob-gutter-btn { cursor: pointer; border-radius: 4px; }
     .ob-gutter-btn:hover { background: #F3F4F6; color: #1A1A1A; }
-    .ob-gutter-btn:hover::before { color: #1A1A1A; }
+    .ob-gutter-btn:hover::before { color: #6B7280; }
+    .ob-gutter-btn.ob-gutter-none:hover::before { color: #6B7280; }
     /* 正文块无左侧 gutter，与标题左对齐 */
     /* 右侧操作区：折叠按钮 + 拖拽柄，默认隐藏，悬停显示 */
     .ob-right-actions {

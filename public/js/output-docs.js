@@ -656,12 +656,16 @@
     const isHeading = !!(it.heading && it.heading >= 1 && it.heading <= 6);
     const hCollapsed = !!it.headingCollapsed;
 
-    // 左侧列表序号按钮：点击切换列表样式
+    // 左侧列表序号按钮：点击切换列表样式；正文也显示入口，便于找到弹层开关
     let leftGutter = '';
-    if (listType === 'ol') {
-      leftGutter = `<button class="ob-gutter ob-gutter-ol${readOnly ? '' : ' ob-gutter-btn'}" data-idx="${idx}"${readOnly ? '' : ' data-act="blk-list-toggle"'} title="${readOnly ? '' : '点击切换列表样式'}">${marker}</button>`;
+    if (readOnly) {
+      leftGutter = '';
+    } else if (listType === 'ol') {
+      leftGutter = `<button class="ob-gutter ob-gutter-ol ob-gutter-btn" data-idx="${idx}" data-act="blk-list-toggle" title="点击切换列表样式">${marker}</button>`;
     } else if (listType === 'ul') {
-      leftGutter = `<button class="ob-gutter ob-gutter-ul${readOnly ? '' : ' ob-gutter-btn'}" data-idx="${idx}"${readOnly ? '' : ' data-act="blk-list-toggle"'} title="${readOnly ? '' : '点击切换列表样式'}"></button>`;
+      leftGutter = `<button class="ob-gutter ob-gutter-ul ob-gutter-btn" data-idx="${idx}" data-act="blk-list-toggle" title="点击切换列表样式"></button>`;
+    } else {
+      leftGutter = `<button class="ob-gutter ob-gutter-none ob-gutter-btn" data-idx="${idx}" data-act="blk-list-toggle" title="点击切换列表样式"></button>`;
     }
 
     // 折叠按钮：仅标题行显示（折叠其下正文/卡片），正文行不显示
@@ -694,10 +698,14 @@
     const hCollapsed = !!it.headingCollapsed;
 
     let leftGutter = '';
-    if (listType === 'ol') {
-      leftGutter = `<button class="ob-gutter ob-gutter-ol${readOnly ? '' : ' ob-gutter-btn'}" data-idx="${idx}"${readOnly ? '' : ' data-act="blk-list-toggle"'} title="${readOnly ? '' : '点击切换列表样式'}">${marker}</button>`;
+    if (readOnly) {
+      leftGutter = '';
+    } else if (listType === 'ol') {
+      leftGutter = `<button class="ob-gutter ob-gutter-ol ob-gutter-btn" data-idx="${idx}" data-act="blk-list-toggle" title="点击切换列表样式">${marker}</button>`;
     } else if (listType === 'ul') {
-      leftGutter = `<button class="ob-gutter ob-gutter-ul${readOnly ? '' : ' ob-gutter-btn'}" data-idx="${idx}"${readOnly ? '' : ' data-act="blk-list-toggle"'} title="${readOnly ? '' : '点击切换列表样式'}"></button>`;
+      leftGutter = `<button class="ob-gutter ob-gutter-ul ob-gutter-btn" data-idx="${idx}" data-act="blk-list-toggle" title="点击切换列表样式"></button>`;
+    } else {
+      leftGutter = `<button class="ob-gutter ob-gutter-none ob-gutter-btn" data-idx="${idx}" data-act="blk-list-toggle" title="点击切换列表样式"></button>`;
     }
 
     const rightFold = isHeading
