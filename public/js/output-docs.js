@@ -639,7 +639,7 @@
         <button class="ob-add-btn" data-act="ob-add-text" data-doc="${escId}">${icon('plus', 'w-3.5 h-3.5 inline -mt-0.5 mr-1')}添加文字</button>
       </div>
       <div class="ob-add ob-drop-hint-wrap">
-        <div class="ob-add-btn ob-drop-hint" role="note">拖入左侧素材卡片</div>
+        <div class="ob-add-btn ob-drop-hint" role="note">拖入左侧素材卡片以插入</div>
       </div>`;
     }
     html += '</div></div>';
