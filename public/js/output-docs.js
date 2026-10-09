@@ -83,7 +83,11 @@
 
   // ===== 登录态拦截（未登录访问产出物：弹窗引导登录）=====
   function isLoggedIn() {
-    try { return localStorage.getItem('isLogin') === 'true'; } catch (e) { return false; }
+    try {
+      // 本地开发预览：无需真实登录即可编辑产出物
+      if (window.__LOCAL_DEV__ && /localhost|127\.0\.0\.1/.test(location.hostname)) return true;
+      return localStorage.getItem('isLogin') === 'true';
+    } catch (e) { return false; }
   }
   // 未登录则弹出「请登录」弹窗并返回 true（表示已拦截）；已登录返回 false（放行）
   function promptLogin() {

@@ -69,6 +69,18 @@ function hideLoading() {
 let _refreshing = null;
 
 async function ensureValidToken() {
+  // 本地开发预览：自动注入 dev 登录态，跳过真实 Supabase 登录校验，避免被踢到 login.html
+  if (window.__LOCAL_DEV__ && /localhost|127\.0\.0\.1/.test(location.hostname)) {
+    if (!localStorage.getItem('authToken')) {
+      localStorage.setItem('authToken', 'dev-local-token');
+      localStorage.setItem('refreshToken', 'dev-local-refresh');
+      localStorage.setItem('tokenExpiry', String(Date.now() + 365 * 24 * 60 * 60 * 1000));
+      localStorage.setItem('isLogin', 'true');
+      localStorage.setItem('userEmail', 'dev@local.test');
+    }
+    return localStorage.getItem('authToken');
+  }
+
   const token = localStorage.getItem('authToken');
   const refreshToken = localStorage.getItem('refreshToken');
   const expiry = parseInt(localStorage.getItem('tokenExpiry') || '0');
@@ -139,6 +151,11 @@ window.fetch = async function(url, options = {}) {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  // 本地开发预览：确保 dev 登录态生效（隐藏登录/注册按钮、显示头像区）
+  if (window.__LOCAL_DEV__ && /localhost|127\.0\.0\.1/.test(location.hostname)) {
+    localStorage.setItem('isLogin', 'true');
+  }
+
   // ======================
   // 点击LOGO跳首页
   // ======================
