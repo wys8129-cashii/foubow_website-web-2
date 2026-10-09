@@ -657,16 +657,16 @@ app.post('/api/coze/materials/filter', authMiddleware, cozeApiLimiter, async (re
 app.post('/api/coze/materials/delete', authMiddleware, cozeApiLimiter, async (req, res) => {
   try {
     const email = req.userEmail;
-    const { id, input, image_url } = req.body;
+    const { id, image_url } = req.body;
 
-    console.log('收到删除素材请求:', { email, id, input, hasImage: !!image_url });
+    console.log('收到删除素材请求:', { email, id, hasImage: !!image_url });
 
-    if (!input && !id) {
-      return res.json({ code: 0, msg: '缺少素材标识（标题或 id）' });
+    if (!id) {
+      return res.json({ code: 0, msg: '缺少素材 id 参数' });
     }
 
     console.log('调用 Coze 删除素材 API (workflow 7664793140239499298)...');
-    const result = await cozeDeleteMaterial({ email, id, input });
+    const result = await cozeDeleteMaterial({ email, id });
 
     console.log('Coze 删除工作流返回结果:', JSON.stringify(result));
 
@@ -685,7 +685,7 @@ app.post('/api/coze/materials/delete', authMiddleware, cozeApiLimiter, async (re
       }
     }
 
-    res.json({ code: 1, msg: '删除素材成功', cozeResult: result, imageDeleted });
+    res.json({ code: 1, msg: '删除素材请求已提交', deleted: result.deleted, cozeResult: result.raw, imageDeleted });
   } catch (error) {
     console.error('删除素材错误:', error.message);
     res.json({ code: 0, msg: error.message });

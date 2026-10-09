@@ -506,10 +506,14 @@ async function cozeDeleteCollection(params) {
 
 /**
  * 调用 Coze API 删除素材
+ * 工作流 7664793140239499298：
+ *   - 输入参数：id（素材 ID，string）、email（用户邮箱）
+ *   - 输出参数：output（是否成功状态）
+ * 不再使用 title 查询。
  * @param {Object} params 参数
+ * @param {string} params.id 素材 ID
  * @param {string} params.email 用户邮箱
- * @param {string} params.input 素材标题
- * @returns {Promise<any>} Coze 接口返回结果
+ * @returns {Promise<{deleted: any, raw: any}>} deleted 为工作流返回的 output（成功状态），raw 为 Coze 原始响应
  */
 async function cozeDeleteMaterial(params) {
   try {
@@ -522,14 +526,14 @@ async function cozeDeleteMaterial(params) {
       workflow_id: workflowId,
       app_id: appId,
       email: params.email,
-      title: params.input
+      id: params.id,
     });
 
-    // 工作流 7664793140239499298 仅声明两个输入参数：title（素材标题）、email（用户邮箱）。
-    // 直接按这两个参数名透传，与 Coze 控制台输入参数严格对齐。
+    // 工作流 7664793140239499298 输入参数：id（素材 ID）、email（用户邮箱）。
+    // 直接按这两个参数名透传，与 Coze 控制台输入参数严格对齐；不再使用 title。
     const parameters = {
+      id: params.id,
       email: params.email,
-      title: params.input,
     };
 
     const requestData = {
@@ -549,10 +553,21 @@ async function cozeDeleteMaterial(params) {
       }
     );
 
-    // 使用非流式 /v1/workflow/run：响应为干净 JSON，response.data 即工作流输出，
+    // 使用非流式 /v1/workflow/run：响应为干净 JSON，response.data 即工作流输出包装，
     // 与所有读取型接口（cozeGetMaterials 等）保持一致的调用方式，无需解析 SSE。
     logCozeResponse('删除素材', response);
-    return response.data;
+
+    // 工作流输出只有一个参数 output（是否成功状态）。非流式 run 的 response.data.data
+    // 是输出 JSON 字符串，这里解析出来透传给调用方。
+    let deleted = null;
+    try {
+      const dataField = response.data && response.data.data;
+      const outObj = (typeof dataField === 'string') ? JSON.parse(dataField) : (dataField || {});
+      deleted = (outObj && outObj.output !== undefined) ? outObj.output : null;
+    } catch (e) {
+      console.warn('解析删除工作流 output 失败（已忽略）:', e.message);
+    }
+    return { deleted, raw: response.data };
   } catch (error) {
     console.error("Coze 删除素材接口调用失败：", error.message);
     throw new Error(`删除素材失败：${error.response?.data?.message || error.message}`);
