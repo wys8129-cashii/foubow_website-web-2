@@ -21,19 +21,28 @@
       gap: 12px;
     }
 
-    /* ===== 卡片备注图标 + 气泡弹窗 ===== */
-    .mat-note-btn {
+    /* ===== 卡片备注气泡（图标 + 一行文字融为一体，宽度随内容自适应） ===== */
+    .mat-note-pill {
       position: absolute; top: 6px; right: 6px; z-index: 12;
-      width: 24px; height: 24px; border-radius: 9999px;
-      background: rgba(255,255,255,.94); color: #6B7280;
-      box-shadow: 0 1px 4px rgba(17,24,39,.14);
-      display: flex; align-items: center; justify-content: center;
+      max-width: calc(100% - 12px); height: 22px; padding: 0 8px;
+      border-radius: 9999px;
+      background: rgba(255,255,255,.94); color: #4B5563;
+      box-shadow: 0 1px 4px rgba(17,24,39,.16);
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; line-height: 1;
       transition: all .15s ease;
     }
-    .mat-note-btn:hover { background: #fff; color: #1A1A1A; }
-    .mat-note-btn.is-empty { opacity: .55; }
+    .mat-note-pill:hover { background: #fff; color: #1A1A1A; box-shadow: 0 2px 8px rgba(17,24,39,.20); }
+    .mat-note-pill-text {
+      max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    /* 文本宽度探针（隐藏，仅用于测量气泡应有宽度） */
+    .mat-note-probe {
+      position: absolute; left: -9999px; top: 0; visibility: hidden;
+      white-space: nowrap; font-size: 11px; line-height: 1.5;
+    }
     .mat-note-pop {
-      position: fixed; z-index: 9999; max-width: 240px;
+      position: fixed; z-index: 9999; max-width: 262px;
       background: #fff; border: 1px solid #E5E7EB; border-radius: 10px;
       box-shadow: 0 8px 24px rgba(17,24,39,.14);
       padding: 8px 10px; font-size: 11px; line-height: 1.5; color: #4B5563;
