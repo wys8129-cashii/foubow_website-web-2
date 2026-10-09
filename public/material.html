@@ -36,26 +36,11 @@
     .mat-note-pill-text {
       max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    /* 文本宽度探针（隐藏，仅用于测量气泡应有宽度） */
-    .mat-note-probe {
-      position: absolute; left: -9999px; top: 0; visibility: hidden;
-      white-space: nowrap; font-size: 11px; line-height: 1.5;
+    /* 收拢态：小圆形图标按钮 */
+    .mat-note-pill.is-collapsed {
+      width: 24px; height: 24px; padding: 0;
+      justify-content: center; gap: 0;
     }
-    .mat-note-pop {
-      position: fixed; z-index: 9999; max-width: 262px;
-      background: #fff; border: 1px solid #E5E7EB; border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(17,24,39,.14);
-      padding: 8px 10px; font-size: 11px; line-height: 1.5; color: #4B5563;
-    }
-    .mat-note-pop.hidden { display: none; }
-    /* 最多展示 2 行，超出可在窗口内滑动 */
-    .mat-note-pop-inner {
-      max-height: 33px; overflow-y: auto; overscroll-behavior: contain;
-      white-space: pre-wrap; word-break: break-word;
-      scrollbar-width: thin;
-    }
-    .mat-note-pop-inner::-webkit-scrollbar { width: 3px; }
-    .mat-note-pop-inner::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 2px; }
 
     /* ===== 合集详情 2 列 ===== */
     .collection-grid {

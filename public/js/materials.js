@@ -578,16 +578,25 @@ function renderCollectionDetail(name) {
   updateReminderButton(name);
 }
 
+// 记录卡片备注气泡被收拢为按钮的素材 id
+const collapsedNotePills = new Set();
+function toggleNotePillCollapse(id) {
+  id = String(id);
+  if (collapsedNotePills.has(id)) collapsedNotePills.delete(id); else collapsedNotePills.add(id);
+  renderMainContent();
+}
+
 function renderCardsInto(containerId, items, showCollection = false) {
   const container = document.getElementById(containerId);
   if (!container) return;
-  hideMatNotePop();
   container.innerHTML = items.map(item => {
         const isActive = item.id === selectedId;
         const noteText = getNoteOf(item);
-        // 只有备注不为空的卡片才显示备注气泡（图标 + 一行文字融为一体，宽度随内容自适应）
+        // 备注不为空才显示：默认展开为「图标+一行文字」气泡；点击收拢为小圆按钮，再点展开
         const noteBtn = String(noteText).trim()
-          ? `<button type="button" class="mat-note-pill" data-note-text="${escHtml(noteText)}" onclick="event.stopPropagation(); toggleMatNotePop(this)" title="查看完整备注"><i data-lucide="message-square" class="w-3 h-3 shrink-0"></i><span class="mat-note-pill-text">${escHtml(String(noteText).trim().replace(/\s*\r?\n\s*/g, ' '))}</span></button>`
+          ? (collapsedNotePills.has(String(item.id))
+              ? `<button type="button" class="mat-note-pill is-collapsed" onclick="event.stopPropagation(); toggleNotePillCollapse('${escHtml(item.id)}')" title="展开备注"><i data-lucide="message-square" class="w-3 h-3 shrink-0"></i></button>`
+              : `<button type="button" class="mat-note-pill" onclick="event.stopPropagation(); toggleNotePillCollapse('${escHtml(item.id)}')" title="收拢备注"><i data-lucide="message-square" class="w-3 h-3 shrink-0"></i><span class="mat-note-pill-text">${escHtml(String(noteText).trim().replace(/\s*\r?\n\s*/g, ' '))}</span></button>`)
           : '';
         const collectionChip = showCollection && item.collection && item.collection !== '未分类'
           ? `<span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors shrink-0" onclick="event.stopPropagation(); selectCollection('${escHtml(item.collection).replace(/'/g, "\\'")}')" title="进入合集「${escHtml(item.collection)}」">${escHtml(item.collection)}</span>`
@@ -610,67 +619,6 @@ function renderCardsInto(containerId, items, showCollection = false) {
   }).join('');
   lucide.createIcons();
 }
-
-// ===== 卡片备注气泡：点击图标弹出，最多展示 2 行，超出可在窗口内滑动；点击空白折叠 =====
-function ensureMatNotePop() {
-  let pop = document.getElementById('mat-note-pop');
-  if (!pop) {
-    pop = document.createElement('div');
-    pop.id = 'mat-note-pop';
-    pop.className = 'mat-note-pop hidden';
-    document.body.appendChild(pop);
-  }
-  return pop;
-}
-function hideMatNotePop() {
-  const pop = document.getElementById('mat-note-pop');
-  if (!pop) return;
-  pop.classList.add('hidden');
-  pop.__anchor = null;
-}
-// 测量备注单行文本宽度（用于让气泡宽度随内容长度自适应）
-function measureNoteWidth(text) {
-  const probe = document.createElement('span');
-  probe.className = 'mat-note-probe';
-  probe.textContent = text;
-  document.body.appendChild(probe);
-  const w = probe.offsetWidth;
-  probe.remove();
-  return w;
-}
-function toggleMatNotePop(btn) {
-  const pop = ensureMatNotePop();
-  if (!pop.classList.contains('hidden') && pop.__anchor === btn) { hideMatNotePop(); return; }
-  const text = btn.getAttribute('data-note-text') || '';
-  const lines = String(text).split(/\r?\n/);
-  const maxLineW = Math.max.apply(null, lines.map(l => measureNoteWidth(l || ' ')));
-  const MINW = 56, MAXW = 240;
-  const contentW = Math.min(MAXW, Math.max(MINW, maxLineW));
-  const needScroll = lines.length > 1 || maxLineW > MAXW;
-  const innerStyle = needScroll ? '' : ' style="max-height:none;overflow:visible;"';
-  pop.innerHTML = `<div class="mat-note-pop-inner"${innerStyle}>${text.trim() ? escHtml(text) : '<span class="text-[#C4C8CF]">暂无备注</span>'}</div>`;
-  pop.__anchor = btn;
-  pop.classList.remove('hidden');
-  pop.style.width = (contentW + 22) + 'px';   // padding 10*2 + border 1*2
-  pop.style.left = '0px';
-  pop.style.top = '0px';
-  const r = btn.getBoundingClientRect();
-  const pw = pop.offsetWidth;
-  const ph = pop.offsetHeight;
-  let left = r.right - pw;
-  if (left < 8) left = 8;
-  if (left + pw > window.innerWidth - 8) left = Math.max(8, window.innerWidth - pw - 8);
-  let top = r.bottom + 6;
-  if (top + ph > window.innerHeight - 8) top = Math.max(8, r.top - ph - 6);
-  pop.style.left = left + 'px';
-  pop.style.top = top + 'px';
-}
-document.addEventListener('click', (e) => {
-  if (e.target && e.target.closest && (e.target.closest('.mat-note-pill') || e.target.closest('#mat-note-pop'))) return;
-  hideMatNotePop();
-});
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideMatNotePop(); });
-window.addEventListener('scroll', hideMatNotePop, true);
 
 // ===== Right Panel =====
 function renderTagBlock(item) {
@@ -699,46 +647,51 @@ function renderRightPanel() {
   else if (panelMode === 'all-output') { renderAllOutputsPanel(content); }
 }
 
-// ===== 详情页备注：气泡悬浮在底部操作栏上方（页面图层之上）+ 左下角黑色按钮（折叠 / 编辑）=====
-// 备注气泡：有备注才显示；无备注且不在编辑态时不占任何位置
+// ===== 详情页备注：黑色气泡悬浮盖住链接行 + 左下角黑色按钮（仅查看）=====
+// 查看态：黑底白字，宽度随内容自适应；编辑态：字体 13px，取消/保存各占一半宽度
 function renderNoteBubble(item) {
   const note = getNoteOf(item);
   const has = !!String(note).trim();
   const visible = detailNoteEditing || (has && detailNoteOpen);
   if (!visible) return '';
   const body = detailNoteEditing
-    ? `<textarea id="detail-note-input" class="w-full resize-none bg-transparent outline-none text-[11px] text-[#1A1A1A] placeholder:text-[#C4C8CF] scrollbar-thin" style="height:72px;line-height:1.6;" placeholder="写点备注…">${escHtml(note)}</textarea>
-       <div class="flex items-center justify-end gap-1 mt-1">
-         <button type="button" id="note-cancel-btn" class="px-2 py-0.5 text-[11px] text-[#9CA3AF] hover:text-[#4B5563] transition-colors">取消</button>
-         <button type="button" id="note-save-btn" class="px-2.5 py-0.5 rounded-md bg-[#1A1A1A] text-white text-[11px] hover:bg-[#333] transition-colors">保存</button>
+    ? `<textarea id="detail-note-input" class="w-full resize-none bg-transparent outline-none text-[#F9FAFB] placeholder:text-[#6B7280] scrollbar-thin" style="height:88px;font-size:13px;line-height:1.6;" placeholder="写点备注…">${escHtml(note)}</textarea>
+       <div class="flex items-center gap-1.5" style="margin-top:8px;">
+         <button type="button" id="note-cancel-btn" class="flex-1 rounded-lg text-[12px] text-[#D1D5DB] hover:bg-white/10 hover:text-white transition-colors" style="height:30px;border:1px solid rgba(255,255,255,.18);">取消</button>
+         <button type="button" id="note-save-btn" class="flex-1 rounded-lg bg-white text-[#1A1A1A] text-[12px] font-medium hover:bg-[#E5E7EB] transition-colors" style="height:30px;">保存</button>
        </div>`
     : `<div class="flex items-start gap-1.5">
-         <div class="flex-1 min-w-0 overflow-y-auto scrollbar-thin whitespace-pre-wrap break-words text-[11px] text-[#4B5563]" style="max-height:68px;line-height:1.6;">${escHtml(note)}</div>
-         <button type="button" id="note-edit-btn" class="shrink-0 p-0.5 rounded hover:bg-[#EDEEF0] transition-colors" title="编辑备注"><i data-lucide="pencil" class="w-3 h-3 text-[#9CA3AF]"></i></button>
+         <div class="flex-1 min-w-0 overflow-y-auto scrollbar-thin whitespace-pre-wrap break-words text-[#E5E7EB]" style="max-height:68px;font-size:11px;line-height:1.6;">${escHtml(note)}</div>
+         <button type="button" id="note-edit-btn" class="shrink-0 p-0.5 rounded hover:bg-white/10 transition-colors" title="编辑备注"><i data-lucide="pencil" class="w-3 h-3 text-[#9CA3AF]"></i></button>
        </div>`;
-  // 宽度按内容长度自适应（不设 right，绝对定位元素 shrink-to-fit），最大不超过容器宽
-  // 定位/三角用内联 style（编译版 Tailwind 不含 bottom-full/rotate-45 等类）
-  return `<div id="detail-note-wrap" style="position:absolute; left:12px; bottom:100%; margin-bottom:10px; max-width:calc(100% - 24px); z-index:30;">
-    <div style="position:relative; border-radius:12px; border:1px solid #E5E7EB; background:#fff; box-shadow:0 10px 24px rgba(17,24,39,.12); padding:6px 10px;${detailNoteEditing ? 'width:240px;' : ''}">
-      <span style="position:absolute; bottom:-5px; left:18px; width:10px; height:10px; transform:rotate(45deg); background:#fff; border-right:1px solid #E5E7EB; border-bottom:1px solid #E5E7EB; border-radius:2px;"></span>
+  // bottom:54px → 气泡悬浮盖住链接行（链接行顶距 footer 底约 50px）；宽度随内容自适应
+  return `<div id="detail-note-wrap" style="position:absolute; left:12px; bottom:54px; max-width:calc(100% - 24px); z-index:30;">
+    <div style="position:relative; border-radius:12px; background:#1A1A1A; box-shadow:0 12px 28px rgba(17,24,39,.28); padding:${detailNoteEditing ? '10px 12px' : '8px 10px'};${detailNoteEditing ? 'width:260px;' : ''}">
+      <span style="position:absolute; bottom:-5px; left:18px; width:10px; height:10px; transform:rotate(45deg); background:#1A1A1A; border-radius:2px;"></span>
       ${body}
     </div>
   </div>`;
 }
 
-// 左下角黑色按钮：仅作为「查看」按钮——有备注时点击 = 展开/收起气泡；无备注（灰色）时点击 = 添加备注
-// 编辑统一走气泡内的铅笔按钮
+// 左下角备注按钮（白底线框样式，仅作查看）：气泡展开时显示线框图标，收起时显示填充图标；无备注显示铅笔（灰）
+// 有备注点击 = 展开/收起气泡；无备注点击 = 添加备注。编辑统一走气泡内的铅笔按钮
+const NOTE_MSG_PATH = 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z';
+function noteMsgIcon(filled, size) {
+  return filled
+    ? `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="${NOTE_MSG_PATH}"/></svg>`
+    : `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${NOTE_MSG_PATH}"/></svg>`;
+}
 function renderNoteToggleBtn(item) {
   const note = getNoteOf(item);
   const has = !!String(note).trim();
   const visible = detailNoteEditing || (has && detailNoteOpen);
-  const icon = visible ? 'chevron-down' : (has ? 'message-square' : 'pencil');
   const title = visible ? '收起备注' : (has ? '查看备注' : '添加备注');
-  const skin = has
-    ? 'bg-[#1A1A1A] hover:bg-[#333] text-white'
-    : 'bg-[#E5E7EB] hover:bg-[#D1D5DB] text-[#9CA3AF]';
+  const icon = !has
+    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`
+    : noteMsgIcon(!visible, 16);
+  const skin = 'bg-white border border-[#E5E7EB] hover:bg-[#F3F4F6] ' + (has ? 'text-[#1A1A1A]' : 'text-[#9CA3AF]');
   return `<button type="button" id="detail-note-toggle" class="relative shrink-0 rounded-lg ${skin} flex items-center justify-center transition-colors" style="width:38px;height:38px;" title="${title}">
-      <i data-lucide="${icon}" class="w-4 h-4"></i>
+      ${icon}
       ${(!visible && has) ? '<span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#F59E0B] border border-white"></span>' : ''}
     </button>`;
 }
