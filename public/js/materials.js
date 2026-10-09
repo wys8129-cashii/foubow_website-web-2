@@ -585,7 +585,10 @@ function renderCardsInto(containerId, items, showCollection = false) {
   container.innerHTML = items.map(item => {
         const isActive = item.id === selectedId;
         const noteText = getNoteOf(item);
-        const noteBtn = `<button type="button" class="mat-note-btn${noteText.trim() ? '' : ' is-empty'}" data-note-text="${escHtml(noteText)}" onclick="event.stopPropagation(); toggleMatNotePop(this)" title="${noteText.trim() ? '查看备注' : '暂无备注'}"><i data-lucide="message-square" class="w-3.5 h-3.5"></i></button>`;
+        // 只有备注不为空的卡片才显示右上角备注图标
+        const noteBtn = String(noteText).trim()
+          ? `<button type="button" class="mat-note-btn" data-note-text="${escHtml(noteText)}" onclick="event.stopPropagation(); toggleMatNotePop(this)" title="查看备注"><i data-lucide="message-square" class="w-3.5 h-3.5"></i></button>`
+          : '';
         const collectionChip = showCollection && item.collection && item.collection !== '未分类'
           ? `<span class="inline-block px-2 py-0.5 text-[11px] rounded-md bg-[#F3F4F6] text-[#6B7280] cursor-pointer hover:bg-[#E5E7EB] hover:text-[#1A1A1A] transition-colors shrink-0" onclick="event.stopPropagation(); selectCollection('${escHtml(item.collection).replace(/'/g, "\\'")}')" title="进入合集「${escHtml(item.collection)}」">${escHtml(item.collection)}</span>`
           : '';
@@ -679,12 +682,13 @@ function renderRightPanel() {
   else if (panelMode === 'all-output') { renderAllOutputsPanel(content); }
 }
 
-// ===== 详情页备注：气泡置顶展示 + 左下角黑色按钮（折叠 / 编辑）=====
-// 备注气泡（置顶在详情页上方，字号与标签一致 11px）
+// ===== 详情页备注：气泡悬浮在底部操作栏上方（页面图层之上）+ 左下角黑色按钮（折叠 / 编辑）=====
+// 备注气泡：有备注才显示；无备注且不在编辑态时不占任何位置
 function renderNoteBubble(item) {
-  if (!detailNoteOpen) return '';
   const note = getNoteOf(item);
   const has = !!String(note).trim();
+  const visible = detailNoteEditing || (has && detailNoteOpen);
+  if (!visible) return '';
   const body = detailNoteEditing
     ? `<textarea id="detail-note-input" class="w-full h-[72px] resize-none bg-transparent outline-none text-[11px] leading-relaxed text-[#1A1A1A] placeholder:text-[#C4C8CF] scrollbar-thin" placeholder="写点备注…">${escHtml(note)}</textarea>
        <div class="flex items-center justify-end gap-1 mt-1">
@@ -692,42 +696,49 @@ function renderNoteBubble(item) {
          <button type="button" id="note-save-btn" class="px-2.5 py-0.5 rounded-md bg-[#1A1A1A] text-white text-[11px] hover:bg-[#333] transition-colors">保存</button>
        </div>`
     : `<div class="flex items-start gap-1.5">
-         <div class="flex-1 min-w-0 max-h-[68px] overflow-y-auto scrollbar-thin whitespace-pre-wrap break-words text-[11px] text-[#4B5563] leading-relaxed">${has ? escHtml(note) : '<span class="text-[#C4C8CF]">暂无备注，点击左下角黑色按钮添加</span>'}</div>
+         <div class="flex-1 min-w-0 max-h-[96px] overflow-y-auto scrollbar-thin whitespace-pre-wrap break-words text-[11px] text-[#4B5563] leading-relaxed">${escHtml(note)}</div>
          <button type="button" id="note-edit-btn" class="shrink-0 p-0.5 rounded hover:bg-[#EDEEF0] transition-colors" title="编辑备注"><i data-lucide="pencil" class="w-3 h-3 text-[#9CA3AF]"></i></button>
        </div>`;
-  return `<div id="detail-note-wrap" class="shrink-0 px-3 pt-2 pb-0.5">
-    <div class="relative rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] px-3 py-2 shadow-sm">
-      <span class="absolute -top-[5px] left-5 w-2.5 h-2.5 rotate-45 bg-[#FAFAFA] border-l border-t border-[#E5E7EB] rounded-[2px]"></span>
+  return `<div id="detail-note-wrap" class="absolute left-3 right-3 bottom-full mb-2 z-30">
+    <div class="relative rounded-xl border border-[#E5E7EB] bg-white px-3 py-2 shadow-lg">
+      <span class="absolute -bottom-[5px] left-5 w-2.5 h-2.5 rotate-45 bg-white border-r border-b border-[#E5E7EB] rounded-[2px]"></span>
       ${body}
     </div>
   </div>`;
 }
 
-// 左下角黑色按钮：展开态点击 = 折叠到按钮内；折叠态点击 = 展开并编辑
+// 左下角黑色按钮：展开态点击 = 折叠到按钮内；折叠态点击 = 展开并编辑；无备注时灰色
 function renderNoteToggleBtn(item) {
-  const has = !!String(getNoteOf(item)).trim();
-  const icon = detailNoteOpen ? 'chevron-down' : (has ? 'message-square' : 'pencil');
-  const title = detailNoteOpen ? '收起备注' : (has ? '展开并编辑备注' : '添加备注');
-  return `<button type="button" id="detail-note-toggle" class="relative shrink-0 w-9 h-9 rounded-lg bg-[#1A1A1A] hover:bg-[#333] text-white flex items-center justify-center transition-colors" title="${title}">
+  const note = getNoteOf(item);
+  const has = !!String(note).trim();
+  const visible = detailNoteEditing || (has && detailNoteOpen);
+  const icon = visible ? 'chevron-down' : (has ? 'message-square' : 'pencil');
+  const title = visible ? '收起备注' : (has ? '展开并编辑备注' : '添加备注');
+  const skin = has
+    ? 'bg-[#1A1A1A] hover:bg-[#333] text-white'
+    : 'bg-[#E5E7EB] hover:bg-[#D1D5DB] text-[#9CA3AF]';
+  return `<button type="button" id="detail-note-toggle" class="relative shrink-0 w-9 h-9 rounded-lg ${skin} flex items-center justify-center transition-colors" title="${title}">
       <i data-lucide="${icon}" class="w-4 h-4"></i>
-      ${(!detailNoteOpen && has) ? '<span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#F59E0B] border border-white"></span>' : ''}
+      ${(!visible && has) ? '<span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#F59E0B] border border-white"></span>' : ''}
     </button>`;
 }
 
 function bindNoteControls(item, rerender) {
+  const has = () => !!String(getNoteOf(item)).trim();
   const btn = document.getElementById('detail-note-toggle');
   if (btn) {
     btn.addEventListener('click', () => {
-      if (detailNoteEditing) { detailNoteEditing = false; detailNoteOpen = false; }      // 编辑中 → 放弃并折叠
-      else if (detailNoteOpen) { detailNoteOpen = false; }                               // 展开中 → 折叠到黑色按钮内
-      else { detailNoteOpen = true; detailNoteEditing = true; }                          // 折叠中 → 展开并编辑
+      const visible = detailNoteEditing || (has() && detailNoteOpen);
+      if (detailNoteEditing) { detailNoteEditing = false; detailNoteOpen = has(); }   // 编辑中 → 放弃并回到展示/隐藏
+      else if (visible) { detailNoteOpen = false; }                                   // 展开中 → 折叠到黑色按钮内
+      else { detailNoteOpen = true; detailNoteEditing = true; }                       // 折叠中 → 展开并编辑
       rerender();
     });
   }
   const editBtn = document.getElementById('note-edit-btn');
   if (editBtn) editBtn.addEventListener('click', (e) => { e.stopPropagation(); detailNoteEditing = true; rerender(); });
   const cancelBtn = document.getElementById('note-cancel-btn');
-  if (cancelBtn) cancelBtn.addEventListener('click', () => { detailNoteEditing = false; rerender(); });
+  if (cancelBtn) cancelBtn.addEventListener('click', () => { detailNoteEditing = false; detailNoteOpen = has(); rerender(); });
   const saveBtn = document.getElementById('note-save-btn');
   if (saveBtn) saveBtn.addEventListener('click', () => {
     const v = (document.getElementById('detail-note-input') || {}).value || '';
@@ -758,7 +769,6 @@ function renderPanelDetail(content) {
       <span class="text-sm font-medium text-[#1A1A1A]">素材详情</span>
       <button class="p-1 rounded-md hover:bg-[#F3F4F6] transition-colors" onclick="closeRightPanel()"><i data-lucide="x" class="w-4 h-4 text-[#6B7280]"></i></button>
     </div>
-    ${renderNoteBubble(item)}
     <div class="sticky top-0 z-10 bg-white relative" id="detail-cover-wrap">
       ${imgHTML}
       <div class="absolute bottom-2 right-2 flex gap-2 z-20" id="detail-cover-tools">
@@ -777,7 +787,8 @@ function renderPanelDetail(content) {
         ${renderContentBlock(item)}
       </div>
     </div>
-    <div class="shrink-0 px-4 py-3 border-t border-[#E5E7EB]">
+    <div class="shrink-0 relative px-4 py-3 border-t border-[#E5E7EB]">
+      ${renderNoteBubble(item)}
       <div class="flex items-center gap-1.5 text-[11px] text-[#6B7280] mb-2.5 truncate"><i data-lucide="external-link" class="w-2.5 h-2.5 shrink-0"></i><span class="truncate">${item.url}</span></div>
       <div class="flex items-center gap-1.5">
         ${renderNoteToggleBtn(item)}
@@ -1364,7 +1375,6 @@ function renderMobilePanel() {
         <span class="text-sm font-medium text-[#1A1A1A]">素材详情</span>
         <button class="p-1 rounded-md hover:bg-[#F3F4F6]" onclick="closeMobilePanel()"><i data-lucide="x" class="w-4 h-4 text-[#6B7280]"></i></button>
       </div>
-      ${renderNoteBubble(item)}
       <div class="sticky top-[49px] z-10 bg-white relative" id="detail-cover-wrap">
         ${imgHTML}
         <div class="absolute bottom-2 right-2 flex gap-2 z-20" id="detail-cover-tools">
@@ -1383,7 +1393,8 @@ function renderMobilePanel() {
           ${renderContentBlock(item)}
                   </div>
       </div>
-      <div class="shrink-0 px-4 py-3 border-t border-[#E5E7EB]">
+      <div class="shrink-0 relative px-4 py-3 border-t border-[#E5E7EB]">
+        ${renderNoteBubble(item)}
         <div class="flex items-center gap-1.5 text-[11px] text-[#6B7280] mb-2.5 truncate"><i data-lucide="external-link" class="w-2.5 h-2.5 shrink-0"></i><span class="truncate">${item.url}</span></div>
         <div class="flex items-center gap-1.5">
           ${renderNoteToggleBtn(item)}
