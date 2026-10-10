@@ -661,7 +661,7 @@ function renderNoteBubble(item) {
          <button type="button" id="note-save-btn" class="flex-1 rounded-lg bg-white text-[#1A1A1A] text-[12px] font-medium hover:bg-[#E5E7EB] transition-colors" style="height:30px;">保存</button>
        </div>`
     : `<div class="flex items-start gap-1.5">
-         <div class="flex-1 min-w-0 overflow-y-auto scrollbar-thin whitespace-pre-wrap break-words text-[#E5E7EB]" style="max-height:68px;font-size:11px;line-height:1.6;">${escHtml(note)}</div>
+         <div class="flex-1 min-w-0 overflow-y-auto scrollbar-thin whitespace-pre-wrap break-words text-white" style="max-height:68px;font-size:11px;line-height:1.6;">${escHtml(note)}</div>
          <button type="button" id="note-edit-btn" class="shrink-0 p-0.5 rounded hover:bg-white/10 transition-colors" title="编辑备注"><i data-lucide="pencil" class="w-3 h-3 text-[#9CA3AF]"></i></button>
        </div>`;
   // bottom:54px → 气泡悬浮盖住链接行（链接行顶距 footer 底约 50px）；宽度随内容自适应

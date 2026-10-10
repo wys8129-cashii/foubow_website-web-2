@@ -232,7 +232,15 @@
     let sample = null;
     try { if (typeof materials !== 'undefined' && materials.length) sample = materials[0]; } catch (_) {}
     const refPayload = sample
-      ? { kind: 'material', id: sample.id, title: sample.title, collection: sample.collection, url: sample.url || '', previewBg: sample.previewBg || '', previewHTML: sample.getPreviewHTML ? sample.getPreviewHTML() : '' }
+      ? (() => {
+          const sp = { kind: 'material', id: sample.id, title: sample.title, collection: sample.collection, url: sample.url || '', previewBg: sample.previewBg || '', previewHTML: sample.getPreviewHTML ? sample.getPreviewHTML() : '' };
+          sp.tags = Array.isArray(sample.tags) ? sample.tags : [];
+          const pc = (typeof sample.content === 'string' && sample.content)
+            ? sample.content
+            : (sample.details && Array.isArray(sample.details.pageContent) ? sample.details.pageContent.join('\n') : '');
+          sp.content = pc ? pc.slice(0, 2000) : '';
+          return sp;
+        })()
       : { kind: 'material', title: '示例素材', collection: '设计灵感', url: '' };
     names.forEach((name) => {
       if (getDocs(name).length === 0) {
@@ -415,6 +423,8 @@
   function renderAll(container) {
     const curName = container.__obName;
     const opts = container.__obOpts || {};
+    // 离开分享视图时清理共享数据，避免后续 ref-open 事件被误路由到分享逻辑
+    container.__shareData = null;
     // 检测分享模式
     const share = readShareFromHash();
     if (share) {
@@ -634,13 +644,15 @@
         : renderTextBlock(b.it, b.i, b.listType, b.listMarker, readOnly);
     });
 
-    if (!readOnly && items.length === 0) {
+    if (!readOnly) {
       html += `<div class="ob-add">
         <button class="ob-add-btn" data-act="ob-add-text" data-doc="${escId}">${icon('plus', 'w-3.5 h-3.5 inline -mt-0.5 mr-1')}添加文字</button>
-      </div>
-      <div class="ob-add ob-drop-hint-wrap">
-        <div class="ob-add-btn ob-drop-hint" role="note">拖入左侧素材卡片以插入</div>
       </div>`;
+      if (items.length === 0) {
+        html += `<div class="ob-add ob-drop-hint-wrap">
+          <div class="ob-add-btn ob-drop-hint" role="note">拖入左侧素材卡片以插入</div>
+        </div>`;
+      }
     }
     html += '</div></div>';
     container.innerHTML = html;
@@ -817,21 +829,16 @@
   function renderShareView(container, share) {
     const escT = escHtml((share.doc && share.doc.title) || share.name || '分享预览');
     let items = [];
-    let title = share.name ? `合集：${share.name}` : '分享预览';
-    let type = 'ul';
     if (share.kind === 'doc' && share.doc) {
-      title = share.doc.title || '未命名文档';
       items = share.doc.items || [];
-      type = share.doc.type || 'ul';
     } else if (share.kind === 'collection') {
       // 全部文档合并展示
       const docs = share.docs || [];
-      docs.forEach((d, di) => {
+      docs.forEach((d) => {
         items.push({ kind: 'text', level: 0, value: '— ' + (d.title || '未命名文档') + ' —', __heading: true });
         items = items.concat((d.items || []).map(it => Object.assign({}, it)));
       });
     }
-    const isOl = type === 'ol';
 
     const stack = [];
     const visible = [];
@@ -843,56 +850,46 @@
     });
 
     let body = '';
-    let num = 0;
-    visible.forEach((it) => {
+    visible.forEach((it, idx) => {
       const indent = (it.level || 0) * 22;
-      const bulletCls = isOl ? 'ob-bullet ob-bullet-num' : 'ob-bullet';
-      let marker = '';
-      if (isOl && (it.level || 0) === 0) { num++; marker = `<span class="ob-num">${num}.</span>`; }
-      else if (isOl) marker = `<span class="ob-num">↳</span>`;
-      else marker = '';
+      const headingCls = it.__heading ? ' ob-heading-line' : '';
       if (it.kind === 'text') {
-        body += `<div class="ob-block" style="margin-left:${indent}px">
-          <div class="${bulletCls}">${marker}</div>
-          <div class="ob-edit">${escHtml(it.value || '')}</div>
+        body += `<div class="ob-block${headingCls}" style="margin-left:${indent}px">
+          <div class="ob-edit ob-edit-readonly">${escHtml(it.value || '')}</div>
         </div>`;
       } else {
         const p = it.payload || {};
-        const refUrl = p.url || '#';
         const cardTitle = escHtml(p.title || '未命名素材');
-        let domain = '';
-        try { if (p.url) domain = escHtml(new URL(p.url).hostname.replace(/^www\./, '')); } catch (e) {}
         const coverInner = p.previewHTML
           ? `<div class="share-gallery-cover-inner ${escHtml(p.previewBg || '')}">${p.previewHTML}</div>`
           : '';
         const cover = p.previewHTML
           ? `<div class="share-gallery-cover">${coverInner}</div>`
           : `<div class="share-gallery-cover share-gallery-cover-empty">暂无预览</div>`;
-        body += `<div class="ob-block ob-ref" style="margin-left:${indent}px">
-          <div class="${bulletCls}">${marker}</div>
-          <a class="share-gallery-card" href="${escHtml(refUrl)}" target="_blank" rel="noopener">
+        body += `<div class="ob-block ob-ref" data-idx="${idx}" style="margin-left:${indent}px">
+          <div class="share-gallery-card" data-act="ref-open" data-idx="${idx}">
             ${cover}
             <div class="share-gallery-meta">
               <div class="share-gallery-title">${cardTitle}</div>
-              ${domain ? `<div class="share-gallery-domain"><i data-lucide="link" class="w-3 h-3"></i><span>${domain}</span></div>` : ''}
             </div>
-          </a>
+          </div>
         </div>`;
       }
     });
 
-    const ctxLabel = share.kind === 'doc' && share.doc
-      ? escHtml(share.name || '合集')
-      : (share.kind === 'collection' ? escHtml(share.name || '全部产出物') : '分享预览');
+    const refCount = visible.filter(i => i.kind !== 'text').length;
     const metaLine = share.kind === 'doc' && share.doc
-      ? `${escHtml(share.name || '')} · ${visible.length} 项 · ${fmtTime(share.doc.createdAt || share.doc.updatedAt || '')}`
-      : (share.kind === 'collection' ? `合集 · ${visible.length} 项` : '只读分享');
+      ? `${escHtml(share.name || '')} · ${refCount} 项 · ${fmtTime(share.doc.createdAt || share.doc.updatedAt || '')}`
+      : (share.kind === 'collection' ? `合集 · ${refCount} 项` : '只读分享');
+
+    const viewCols = container.__shareCols || 1;
+    container.__shareData = { share, visible };
 
     const html = `<div class="flex flex-col h-full">
       <div class="panel-header share-head">
         <div class="flex items-center gap-2 min-w-0 flex-1">
           <span class="hdr-badge">${icon('eye', 'w-3 h-3')}<span>分享预览</span></span>
-          <span class="text-xs text-[#9CA3AF] truncate">${ctxLabel}</span>
+          <span class="text-xs text-[#9CA3AF] truncate">${metaLine}</span>
         </div>
         <div class="flex items-center gap-1 shrink-0">
           <button class="hdr-icon-btn" data-act="close" title="关闭分享预览">${icon('x')}</button>
@@ -901,13 +898,18 @@
       <div class="flex-1 overflow-y-auto scrollbar-thin share-body">
         <div class="share-doc-head">
           <h1 class="share-doc-title">${escT}</h1>
-          <div class="share-doc-meta">${metaLine}</div>
+          <div class="share-view-toggle" role="tablist" aria-label="视图切换">
+            <button class="share-view-btn ${viewCols === 1 ? 'active' : ''}" data-act="share-view" data-cols="1" role="tab" aria-label="大图" title="大图"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg></button>
+            <button class="share-view-btn ${viewCols === 2 ? 'active' : ''}" data-act="share-view" data-cols="2" role="tab" aria-label="2列缩略图" title="2列"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg></button>
+            <button class="share-view-btn ${viewCols === 3 ? 'active' : ''}" data-act="share-view" data-cols="3" role="tab" aria-label="3列缩略图" title="3列"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="10" y="3" width="5" height="5" rx="1"/><rect x="17" y="3" width="5" height="5" rx="1"/><rect x="3" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/><rect x="17" y="10" width="5" height="5" rx="1"/><rect x="3" y="17" width="5" height="5" rx="1"/><rect x="10" y="17" width="5" height="5" rx="1"/><rect x="17" y="17" width="5" height="5" rx="1"/></svg></button>
+          </div>
         </div>
-        <div class="share-blocks">${body}</div>
-        <a class="share-footer" href="https://foubow.fun" target="_blank" rel="noopener">来自 foubow.fun →</a>
+        <div class="share-blocks view-cols-${viewCols}">${body}</div>
       </div>
+      <a class="share-footer" href="https://sm42ps27mabdnv01fac5a.apigateway-cn-shanghai.volceapi.com/material.html" target="_blank" rel="noopener">来自 foubow.fun →</a>
     </div>`;
     container.innerHTML = html;
+    if (window.lucide) window.lucide.createIcons();
   }
 
   // ============ 事件 ============
@@ -916,6 +918,7 @@
     if (!el) {
       el = document.createElement('div');
       el.id = 'ob-lightbox';
+      el.className = 'ob-lightbox';
       el.innerHTML = '<div class="ob-lightbox-backdrop"></div><div class="ob-lightbox-box"><button class="ob-lightbox-close" aria-label="关闭">&times;</button><div class="ob-lightbox-content"></div></div>';
       document.body.appendChild(el);
       el.addEventListener('click', (ev) => {
@@ -949,7 +952,40 @@
       ${cover}
       <h3 class="ob-lb-title">${escHtml(p.title || '未命名素材')}</h3>
       ${src ? `<div class="ob-lb-src">${escHtml(src)}</div>` : ''}
+      ${p.tags && p.tags.length ? `<div class="ob-lb-tags">${p.tags.map(t => `<span class="ob-lb-tag">${escHtml(t)}</span>`).join('')}</div>` : ''}
       ${(p.url && p.url !== '#') ? `<a class="ob-lb-link" href="${escHtml(p.url)}" target="_blank" rel="noopener">打开链接 ↗</a>` : ''}
+      ${p.content ? `<div class="ob-lb-content">${escHtml(p.content)}</div>` : ''}
+      ${p.desc ? `<p class="ob-lb-desc">${escHtml(p.desc)}</p>` : ''}
+    </div>`;
+    showObLightbox(html);
+  }
+
+  function shareRefPayload(t, container) {
+    const data = container.__shareData;
+    if (!data || !data.visible) return null;
+    const idx = parseInt(t.dataset.idx, 10);
+    return data.visible[idx] || null;
+  }
+  function showShareRefCover(t, container) {
+    const it = shareRefPayload(t, container);
+    if (!it || it.kind !== 'ref') return;
+    const p = it.payload || {};
+    const cover = p.previewHTML ? `<div class="ob-lb-cover ${escHtml(p.previewBg || '')}">${p.previewHTML}</div>` : '<div class="ob-lb-empty">无封面图</div>';
+    showObLightbox(cover);
+  }
+  function showShareRefDetail(t, container) {
+    const it = shareRefPayload(t, container);
+    if (!it || it.kind !== 'ref') return;
+    const p = it.payload || {};
+    const src = p.collection ? ('合集 · ' + p.collection) : (p.kind === 'collection' ? ('合集 · ' + (p.name || '')) : (p.url || ''));
+    const cover = p.previewHTML ? `<div class="ob-lb-cover-mini ${escHtml(p.previewBg || '')}">${p.previewHTML}</div>` : '';
+    const html = `<div class="ob-lb-detail">
+      ${cover}
+      <h3 class="ob-lb-title">${escHtml(p.title || '未命名素材')}</h3>
+      ${src ? `<div class="ob-lb-src">${escHtml(src)}</div>` : ''}
+      ${p.tags && p.tags.length ? `<div class="ob-lb-tags">${p.tags.map(t => `<span class="ob-lb-tag">${escHtml(t)}</span>`).join('')}</div>` : ''}
+      ${(p.url && p.url !== '#') ? `<a class="ob-lb-link" href="${escHtml(p.url)}" target="_blank" rel="noopener">打开链接 ↗</a>` : ''}
+      ${p.content ? `<div class="ob-lb-content">${escHtml(p.content)}</div>` : ''}
       ${p.desc ? `<p class="ob-lb-desc">${escHtml(p.desc)}</p>` : ''}
     </div>`;
     showObLightbox(html);
@@ -965,19 +1001,25 @@
     .ob-lightbox{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center}
     .ob-lightbox.show{display:flex}
     .ob-lightbox-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
-    .ob-lightbox-box{position:relative;max-width:92vw;max-height:92vh;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.45);display:flex;flex-direction:column}
+    .ob-lightbox-box{position:relative;width:fit-content;min-width:min(320px,90vw);max-width:min(560px,92vw);max-height:92vh;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.45);display:flex;flex-direction:column}
     .ob-lightbox-close{position:absolute;top:10px;right:12px;z-index:3;width:34px;height:34px;border:none;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;font-size:20px;line-height:1;cursor:pointer}
-    .ob-lightbox-content{overflow:auto;max-height:92vh}
-    .ob-lightbox-content img{max-width:92vw;display:block}
+    .ob-lightbox-content{overflow:auto;max-height:92vh;width:100%}
+    .ob-lightbox-content img,.ob-lightbox-content iframe,.ob-lightbox-content video{max-width:100%;display:block}
     .ob-lb-cover{padding:16px;display:flex;align-items:center;justify-content:center;background:#f7f8fa}
-    .ob-lb-cover > *{transform:none!important;max-width:90vw}
-    .ob-lb-cover-mini{border-radius:12px;overflow:hidden;margin-bottom:12px}
+    .ob-lb-cover > *{transform:none!important;max-width:100%}
+    .ob-lb-cover > * img,.ob-lb-cover > * iframe,.ob-lb-cover > * video{max-width:100%;height:auto;display:block}
+    .ob-lb-cover-mini{border-radius:12px;overflow:hidden;margin-bottom:12px;max-width:100%;background:#f7f8fa}
+    .ob-lb-cover-mini > *{max-width:100%}
+    .ob-lb-cover-mini img,.ob-lb-cover-mini iframe,.ob-lb-cover-mini video{width:100%;height:auto;display:block}
     .ob-lb-empty{padding:48px;color:#999;text-align:center}
-    .ob-lb-detail{padding:24px;min-width:320px;max-width:560px}
+    .ob-lb-detail{padding:24px;width:min(480px,90vw);max-width:100%;box-sizing:border-box}
     .ob-lb-title{font-size:16px;margin:0 0 8px;color:#111}
-    .ob-lb-src{font-size:12px;color:#888;margin-bottom:10px}
+    .ob-lb-src{font-size:12px;color:#888;margin-bottom:10px;word-break:break-word}
     .ob-lb-link{display:inline-block;color:#2f7d4f;font-size:14px;text-decoration:none;margin-bottom:10px}
     .ob-lb-desc{font-size:13px;color:#555;line-height:1.7;margin:0}
+    .ob-lb-tags{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+    .ob-lb-tag{font-size:12px;color:#1A1A1A;background:#F3F4F6;border-radius:999px;padding:3px 10px;line-height:1.5}
+    .ob-lb-content{font-size:13px;color:#374151;line-height:1.75;white-space:pre-wrap;word-break:break-word;margin-top:4px;max-height:40vh;overflow:auto}
     `;
     document.head.appendChild(s);
   }
@@ -1001,10 +1043,25 @@
       const opts = container.__obOpts || {};
 
       // ---- 产出物卡片交互（只读详情）----
-      if (act === 'ref-cover' && _view.mode === 'doc') { showRefCover(t, container); return; }
-      if (act === 'ref-open' && _view.mode === 'doc') {
-        if (e.target.closest('a')) return; // 链接交给浏览器跳转
-        showRefDetail(t, container); return;
+      if (act === 'ref-cover') {
+        if (container.__shareData) { showShareRefCover(t, container); return; }
+        if (_view.mode === 'doc') { showRefCover(t, container); return; }
+      }
+      if (act === 'ref-open') {
+        if (container.__shareData) { showShareRefDetail(t, container); return; }
+        if (_view.mode === 'doc') {
+          if (e.target.closest('a')) return; // 链接交给浏览器跳转
+          showRefDetail(t, container); return;
+        }
+      }
+
+      // ---- 分享视图切换 ----
+      if (act === 'share-view') {
+        const cols = parseInt(t.dataset.cols, 10) || 1;
+        container.__shareCols = cols;
+        const data = container.__shareData;
+        if (data && data.share) renderShareView(container, data.share);
+        return;
       }
 
       // ---- 顶栏主操作 ----
@@ -1543,13 +1600,17 @@
         url: el.dataset.materialUrl || '',
       };
       try {
-        const item = (typeof getMaterialById === 'function') ? getMaterialById(id) : null;
-        if (item) {
-          payload.previewBg = item.previewBg || '';
-          payload.previewHTML = item.getPreviewHTML ? item.getPreviewHTML() : '';
-        } else if (typeof materials !== 'undefined') {
-          const m = materials.find(x => String(x.id) === String(id));
-          if (m) { payload.previewBg = m.previewBg || ''; payload.previewHTML = m.getPreviewHTML ? m.getPreviewHTML() : ''; }
+        const mat = (typeof getMaterialById === 'function') ? getMaterialById(id) : null;
+        const m = mat || (typeof materials !== 'undefined' ? materials.find(x => String(x.id) === String(id)) : null);
+        if (m) {
+          payload.previewBg = m.previewBg || '';
+          payload.previewHTML = m.getPreviewHTML ? m.getPreviewHTML() : '';
+          // 拖拽写入时一并带上标签 / 正文（不调工作流，分享页直接读）
+          payload.tags = Array.isArray(m.tags) ? m.tags : [];
+          const pc = (typeof m.content === 'string' && m.content)
+            ? m.content
+            : (m.details && Array.isArray(m.details.pageContent) ? m.details.pageContent.join('\n') : '');
+          payload.content = pc ? pc.slice(0, 2000) : '';
         }
       } catch (_) {}
       e.dataTransfer.setData(CARD_MIME, JSON.stringify(payload));
